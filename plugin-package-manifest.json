@@ -9,6 +9,7 @@
   "primary_skill_root": "plugins/content-marketing-workflow/skills/content-marketing-workflow",
   "include_roots": [
     ".codex-plugin",
+    "assets",
     "skills/content-marketing-workflow"
   ],
   "include_files": [
