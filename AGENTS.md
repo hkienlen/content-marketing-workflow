@@ -8,22 +8,28 @@ All generic product corrections, evolutions, packaging changes and versioning mu
 
 ## Product architecture
 
-- plugin name: `content-marketing-workflow`;
+- marketplace manifest: `.agents/plugins/marketplace.json`;
+- marketplace name: `content-marketing-workflow`;
+- plugin source root: `plugins/content-marketing-workflow`;
+- plugin manifest: `plugins/content-marketing-workflow/.codex-plugin/plugin.json`;
 - display name: `Content Marketing Workflow`;
-- one primary skill: `skills/content-marketing-workflow`;
+- one primary skill: `plugins/content-marketing-workflow/skills/content-marketing-workflow`;
 - internal capability names are not separate installable skills;
 - `SEO Workflow Bridge` is a bundled WordPress companion and retains independent versioning.
+
+The repository must follow the Codex repo/team marketplace convention: marketplace metadata stays at repository root, while installable plugin source stays under `plugins/<plugin-name>/`. Do not move the plugin manifest back to repository root and do not duplicate the plugin source in two locations.
 
 ## Development workflow
 
 1. Branch from current `main`.
 2. Make the smallest coherent product change.
 3. Update contracts/docs/tests when behavior changes.
-4. Keep `VERSION` and `.codex-plugin/plugin.json` synchronized.
+4. Keep `VERSION` and `plugins/content-marketing-workflow/.codex-plugin/plugin.json` synchronized.
 5. Run `python3 tests/test_repository.py`.
 6. Run `python3 tools/build-release.py --source-sha <40-hex-sha>` when validating packaging.
-7. Open a PR, require green CI, then merge.
-8. Build releases from an exact merged `main` SHA only.
+7. Validate marketplace discovery/install through the CI Codex smoke test when installation metadata or plugin layout changes.
+8. Open a PR, require green CI, then merge.
+9. Build releases from an exact merged `main` SHA only.
 
 Routine GitHub mechanics are implementation plumbing; business/content publication gates defined by the skill remain authoritative.
 
@@ -36,9 +42,19 @@ Never commit or package:
 - credentials, tokens, secrets or private keys;
 - user media or source-user assets;
 - exact publication authorizations or live publication evidence;
-- pilot-specific profile names, hostnames, URLs or configuration as generic defaults.
+- integration-specific profile names, hostnames, URLs or configuration as generic defaults.
 
-Publisher/developer metadata in `.codex-plugin/plugin.json` is legitimate product metadata and is not user runtime data.
+Publisher/developer metadata in the plugin manifest is legitimate product metadata and is not user runtime data.
+
+## Marketplace boundary
+
+`.agents/plugins/marketplace.json` is repository-level discovery metadata and must:
+
+- expose exactly the canonical plugin name;
+- use a local source path under `./plugins/`;
+- point at the same plugin source validated by packaging tests;
+- include installation/authentication policy and category;
+- remain outside the standalone plugin release ZIP.
 
 ## Release/versioning
 

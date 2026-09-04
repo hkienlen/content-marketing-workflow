@@ -31,3 +31,27 @@ jobs:
           path: build/content-marketing-workflow-*.zip
           if-no-files-found: error
           retention-days: 30
+
+  codex-marketplace-install:
+    runs-on: ubuntu-latest
+    env:
+      CODEX_HOME: ${{ runner.temp }}/codex-home
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned Codex CLI
+        run: npm install --global @openai/codex@0.153.2
+      - name: Show Codex version
+        run: codex --version
+      - name: Add repository as local marketplace
+        run: |
+          mkdir -p "$CODEX_HOME"
+          codex plugin marketplace add . --json
+      - name: Install plugin from marketplace
+        run: codex plugin add content-marketing-workflow@content-marketing-workflow --json
+      - name: Verify marketplace and plugin discovery
+        run: |
+          codex plugin marketplace list --json
+          codex plugin list --marketplace content-marketing-workflow --json
