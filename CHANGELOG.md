@@ -4,6 +4,10 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+- Added the canonical Codex repo/team marketplace manifest at `.agents/plugins/marketplace.json`.
+- Moved installable plugin source under `plugins/content-marketing-workflow/` to match the official marketplace layout and avoid repository-root plugin path issues.
+- Added repository tests that bind marketplace discovery, plugin source, package manifest and release ZIP to the same canonical plugin.
+- Added a Codex CLI marketplace/install smoke test in CI using a pinned CLI version.
 - Canonical development moved into a dedicated generic product repository.
 - Added self-contained release build and repository CI.
 - Removed integration-specific presentation/profile examples from generic documentation.
