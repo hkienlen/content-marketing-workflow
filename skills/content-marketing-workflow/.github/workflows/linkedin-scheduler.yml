@@ -1,0 +1,47 @@
+name: LinkedIn Scheduled Publisher
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: linkedin-scheduled-publisher
+  cancel-in-progress: false
+
+jobs:
+  dispatch-due:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Find and dispatch due exact authorizations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          NOW="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          python3 scripts/linkedin-scheduler-v1.py due --now "$NOW" > "$RUNNER_TEMP/due.txt"
+          if [[ ! -s "$RUNNER_TEMP/due.txt" ]]; then
+            echo 'No authorized LinkedIn posts are due.'
+            exit 0
+          fi
+          while IFS= read -r AUTH_FILE; do
+            [[ -n "$AUTH_FILE" ]] || continue
+            POST_ID="$(jq -r '.candidate.post_id' "$AUTH_FILE")"
+            echo "Dispatching exact authorization for ${POST_ID}: ${AUTH_FILE}"
+            gh api --method POST \
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/linkedin-publish-relay.yml/dispatches" \
+              -f ref=main \
+              -f "inputs[authorization_path]=${AUTH_FILE}"
+          done < "$RUNNER_TEMP/due.txt"

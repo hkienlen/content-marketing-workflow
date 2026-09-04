@@ -4,67 +4,82 @@
   <img src="assets/repository-icon.png" alt="Content Marketing Workflow icon" width="180">
 </p>
 
-**Content Marketing Workflow** is the canonical source repository for the ChatGPT/Codex plugin `content-marketing-workflow`.
+**Content Marketing Workflow** is the canonical source repository for the reusable Content Marketing Workflow Skill and its optional Codex plugin distribution.
 
-Current version: `0.1.0`
+Current version: `0.1.2`
 
-The repository follows the supported repo/team marketplace layout:
+## Distribution model
+
+The workflow now has one canonical Skill source and two supported distributions:
 
 ```text
 content-marketing-workflow/
-├── .agents/
-│   └── plugins/
-│       └── marketplace.json
-├── assets/
-│   └── repository-icon.png
+├── skills/
+│   └── content-marketing-workflow/          # canonical Skill source
+│       ├── SKILL.md
+│       ├── VERSION
+│       └── supporting resources
 ├── plugins/
-│   └── content-marketing-workflow/
-│       ├── .codex-plugin/
-│       │   └── plugin.json
+│   └── content-marketing-workflow/          # Codex plugin distribution
+│       ├── .codex-plugin/plugin.json
 │       ├── assets/
-│       │   ├── icon.png
-│       │   └── logo.png
 │       └── skills/
-│           └── content-marketing-workflow/
-│               └── SKILL.md
+│           └── content-marketing-workflow/  # byte-for-byte mirror of canonical Skill
+├── tools/
+│   ├── build-skill.py
+│   ├── build-release.py
+│   └── sync-skill-mirror.py
 ├── tests/
-└── tools/
+└── .agents/plugins/marketplace.json
 ```
 
-The plugin contains one primary skill. SEO, article, visual, WordPress, social, scheduling, publication, verification and notification behaviors remain internal capabilities of that single skill.
+The **Skill is the canonical reasoning/workflow boundary**. The Codex plugin is an optional packaging/distribution envelope and must not develop a separate behavior model.
 
-## Branding
+SEO, article, visual, WordPress, social, scheduling, publication, verification and notification behaviors remain internal capabilities of this single Skill.
 
-The canonical repository artwork is stored in `assets/repository-icon.png` and displayed above. The installable plugin uses the same visual identity through:
+## Direct installation in ChatGPT
 
-- `plugins/content-marketing-workflow/assets/icon.png` for compact plugin/composer views;
-- `plugins/content-marketing-workflow/assets/logo.png` for larger plugin presentation surfaces.
+For users who can upload Skills in ChatGPT, this is the preferred ChatGPT distribution.
 
-The plugin manifest references those assets through `interface.composerIcon` and `interface.logo`. The human-readable developer name is `Hervé Kienlen`.
+Tagged releases publish:
 
-## ChatGPT Web workspace import
+```text
+content-marketing-workflow-<version>.skill
+content-marketing-workflow-skill-<version>.zip
+```
 
-The same repository marketplace can be imported directly by eligible ChatGPT workspace administrators. No separate Web plugin package, Apps SDK wrapper or MCP server is required merely to distribute this skill-only plugin.
+Both files contain the complete canonical Skill folder with `SKILL.md` and its supporting resources.
 
-In ChatGPT Web:
+In ChatGPT, use the Skills interface (`Create` → `Upload from your computer`) and upload the `.skill` artifact, or the Skill ZIP when appropriate. Uploading only `SKILL.md` is possible in interfaces that support it, but the complete package is recommended because this workflow relies on supporting contracts and scripts.
 
-1. Open `Workspace settings`.
-2. Open `Plugins`.
-3. Select `Add`, then `Import marketplace`.
-4. In `Source`, enter the repository URL for this repository. Use the repository URL only, not a branch or folder URL.
-5. Leave `Path` empty because `.agents/plugins/marketplace.json` is at repository root.
-6. Set `Branch, tag, or commit` to `main` for ongoing synchronization, or pin a tag/commit for an immutable import.
-7. Select `Import marketplace` and authorize GitHub access when prompted.
-8. Review the import result and open `Content Marketing Workflow`.
-9. Set the workspace installation policy to `Available` or `Installed` as appropriate for eligible users/roles.
+After installation, start a new chat and invoke the Skill or use:
 
-GitHub marketplace import is a workspace-admin capability. Repository policy values do not override ChatGPT workspace policies; installation/authentication are controlled by the workspace after import.
+```text
+/start
+```
 
-The base plugin is skill-only and does not require an app connection merely to install. Optional runtime integrations such as GitHub, Google Drive, WordPress or social publication remain subject to the actual connected tools, permissions and provider authorization available in the active ChatGPT workspace.
+The Skill can then initialize or resume project onboarding. Installing a Skill does **not** itself grant GitHub, WordPress, cloud-storage or social-provider access; external operations use only the tools/connections actually available in the active ChatGPT conversation.
 
-See `docs/chatgpt-web-marketplace.md` for the repository-maintainer guide.
+See `docs/chatgpt-direct-skill.md` for the direct-install and update guide.
 
-## Install from the Git marketplace with Codex CLI
+## ChatGPT conversational execution
+
+The workflow is intentionally usable directly in ChatGPT when the required connected tools are available. Repository work does not automatically require Codex.
+
+Typical direct-ChatGPT usage includes:
+
+- `/start` onboarding and durable project configuration;
+- inspection of an existing/new project repository when GitHub tools are connected;
+- selective migration of articles, social posts and related assets from an older project repository;
+- article planning, drafting, review and update;
+- social-series planning, post creation and review;
+- WordPress/social preparation and publication only through their explicit authorization gates.
+
+The Skill must not claim an external write succeeded when the active conversation does not expose the required connection/tool.
+
+## Codex plugin distribution
+
+The Codex plugin remains available for users who want marketplace installation or Codex repository execution.
 
 Add the repository as a Codex marketplace:
 
@@ -72,68 +87,92 @@ Add the repository as a Codex marketplace:
 codex plugin marketplace add <owner>/content-marketing-workflow --ref main
 ```
 
-Then install the plugin exposed by that marketplace:
+Install the plugin:
 
 ```bash
 codex plugin add content-marketing-workflow@content-marketing-workflow
 ```
 
-Verify discovery and installation:
+Verify discovery:
 
 ```bash
 codex plugin marketplace list
 codex plugin list --marketplace content-marketing-workflow
 ```
 
-Start a new Codex thread after installation so newly installed skills and plugin surfaces are loaded cleanly.
-
-## Local development install
-
-From a checkout of this repository:
+For local development:
 
 ```bash
 codex plugin marketplace add .
 codex plugin add content-marketing-workflow@content-marketing-workflow
 ```
 
-The CI smoke test performs this local marketplace installation with a pinned Codex CLI version in addition to repository/package validation.
+The CI smoke test validates this Codex installation path independently from direct Skill packaging.
 
-## Upgrade
+## Canonical Skill and plugin mirror
 
-For Codex CLI, refresh the configured Git marketplace:
+Edit the canonical Skill under:
 
-```bash
-codex plugin marketplace upgrade content-marketing-workflow
+```text
+skills/content-marketing-workflow/
 ```
 
-Then reinstall/refresh the plugin from the same marketplace when required by the active Codex version:
+Then synchronize the Codex plugin mirror with:
 
 ```bash
-codex plugin add content-marketing-workflow@content-marketing-workflow
+python3 tools/sync-skill-mirror.py
 ```
 
-For a ChatGPT Web workspace marketplace, GitHub synchronization is managed from the marketplace entry in `Workspace settings > Plugins`; automatic sync may be enabled and an administrator can request `Sync now` when needed.
+CI compares the two trees byte-for-byte and fails if they diverge.
 
-## Canonical source
+This prevents ChatGPT and Codex behavior from becoming separate implementations.
 
-Corrections, evolutions, release preparation and versioning of the generic plugin are performed in this repository.
+## Build artifacts
 
-Real integration environments and user/project state are deliberately separate from the generic product source and are never sources for a future generic release.
+Build the direct ChatGPT Skill artifacts:
 
-## Repository versus release package
+```bash
+python3 tools/build-skill.py
+```
 
-The marketplace manifest is repository-level installation metadata for both Codex marketplace discovery and eligible ChatGPT workspace import. The installable plugin source lives under `plugins/content-marketing-workflow/`.
+Build the standalone Codex plugin ZIP:
 
-`tools/build-release.py` creates the clean standalone release ZIP from the plugin source directory plus the release-level README/VERSION files and generates `SOURCE.json` with the exact canonical commit SHA used for that build.
+```bash
+python3 tools/build-release.py --source-sha "$(git rev-parse HEAD)"
+```
 
-Repository-only files such as the marketplace manifest, tests, CI, migration notes and development instructions are not copied into the standalone plugin ZIP.
+The two builders coexist in `build/`; neither builder deletes the other's artifacts.
+
+## Branding
+
+The canonical repository artwork is stored in `assets/repository-icon.png`.
+
+The Codex plugin uses:
+
+- `plugins/content-marketing-workflow/assets/icon.png` for compact plugin/composer views;
+- `plugins/content-marketing-workflow/assets/logo.png` for larger plugin presentation surfaces.
+
+The plugin manifest references those assets through `interface.composerIcon` and `interface.logo`. The human-readable developer name is `Hervé Kienlen`.
 
 ## Versioning
 
-The plugin follows Semantic Versioning. `VERSION` and `plugins/content-marketing-workflow/.codex-plugin/plugin.json` must contain the same version. Release notes are maintained in `CHANGELOG.md`.
+The project follows Semantic Versioning. These values must stay synchronized:
+
+```text
+VERSION
+skills/content-marketing-workflow/VERSION
+plugins/content-marketing-workflow/skills/content-marketing-workflow/VERSION
+plugins/content-marketing-workflow/.codex-plugin/plugin.json
+```
+
+Release notes are maintained in `CHANGELOG.md`.
+
+Tagged release automation publishes both the direct Skill artifacts and the Codex plugin ZIP with SHA-256 checksum files.
 
 `SEO Workflow Bridge` is bundled as a WordPress companion resource and keeps its own independent versioning.
 
 ## Safety boundary
 
 Generic source and release artifacts must not contain user/project content, integration identities/configuration, live provider IDs, exact publication authorizations, credentials or user media. Runtime values belong to the active user's durable project state or external credential owner.
+
+A project repository is separate from this generic product repository. `/start` may initialize project-specific state in the project repository, but it must never copy generic product source, release tooling or credentials into that project merely because they are available.

@@ -1,0 +1,226 @@
+name: WordPress Relay
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+jobs:
+  relay:
+    if: startsWith(github.event.issue.title, '[wordpress-relay]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate request and connection profile
+        id: request
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_AUTHOR_ASSOCIATION: ${{ github.event.issue.author_association }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$ISSUE_AUTHOR_ASSOCIATION" in
+            OWNER|MEMBER|COLLABORATOR) ;;
+            *) echo "Untrusted issue author association: $ISSUE_AUTHOR_ASSOCIATION" >&2; exit 1 ;;
+          esac
+
+          printf '%s' "$ISSUE_BODY" > "$RUNNER_TEMP/request.json"
+          jq -e '(.schema_version == 1) and (.request_id|type=="string") and (.connection_id|type=="string") and (.operation|type=="string") and (.issued_at|type=="string") and (.payload|type=="object")' "$RUNNER_TEMP/request.json" >/dev/null
+
+          CONNECTION_ID="$(jq -r '.connection_id' "$RUNNER_TEMP/request.json")"
+          [[ "$CONNECTION_ID" =~ ^[A-Za-z0-9._-]{1,80}$ ]] || { echo "Invalid connection_id" >&2; exit 1; }
+
+          OPERATION="$(jq -r '.operation' "$RUNNER_TEMP/request.json")"
+          case "$OPERATION" in
+            site_info|content_list|reference_read|draft_create|draft_read|draft_delete|prepare_article|article_read|presentation_probe|publication_capture|publication_preflight|publish_article|published_article_read) ;;
+            *) echo "Unsupported parent relay operation: $OPERATION" >&2; exit 1 ;;
+          esac
+
+          case "$OPERATION" in
+            publication_capture|publication_preflight|publish_article|published_article_read)
+              [[ "$ISSUE_AUTHOR_ASSOCIATION" == "OWNER" ]] || { echo "Publication operations require repository OWNER issue author association" >&2; exit 1; }
+              ;;
+          esac
+
+          PROFILE="wordpress/config/connections/${CONNECTION_ID}.json"
+          test -f "$PROFILE" || { echo "Connection profile not found: $PROFILE" >&2; exit 1; }
+
+          ENDPOINT="$(jq -r '.relay.endpoint // empty' "$PROFILE")"
+          AUDIENCE="$(jq -r '.relay.audience // empty' "$PROFILE")"
+          PREPARE_ENDPOINT="$(jq -r '.relay.prepare_endpoint // empty' "$PROFILE")"
+          PUBLISH_ENDPOINT="$(jq -r '.relay.publish_endpoint // empty' "$PROFILE")"
+          EXPECTED_SITE="$(jq -r '.expected_site_url // empty' "$PROFILE")"
+          test -n "$ENDPOINT" && test -n "$AUDIENCE" && test -n "$EXPECTED_SITE"
+          if [[ "$OPERATION" == "prepare_article" || "$OPERATION" == "article_read" || "$OPERATION" == "presentation_probe" || "$OPERATION" == "publication_capture" ]]; then test -n "$PREPARE_ENDPOINT"; fi
+          if [[ "$OPERATION" == "publication_preflight" || "$OPERATION" == "publish_article" || "$OPERATION" == "published_article_read" ]]; then test -n "$PUBLISH_ENDPOINT"; fi
+
+          python3 - "$ENDPOINT" "$PREPARE_ENDPOINT" "$PUBLISH_ENDPOINT" "$EXPECTED_SITE" "$OPERATION" <<'PY'
+          import sys
+          from urllib.parse import urlparse
+          endpoint, prepare_endpoint, publish_endpoint, expected, operation = sys.argv[1:]
+          s = urlparse(expected)
+          endpoints = [endpoint]
+          if operation in ('prepare_article', 'article_read', 'presentation_probe', 'publication_capture'):
+              endpoints.append(prepare_endpoint)
+          if operation in ('publication_preflight', 'publish_article', 'published_article_read'):
+              endpoints.append(publish_endpoint)
+          for value in endpoints:
+              e = urlparse(value)
+              if e.scheme != 'https' or s.scheme != 'https' or not e.hostname or e.hostname != s.hostname:
+                  raise SystemExit('Relay endpoint must be HTTPS and use the expected WordPress hostname')
+          PY
+
+          echo "endpoint=$ENDPOINT" >> "$GITHUB_OUTPUT"
+          echo "audience=$AUDIENCE" >> "$GITHUB_OUTPUT"
+          echo "prepare_endpoint=$PREPARE_ENDPOINT" >> "$GITHUB_OUTPUT"
+          echo "publish_endpoint=$PUBLISH_ENDPOINT" >> "$GITHUB_OUTPUT"
+          echo "request_id=$(jq -r '.request_id' "$RUNNER_TEMP/request.json")" >> "$GITHUB_OUTPUT"
+          echo "operation=$OPERATION" >> "$GITHUB_OUTPUT"
+          echo "profile=$PROFILE" >> "$GITHUB_OUTPUT"
+
+      - name: Request GitHub OIDC token
+        id: oidc
+        env:
+          AUDIENCE: ${{ steps.request.outputs.audience }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ENCODED_AUDIENCE="$(python3 -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["AUDIENCE"], safe=""))')"
+          TOKEN_JSON="$(curl --fail --silent --show-error \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${ENCODED_AUDIENCE}")"
+          TOKEN="$(printf '%s' "$TOKEN_JSON" | jq -r '.value // empty')"
+          test -n "$TOKEN"
+          printf '%s' "$TOKEN" > "$RUNNER_TEMP/oidc-token"
+          chmod 600 "$RUNNER_TEMP/oidc-token"
+          echo "::add-mask::$TOKEN"
+
+      - name: Validate non-secret OIDC claims
+        env:
+          AUDIENCE: ${{ steps.request.outputs.audience }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$RUNNER_TEMP/oidc-token" "$AUDIENCE" <<'PY'
+          import base64, json, pathlib, sys
+          token_path, expected = sys.argv[1:]
+          token = pathlib.Path(token_path).read_text()
+          payload = token.split('.')[1]
+          payload += '=' * (-len(payload) % 4)
+          claims = json.loads(base64.urlsafe_b64decode(payload.encode()).decode())
+          aud = claims.get('aud')
+          print('OIDC aud claim type:', type(aud).__name__)
+          print('OIDC aud claim:', json.dumps(aud, separators=(',', ':')))
+          print('Expected OIDC audience:', expected)
+          matches = expected in aud if isinstance(aud, list) else aud == expected
+          if not matches:
+              raise SystemExit('GitHub OIDC token audience does not match requested audience')
+          PY
+
+      - name: Call WordPress relay
+        id: wordpress
+        env:
+          ENDPOINT: ${{ steps.request.outputs.endpoint }}
+          OPERATION: ${{ steps.request.outputs.operation }}
+          PROFILE: ${{ steps.request.outputs.profile }}
+          PREPARE_ENDPOINT: ${{ steps.request.outputs.prepare_endpoint }}
+          PUBLISH_ENDPOINT: ${{ steps.request.outputs.publish_endpoint }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$OPERATION" == "presentation_probe" ]]; then
+            set +e
+            python3 scripts/wordpress-relay-presentation-probe.py \
+              --request "$RUNNER_TEMP/request.json" \
+              --profile "$PROFILE" \
+              --oidc-token-file "$RUNNER_TEMP/oidc-token" \
+              --response "$RUNNER_TEMP/response.json"
+            RC=$?
+            set -e
+            if [[ "$RC" -eq 0 ]]; then HTTP_CODE=200; else HTTP_CODE=400; fi
+            echo "http_code=$HTTP_CODE" >> "$GITHUB_OUTPUT"
+            [[ "$RC" -eq 0 ]]
+            exit
+          fi
+
+          if [[ "$OPERATION" == "prepare_article" ]]; then
+            set +e
+            python3 scripts/wordpress-relay-prepare-v3.py \
+              --request "$RUNNER_TEMP/request.json" \
+              --profile "$PROFILE" \
+              --oidc-token-file "$RUNNER_TEMP/oidc-token" \
+              --endpoint "$PREPARE_ENDPOINT" \
+              --response "$RUNNER_TEMP/response.json" \
+              --github-token "$GH_TOKEN"
+            RC=$?
+            set -e
+            if [[ "$RC" -eq 0 ]]; then HTTP_CODE=200; else HTTP_CODE=400; fi
+            echo "http_code=$HTTP_CODE" >> "$GITHUB_OUTPUT"
+            [[ "$RC" -eq 0 ]]
+            exit
+          fi
+
+          if [[ "$OPERATION" == "publication_capture" || "$OPERATION" == "publication_preflight" || "$OPERATION" == "publish_article" || "$OPERATION" == "published_article_read" ]]; then
+            set +e
+            python3 scripts/wordpress-relay-publish-v1.py \
+              --request "$RUNNER_TEMP/request.json" \
+              --profile "$PROFILE" \
+              --oidc-token-file "$RUNNER_TEMP/oidc-token" \
+              --endpoint "$PUBLISH_ENDPOINT" \
+              --prepare-endpoint "$PREPARE_ENDPOINT" \
+              --response "$RUNNER_TEMP/response.json"
+            RC=$?
+            set -e
+            if [[ "$RC" -eq 0 ]]; then HTTP_CODE=200; else HTTP_CODE=400; fi
+            echo "http_code=$HTTP_CODE" >> "$GITHUB_OUTPUT"
+            [[ "$RC" -eq 0 ]]
+            exit
+          fi
+
+          TARGET_ENDPOINT="$ENDPOINT"
+          if [[ "$OPERATION" == "article_read" ]]; then TARGET_ENDPOINT="$PREPARE_ENDPOINT"; fi
+
+          OIDC_TOKEN="$(cat "$RUNNER_TEMP/oidc-token")"
+          HTTP_CODE="$(curl --silent --show-error \
+            --output "$RUNNER_TEMP/response.json" \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --header "Authorization: Bearer ${OIDC_TOKEN}" \
+            --data-binary "@$RUNNER_TEMP/request.json" \
+            "$TARGET_ENDPOINT")"
+          jq . "$RUNNER_TEMP/response.json" >/dev/null || { echo "WordPress response was not JSON" >&2; cat "$RUNNER_TEMP/response.json" >&2; exit 1; }
+          echo "http_code=$HTTP_CODE" >> "$GITHUB_OUTPUT"
+          if [[ "$HTTP_CODE" -lt 200 || "$HTTP_CODE" -ge 300 ]]; then
+            echo "WordPress relay returned HTTP $HTTP_CODE" >&2
+            exit 1
+          fi
+
+      - name: Post machine-readable response
+        if: always() && steps.request.outputs.request_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REQUEST_ID: ${{ steps.request.outputs.request_id }}
+          HTTP_CODE: ${{ steps.wordpress.outputs.http_code }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -f "$RUNNER_TEMP/response.json" && jq -e . "$RUNNER_TEMP/response.json" >/dev/null 2>&1; then
+            RESPONSE="$(cat "$RUNNER_TEMP/response.json")"
+          else
+            RESPONSE='{"ok":false,"error":{"code":"relay_workflow_failed","message":"The relay workflow failed before receiving a valid WordPress JSON response."}}'
+          fi
+          BODY="$(jq -cn --arg request_id "$REQUEST_ID" --arg http_code "${HTTP_CODE:-0}" --argjson response "$RESPONSE" '{marker:"wordpress-relay-response",request_id:$request_id,http_code:($http_code|tonumber),response:$response}')"
+          gh api "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}/comments" -f body="$BODY" >/dev/null
+          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}" -f state=closed >/dev/null

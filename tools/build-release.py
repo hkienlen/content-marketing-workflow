@@ -41,9 +41,13 @@ def main() -> None:
         raise SystemExit(f"plugin source root missing: {source_root}")
 
     build = ROOT / "build"
-    stage = build / cfg["plugin_name"]
-    if build.exists():
-        shutil.rmtree(build)
+    stage = build / "plugin-stage" / cfg["plugin_name"]
+    out = build / f"{cfg['plugin_name']}-{version}.zip"
+
+    if stage.parent.exists():
+        shutil.rmtree(stage.parent)
+    if out.exists():
+        out.unlink()
     stage.mkdir(parents=True)
 
     for rel in cfg["include_roots"]:
@@ -67,7 +71,6 @@ def main() -> None:
     }
     (stage / "SOURCE.json").write_text(json.dumps(source, indent=2) + "\n", encoding="utf-8")
 
-    out = build / f"{cfg['plugin_name']}-{version}.zip"
     epoch = (1980, 1, 1, 0, 0, 0)
     with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
         for path in sorted(p for p in stage.rglob("*") if p.is_file()):

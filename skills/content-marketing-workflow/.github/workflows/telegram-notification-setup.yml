@@ -1,0 +1,89 @@
+name: Telegram notification setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Discover candidate chats, verify/enable one chat, or disable notifications
+        required: true
+        type: choice
+        options:
+          - discover
+          - verify
+          - disable
+      chat_id:
+        description: Numeric Telegram chat ID; required only for verify
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: telegram-notification-setup
+  cancel-in-progress: false
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Validate requested setup mode
+        shell: bash
+        env:
+          MODE: ${{ inputs.mode }}
+          CHAT_ID: ${{ inputs.chat_id }}
+        run: |
+          set -euo pipefail
+          if [[ "$MODE" == verify ]]; then
+            [[ "$CHAT_ID" =~ ^-?[0-9]+$ ]] || { echo 'verify mode requires a numeric chat_id' >&2; exit 1; }
+          fi
+
+      - name: Discover, verify or disable Telegram notifications
+        id: setup
+        shell: bash
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          MODE: ${{ inputs.mode }}
+          CHAT_ID: ${{ inputs.chat_id }}
+        run: |
+          set -euo pipefail
+          ARGS=(--profile user-data/profile.json --mode "$MODE")
+          if [[ "$MODE" == verify ]]; then
+            ARGS+=(--chat-id "$CHAT_ID")
+          fi
+          set +e
+          python3 scripts/telegram-notification-setup.py "${ARGS[@]}" > "$RUNNER_TEMP/telegram-setup.txt" 2>&1
+          RC=$?
+          set -e
+          {
+            echo '## Telegram notification setup'
+            echo '```text'
+            cat "$RUNNER_TEMP/telegram-setup.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/telegram-setup.txt"
+          exit "$RC"
+
+      - name: Persist verified user notification preference
+        if: inputs.mode == 'verify' || inputs.mode == 'disable'
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROFILE='user-data/profile.json'
+          if git diff --quiet -- "$PROFILE"; then
+            echo 'No Telegram preference change to persist.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- "$PROFILE"
+          git commit -m 'chore(user-data): update Telegram notification preference'
+          git pull --rebase origin main
+          git push origin HEAD:main

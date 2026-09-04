@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/content-marketing-workflow/user-command-catalog.schema.json",
+  "title": "Content Marketing Workflow User Command Catalogue",
+  "type": "object",
+  "required": ["schema_version", "status", "help_command", "status_command", "commands", "internal_only_capabilities"],
+  "properties": {
+    "schema_version": {"type": "integer", "minimum": 2},
+    "status": {"type": "string", "minLength": 1},
+    "help_command": {"type": "string", "const": "/help"},
+    "status_command": {"type": "string", "const": "/status"},
+    "commands": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/command"}
+    },
+    "internal_only_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["capability", "reason"],
+        "properties": {
+          "capability": {"type": "string", "minLength": 1},
+          "reason": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "argument": {
+      "type": "object",
+      "required": ["name", "kind", "required"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["positional", "trailing_text", "named_optional"]},
+        "required": {"type": "boolean"},
+        "identity": {"type": ["string", "null"]},
+        "description": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "command": {
+      "type": "object",
+      "required": ["id", "command", "family", "summary", "availability", "feature_gate", "mode", "arguments", "response_contract"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]*$"},
+        "command": {"type": "string", "pattern": "^/"},
+        "family": {"type": "string", "minLength": 1},
+        "capability": {"type": "string", "minLength": 1},
+        "behavior": {"type": "string", "minLength": 1},
+        "operation": {"type": "string", "minLength": 1},
+        "summary": {"type": "string", "minLength": 1},
+        "availability": {"enum": ["core", "optional"]},
+        "feature_gate": {"type": ["string", "null"]},
+        "mode": {"enum": ["read_only", "mutating", "external_side_effect"]},
+        "side_effects": {"type": "string"},
+        "arguments": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/argument"}
+        },
+        "response_contract": {"type": "string", "minLength": 1},
+        "help_source": {"type": "string", "minLength": 1}
+      },
+      "oneOf": [
+        {"required": ["capability"], "not": {"required": ["behavior"]}},
+        {"required": ["behavior"], "not": {"required": ["capability"]}}
+      },
+      "additionalProperties": false
+    }
+  }
+}

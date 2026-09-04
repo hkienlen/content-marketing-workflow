@@ -1,12 +1,13 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "plugin_name": "content-marketing-workflow",
   "display_name": "Content Marketing Workflow",
   "version_file": "VERSION",
   "marketplace_manifest": ".agents/plugins/marketplace.json",
   "plugin_source_root": "plugins/content-marketing-workflow",
   "plugin_manifest": "plugins/content-marketing-workflow/.codex-plugin/plugin.json",
-  "primary_skill_root": "plugins/content-marketing-workflow/skills/content-marketing-workflow",
+  "primary_skill_root": "skills/content-marketing-workflow",
+  "plugin_skill_mirror": "plugins/content-marketing-workflow/skills/content-marketing-workflow",
   "include_roots": [
     ".codex-plugin",
     "assets",
@@ -25,7 +26,10 @@
     "CHANGELOG.md",
     "MIGRATION.md",
     "plugin-package-manifest.json",
+    "skill-package-manifest.json",
     ".github",
+    "skills",
+    "docs",
     "tests",
     "tools",
     ".gitignore"
