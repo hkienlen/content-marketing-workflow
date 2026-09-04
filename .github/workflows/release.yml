@@ -1,0 +1,34 @@
+name: Build tagged release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate tag equals VERSION
+        run: |
+          test "${GITHUB_REF_NAME}" = "v$(cat VERSION)"
+          python3 tests/test_repository.py
+      - name: Build exact release
+        run: python3 tools/build-release.py --source-sha "$GITHUB_SHA"
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha256sum "build/content-marketing-workflow-$(cat VERSION).zip" > "build/content-marketing-workflow-$(cat VERSION).zip.sha256"
+          gh release create "$GITHUB_REF_NAME" \
+            "build/content-marketing-workflow-$(cat VERSION).zip" \
+            "build/content-marketing-workflow-$(cat VERSION).zip.sha256" \
+            --title "Content Marketing Workflow $(cat VERSION)" \
+            --generate-notes
