@@ -1,17 +1,11 @@
 name: Bootstrap canonical source migration
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.migration/migrate.py'
-      - '.github/workflows/bootstrap-migration.yml'
   push:
     branches:
       - migration/import-canonical-source
     paths:
-      - '.migration/migrate.py'
-      - '.github/workflows/bootstrap-migration.yml'
+      - '.migration/READY'
 
 permissions:
   contents: write
@@ -28,9 +22,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Materialize canonical plugin source
-        env:
-          SOURCE_ARTIFACT_URL: 'https://sdmntprpolandcentral.oaiusercontent.com/files/00000000-83d8-820a-b40f-448925f6da45/raw?se=2026-09-04T19%3A29%3A29Z&sp=r&sv=2026-02-06&sr=b&scid=7062d89d-ab17-5c3f-a7a7-97a616ae1fe6&skoid=a63e6f05-dc2f-4fa5-b0e3-b1cb9c0893bb&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-04T07%3A14%3A54Z&ske=2026-09-05T07%3A14%3A54Z&sks=b&skv=2026-02-06&sig=D4ZpYHaPcTL80N4DRMkGtxyt41jvJIXIoGPIx4haUlU%3D'
-        run: python3 .migration/migrate.py
+        run: python3 .migration/materialize.py
       - name: Validate migrated canonical source
         run: |
           python3 tests/test_repository.py
