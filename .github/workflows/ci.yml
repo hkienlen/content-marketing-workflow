@@ -35,7 +35,7 @@ jobs:
   codex-marketplace-install:
     runs-on: ubuntu-latest
     env:
-      CODEX_HOME: ${{ runner.temp }}/codex-home
+      CODEX_HOME: /tmp/content-marketing-workflow-codex-home
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -47,6 +47,7 @@ jobs:
         run: codex --version
       - name: Add repository as local marketplace
         run: |
+          rm -rf "$CODEX_HOME"
           mkdir -p "$CODEX_HOME"
           codex plugin marketplace add . --json
       - name: Install plugin from marketplace
