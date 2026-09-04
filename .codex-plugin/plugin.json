@@ -1,0 +1,34 @@
+{
+  "name": "content-marketing-workflow",
+  "version": "0.1.0",
+  "description": "Plan, create, review, prepare, schedule and publish content across SEO, WordPress and supported social channels through one governed workflow.",
+  "author": {
+    "name": "Hervé Kienlen",
+    "url": "https://github.com/hkienlen"
+  },
+  "keywords": [
+    "content-marketing",
+    "seo",
+    "wordpress",
+    "social-media",
+    "publishing",
+    "workflow"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Content Marketing Workflow",
+    "shortDescription": "One governed workflow for SEO, content, WordPress and social publishing.",
+    "longDescription": "Plan, research, create, review, prepare, schedule and publish content through one resumable workflow with durable state, human review gates and provider-specific publication safeguards.",
+    "developerName": "Hervé Kienlen",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Plan and create my next SEO article.",
+      "Create the next social post from my content queue.",
+      "Show my content workflow status."
+    ]
+  }
+}

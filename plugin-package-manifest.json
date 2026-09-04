@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "plugin_name": "content-marketing-workflow",
+  "display_name": "Content Marketing Workflow",
+  "version_file": "VERSION",
+  "plugin_manifest": ".codex-plugin/plugin.json",
+  "primary_skill_root": "skills/content-marketing-workflow",
+  "include_roots": [
+    ".codex-plugin",
+    "skills/content-marketing-workflow"
+  ],
+  "include_files": [
+    "README.md",
+    "VERSION"
+  ],
+  "generated_files": [
+    "SOURCE.json"
+  ],
+  "repository_only": [
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "MIGRATION.md",
+    "plugin-package-manifest.json",
+    ".github",
+    "tests",
+    "tools",
+    ".gitignore"
+  ],
+  "canonical_repository": "https://github.com/hkienlen/content-marketing-workflow"
+}
