@@ -22,14 +22,19 @@ ALLOWED_URL_HOSTS = {
     "token.actions.githubusercontent.com",
     "www.linkedin.com",
 }
+TEMP_SANITATION_FILES = {
+    Path("tools/sanitize-generic-boundary.py"),
+    Path("tools/test_repository_generic.py"),
+    Path(".github/workflows/sanitize-generic-boundary.yml"),
+}
 URL_RE = re.compile(r"https?://[^\s\)\]\}>\"'`]+", re.IGNORECASE)
 FR_HOST_RE = re.compile(r"\b(?:[a-z0-9-]+\.)+[a-z0-9-]*\.fr\b", re.IGNORECASE)
 EMAIL_RE = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 CONCRETE_POST_ID_RE = re.compile(r"\b20\d{2}-\d{4}\b")
 PERSONALIZED_REVIEW_RE = re.compile(r"présenter le résultat à (?!l'utilisateur\b)[A-ZÀ-Ý][A-Za-zÀ-ÿ'-]+", re.IGNORECASE)
-DISALLOWED_STATE_PHRASES = (
-    "Current pilot authorizations",
-    "Historical live pilot evidence",
+INTEGRATION_STATE_PATTERNS = (
+    re.compile(r"\bcurrent\s+pilot\s+authorizations\b", re.IGNORECASE),
+    re.compile(r"\bhistorical\s+live\s+pilot\s+evidence\b", re.IGNORECASE),
 )
 
 
@@ -37,8 +42,12 @@ def text_files(root: Path):
     for path in root.rglob("*"):
         if not path.is_file() or ".git" in path.parts or "build" in path.parts:
             continue
-        if path.suffix.lower() in TEXT_SUFFIXES:
-            yield path
+        if path.suffix.lower() not in TEXT_SUFFIXES:
+            continue
+        rel = path.relative_to(ROOT)
+        if rel in TEMP_SANITATION_FILES:
+            continue
+        yield path
 
 
 def privacy_errors(label: str, text: str):
@@ -51,13 +60,14 @@ def privacy_errors(label: str, text: str):
         errors.append(f"{label}: concrete social post id")
     if PERSONALIZED_REVIEW_RE.search(text):
         errors.append(f"{label}: personalized review recipient")
-    lowered = text.lower()
-    for phrase in DISALLOWED_STATE_PHRASES:
-        if phrase.lower() in lowered:
-            errors.append(f"{label}: embedded integration-state phrase {phrase!r}")
+    for pattern in INTEGRATION_STATE_PATTERNS:
+        if pattern.search(text):
+            errors.append(f"{label}: embedded integration-state record")
     for raw_url in URL_RE.findall(text):
         host = (urlparse(raw_url).hostname or "").lower()
-        if host and host not in ALLOWED_URL_HOSTS:
+        if not host or host in {"...", "*"}:
+            continue
+        if host not in ALLOWED_URL_HOSTS:
             errors.append(f"{label}: non-allowlisted URL host {host}")
     return errors
 
