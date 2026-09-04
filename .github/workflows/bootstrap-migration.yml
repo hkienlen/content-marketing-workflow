@@ -1,6 +1,11 @@
 name: Bootstrap canonical source migration
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.migration/migrate.py'
+      - '.github/workflows/bootstrap-migration.yml'
   push:
     branches:
       - migration/import-canonical-source
@@ -17,6 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: migration/import-canonical-source
           fetch-depth: 1
       - uses: actions/setup-python@v5
         with:
