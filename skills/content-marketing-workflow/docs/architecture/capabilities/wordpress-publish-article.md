@@ -337,28 +337,23 @@ After successful publication and readback:
 
 The capability must never leave a reusable runtime publication authorization in Git or treat the enabled Bridge permission as standing authority to publish future articles.
 
-## Historical live pilot evidence - article #10
+## Validated retry safety behavior
 
-The full flow was validated on 2026-09-01 with the Divi pilot adapter. Historical records may retain the literal phrase `Divi OK` because that was the actual wording used during that test.
+The retry contract is intentionally fail-closed and preserves the following generic sequence once publication is actually requested:
 
-For current/future workflows, the generic gate is `WordPress OK`.
-
-Observed safety sequence remains authoritative once publication is actually requested:
-
-1. prepared provider-backed Drive media and Bridge-managed draft;
-2. human presentation validation;
-3. explicit publication-stage continuation;
-4. `publication_capture` after editor normalization;
-5. immutable candidate persisted in Git;
-6. preflight passed;
-7. first explicit publish attempt was blocked by `article_publish_disabled` because the WordPress checkbox had been changed but not saved;
-8. no mutation occurred and the post remained `draft`;
-9. the original runtime authorization was treated as consumed;
-10. after the user saved the Bridge setting, a fresh preflight passed;
-11. a new explicit publication authorization was received;
-12. `article_publish` transitioned exactly `draft -> publish`;
-13. `published_article_read` verified the same candidate and all pinned checks;
-14. the user disabled `Article publication` again after publication.
+1. prepare provider-backed media and a Bridge-managed draft;
+2. complete human presentation validation;
+3. receive explicit publication-stage continuation;
+4. run `publication_capture` after any editor normalization;
+5. persist an immutable candidate;
+6. run preflight;
+7. if the Bridge reports `article_publish_disabled`, treat the attempt as blocked with no mutation;
+8. treat the runtime authorization used by that request as consumed;
+9. after the blocking permission is corrected, run a fresh preflight;
+10. require a new explicit publication authorization;
+11. allow `article_publish` to transition exactly `draft -> publish`;
+12. verify the same candidate through `published_article_read` and all pinned checks;
+13. return publication permission to least privilege after publication.
 
 This is the canonical safety behavior for future retries once publication is actually requested.
 

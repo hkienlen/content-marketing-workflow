@@ -5,7 +5,7 @@ Status: recovered architecture decision
 
 ## Purpose
 
-The single installable Content / Marketing skill is first validated on the current service-business pilot, but its generic model must not encode assumptions that would require a structural rewrite for another profession, e-commerce, SaaS or a mixed business.
+The single installable Content / Marketing skill was initially validated in a service-business context, but its generic model must not encode assumptions that would require a structural rewrite for another profession, e-commerce, SaaS or a mixed business.
 
 This contract selectively recovers the still-valid business-model decisions from the historical `feature/ai-skills-architecture` branch. It replaces the old broad `AI Content Platform` framing with a narrow architecture rule for the current single-skill product.
 
@@ -15,7 +15,7 @@ This contract selectively recovers the still-valid business-model decisions from
 
 A service may represent, for example:
 
-- psycho-energetic practice;
+- professional coaching;
 - website creation or hosting;
 - consulting;
 - personal assistance;
@@ -61,7 +61,7 @@ training
 installation
 ```
 
-A Nalyvo-like business may combine hosted SaaS, self-hosted installation, a professional licence and support without becoming a different product architecture.
+A software business may combine hosted SaaS, self-hosted installation, a professional licence and support without becoming a different product architecture.
 
 The exact future configuration schema is intentionally not frozen yet. The invariant is composability: adding a new offer kind must not require reorganizing the repository or replacing the core capability contracts.
 
@@ -88,7 +88,7 @@ A mixed site may expose both services and products. Content planning must theref
 
 The current implementation remains intentionally focused:
 
-1. service-business pilot;
+1. service-business workflows;
 2. SEO article workflow;
 3. visual asset workflow;
 4. WordPress preparation/publication;
@@ -116,16 +116,16 @@ target platform
 publication state
 ```
 
-They must not hardcode pilot-specific values such as:
+They must not hardcode user/project-specific values such as:
 
-- the pilot author's identity as a universal author;
-- psycho-energetic terminology;
+- one user's identity as a universal author;
+- one profession's terminology;
 - one CTA URL;
 - one business offer;
 - one WordPress topology;
 - one social account;
 - one builder/theme;
-- pilot-specific brand assets.
+- user/project-specific brand assets.
 
 Those values are loaded from the site's durable configuration and strategy.
 
@@ -133,7 +133,7 @@ Those values are loaded from the site's durable configuration and strategy.
 
 The `start` capability must collect business information as composable offers/capabilities rather than forcing the user into a permanent `service` versus `product` binary.
 
-For the pilot, existing authoritative strategy remains valid and must be reused rather than duplicated into a speculative new schema.
+For an existing project, authoritative strategy remains valid and must be reused rather than duplicated into a speculative new schema.
 
 In the canonical distribution source, site/business profile schemas may continue to evolve through versioned contracts as broader business models are validated.
 

@@ -45,8 +45,8 @@ Example: article front matter `status: published` plus a `published_url` on a te
 
 `/article details <article>` must resolve an article by the strongest unambiguous identifier available, including:
 
-1. exact repository path, e.g. `articles/entrepreneurs/activite-ne-decolle-pas.md`;
-2. exact filename, e.g. `activite-ne-decolle-pas.md`;
+1. exact repository path, e.g. `articles/<audience>/<article-slug>.md`;
+2. exact filename, e.g. `<article-slug>.md`;
 3. exact front-matter slug;
 4. exact filename stem as a convenience identifier.
 
@@ -205,7 +205,7 @@ Do not modify the article merely because it is displayed.
 
 `/social details <post-or-concept>` must resolve by:
 
-1. exact immutable `post_id` when materialized, e.g. `2026-0001`;
+1. exact immutable `post_id` when materialized, e.g. `<post-id>`;
 2. exact `series_concept` key from an article `series-plan.md`;
 3. exact social post path when supplied.
 

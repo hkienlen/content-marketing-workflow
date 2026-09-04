@@ -4,7 +4,7 @@
 
 This repository is the **canonical source of the generic Content Marketing Workflow plugin**.
 
-All generic product corrections, evolutions, packaging changes and versioning must be developed here. Do not use the former pilot repository `hkienlen/herve-kienlen-seo` as a source of generic plugin code. That repository may still be used for real integration validation and user/project state, but product changes discovered there must be ported back here through a normal branch/PR before release.
+All generic product corrections, evolutions, packaging changes and versioning must be developed here. Separate integration environments may validate real user/project state, but product changes discovered there must be ported back here through a normal branch/PR before release.
 
 ## Product architecture
 

@@ -95,9 +95,9 @@ The enumeration/join/order algorithm is authoritative in `content-inspection-sta
 Accepted identity forms include:
 
 ```text
-/article details activite-ne-decolle-pas
-/article details activite-ne-decolle-pas.md
-/article details articles/entrepreneurs/activite-ne-decolle-pas.md
+/article details <article-slug>
+/article details <article-slug>.md
+/article details articles/<audience>/<article-slug>.md
 ```
 
 Return useful metadata/state/evidence first, followed by the complete current article Markdown content for a materialized article.

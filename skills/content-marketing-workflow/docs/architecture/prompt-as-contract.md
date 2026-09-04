@@ -30,7 +30,7 @@ La préférence visuelle structurée de l'utilisateur/projet (`visual_preference
 
 ### `prompts/work-article-template.md`
 
-Il porte les règles communes d'exécution des articles du site pilote et référence les autorités globales sans les dupliquer.
+Il porte les règles communes d'exécution des articles du site actif et référence les autorités globales sans les dupliquer.
 
 ### `prompts/work-items/article-<N>-<slug>.md`
 
@@ -70,7 +70,7 @@ Si des sources durables divergent matériellement, les réconcilier avant exécu
 10. si l'exécution peut continuer, effectuer recherche/rédaction depuis cette version durable ;
 11. persister article/briefs avant toute génération/transformation autorisée ;
 12. vérifier les écritures ;
-13. présenter le résultat à Hervé dans ChatGPT pour revue humaine ;
+13. présenter le résultat à l'utilisateur dans ChatGPT pour revue humaine ;
 14. reporter les décisions durables de revue au bon endroit.
 
 Une rédaction improvisée qui ne part pas du contrat canonique et de la politique visuelle effective ne doit pas être présentée comme une exécution contrôlée.

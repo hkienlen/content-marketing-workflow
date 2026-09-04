@@ -12,7 +12,7 @@ Installable releases must expose only their canonical repository identity and ex
 ## Canonical release sequence
 
 ```text
-hkienlen/content-marketing-workflow main
+canonical repository main
 -> dedicated change branch
 -> update code/contracts/docs/tests/version as required
 -> green canonical CI
@@ -25,7 +25,7 @@ hkienlen/content-marketing-workflow main
 
 ## Freeze invariants
 
-- future generic releases are sourced only from `hkienlen/content-marketing-workflow`;
+- future generic releases are sourced only from this canonical repository;
 - user/project state and pilot evidence remain outside the canonical repository;
 - historical pilot repository identity/provenance remains outside the installable payload;
 - raw credentials remain in external credential owners;
