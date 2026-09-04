@@ -33,6 +33,7 @@ INTEGRATION_STATE_PATTERNS = (
     re.compile(r"\bcurrent\s+pilot\s+authorizations\b", re.IGNORECASE),
     re.compile(r"\bhistorical\s+live\s+pilot\s+evidence\b", re.IGNORECASE),
 )
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
 def text_files(root: Path):
@@ -69,13 +70,25 @@ class RepositoryTests(unittest.TestCase):
     def test_identity_version_and_official_layout(self):
         version = (ROOT / "VERSION").read_text().strip()
         plugin = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text())
+        interface = plugin.get("interface", {})
         self.assertEqual(plugin["name"], PLUGIN)
         self.assertEqual(plugin["version"], version)
         self.assertEqual(plugin.get("author"), {"name": "Content Marketing Workflow"})
-        self.assertEqual(plugin.get("interface", {}).get("developerName"), "Content Marketing Workflow")
+        self.assertEqual(interface.get("developerName"), "Hervé Kienlen")
+        self.assertEqual(interface.get("composerIcon"), "./assets/icon.png")
+        self.assertEqual(interface.get("logo"), "./assets/logo.png")
         self.assertIn("name: content-marketing-workflow", (SKILL / "SKILL.md").read_text())
         self.assertFalse((ROOT / ".codex-plugin").exists(), "plugin manifest must live under plugins/<name>")
         self.assertFalse((ROOT / "skills").exists(), "primary skill must live under plugins/<name>")
+
+        for relative in ("assets/icon.png", "assets/logo.png"):
+            asset = PLUGIN_ROOT / relative
+            self.assertTrue(asset.is_file(), relative)
+            self.assertTrue(asset.read_bytes().startswith(PNG_SIGNATURE), relative)
+
+        repository_icon = ROOT / "assets" / "repository-icon.png"
+        self.assertTrue(repository_icon.is_file())
+        self.assertTrue(repository_icon.read_bytes().startswith(PNG_SIGNATURE))
 
     def test_marketplace_manifest_resolves_plugin_source(self):
         marketplace = json.loads(MARKETPLACE_PATH.read_text())
@@ -125,6 +138,8 @@ class RepositoryTests(unittest.TestCase):
             names = set(zf.namelist())
             prefix = f"{PLUGIN}/"
             self.assertIn(prefix + ".codex-plugin/plugin.json", names)
+            self.assertIn(prefix + "assets/icon.png", names)
+            self.assertIn(prefix + "assets/logo.png", names)
             self.assertIn(prefix + f"skills/{PLUGIN}/SKILL.md", names)
             self.assertIn(prefix + "README.md", names)
             self.assertIn(prefix + "VERSION", names)
