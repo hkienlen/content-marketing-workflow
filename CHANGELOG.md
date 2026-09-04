@@ -4,6 +4,8 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-05
+
 - Added the selected Content Marketing Workflow visual identity to the repository and installable plugin assets.
 - Wired `interface.composerIcon` and `interface.logo` to the canonical plugin icon assets.
 - Changed the plugin `interface.developerName` to `Hervé Kienlen`.
