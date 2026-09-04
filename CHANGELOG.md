@@ -7,6 +7,7 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 - Canonical development moved to `hkienlen/content-marketing-workflow`.
 - Added self-contained release build and repository CI.
 - Removed a pilot-specific WordPress presentation-profile identifier from generic documentation.
+- Removed historical pilot-repository provenance from the installable README/SOURCE metadata and added a full-release regression guard.
 
 ## [0.1.0] - 2026-09-04
 

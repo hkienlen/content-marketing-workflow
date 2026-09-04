@@ -14,9 +14,9 @@ The plugin contains one primary skill. SEO, article, visual, WordPress, social, 
 
 ## Canonical source
 
-From the migration recorded on 2026-09-04, corrections, evolutions, release preparation and versioning of the generic plugin are performed in this repository.
+Corrections, evolutions, release preparation and versioning of the generic plugin are performed in this repository.
 
-The former private repository `hkienlen/herve-kienlen-seo` remains a pilot/integration environment only. It is not a source for future generic plugin releases.
+Real pilot/integration environments and user/project state are deliberately separate from the generic product source and are never sources for a future generic release.
 
 ## Repository versus release package
 

@@ -21,7 +21,7 @@ def main():
         shutil.copytree(ROOT/rel,stage/rel,dirs_exist_ok=True)
     for rel in cfg['include_files']:
         dst=stage/rel; dst.parent.mkdir(parents=True,exist_ok=True); shutil.copy2(ROOT/rel,dst)
-    source={'plugin_name':cfg['plugin_name'],'version':version,'canonical_repository':cfg['canonical_repository'],'source_commit_sha':sha,'initial_migration_provenance':{'repository':'hkienlen/herve-kienlen-seo','source_commit_sha':'d89d1de1c2cbb47b68a75d3923003624e027cfc5'}}
+    source={'plugin_name':cfg['plugin_name'],'version':version,'canonical_repository':cfg['canonical_repository'],'source_commit_sha':sha}
     (stage/'SOURCE.json').write_text(json.dumps(source,indent=2)+'\n')
     out=build/f"{cfg['plugin_name']}-{version}.zip"; epoch=(1980,1,1,0,0,0)
     with zipfile.ZipFile(out,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as zf:

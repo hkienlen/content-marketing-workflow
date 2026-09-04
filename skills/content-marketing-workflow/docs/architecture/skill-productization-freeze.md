@@ -3,15 +3,11 @@
 Date: 2026-09-04
 Status: normative release contract
 
-## Initial provenance
+## Historical provenance boundary
 
-Content Marketing Workflow 0.1.0 was first generated and validated from the historical pilot/development source commit:
+The initial 0.1.0 productization predates this canonical repository. Detailed migration provenance is retained only in repository-only migration/history files and is intentionally excluded from the installable plugin payload.
 
-```text
-hkienlen/herve-kienlen-seo@d89d1de1c2cbb47b68a75d3923003624e027cfc5
-```
-
-That SHA is historical provenance for 0.1.0 only. It is **not** the source for future generic releases.
+Installable releases must expose only their canonical repository identity and exact canonical source SHA through `SOURCE.json`.
 
 ## Canonical release sequence
 
@@ -31,6 +27,7 @@ hkienlen/content-marketing-workflow main
 
 - future generic releases are sourced only from `hkienlen/content-marketing-workflow`;
 - user/project state and pilot evidence remain outside the canonical repository;
+- historical pilot repository identity/provenance remains outside the installable payload;
 - raw credentials remain in external credential owners;
 - one plugin contains one primary skill with multiple internal capabilities;
 - release assembly follows the root `plugin-package-manifest.json`;
