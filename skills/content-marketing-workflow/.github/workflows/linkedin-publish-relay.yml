@@ -1,0 +1,165 @@
+name: LinkedIn Authorized Publication Relay
+
+on:
+  workflow_dispatch:
+    inputs:
+      authorization_path:
+        description: Exact persisted LinkedIn publication authorization path
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: linkedin-publish-relay-${{ inputs.authorization_path }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Validate exact authorization and connection
+        id: context
+        env:
+          AUTH_FILE: ${{ inputs.authorization_path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$AUTH_FILE" =~ ^social/publication-authorizations/linkedin/[A-Za-z0-9._-]+\.json$ ]] || { echo 'Invalid authorization path' >&2; exit 1; }
+          test -f "$AUTH_FILE"
+          POST_FILE="$(jq -r '.post_file // empty' "$AUTH_FILE")"
+          python3 - "$POST_FILE" <<'PY'
+          import sys
+          from pathlib import Path
+          p = Path(sys.argv[1])
+          if p.is_absolute() or '..' in p.parts or not str(p).startswith('social/') or p.suffix != '.md' or not p.is_file():
+              raise SystemExit('Invalid or missing social post_file in LinkedIn authorization')
+          PY
+          REQUEST_FILE="$RUNNER_TEMP/request.json"
+          python3 scripts/linkedin-scheduler-v1.py request --authorization "$AUTH_FILE" --out "$REQUEST_FILE"
+          CONNECTION_ID="$(jq -r '.connection_id' "$REQUEST_FILE")"
+          PROFILE="wordpress/config/connections/${CONNECTION_ID}.json"
+          test -f "$PROFILE"
+          ENDPOINT="$(jq -r '.relay.linkedin_publish_endpoint // empty' "$PROFILE")"
+          AUDIENCE="$(jq -r '.relay.audience // empty' "$PROFILE")"
+          EXPECTED_SITE="$(jq -r '.expected_site_url // empty' "$PROFILE")"
+          test -n "$ENDPOINT" && test -n "$AUDIENCE" && test -n "$EXPECTED_SITE"
+          python3 - "$ENDPOINT" "$EXPECTED_SITE" <<'PY'
+          import sys
+          from urllib.parse import urlparse
+          endpoint, expected = map(urlparse, sys.argv[1:])
+          if endpoint.scheme != 'https' or expected.scheme != 'https' or not endpoint.hostname or endpoint.hostname != expected.hostname:
+              raise SystemExit('LinkedIn Bridge endpoint must be HTTPS on the expected WordPress hostname')
+          PY
+          echo "authorization_path=$AUTH_FILE" >> "$GITHUB_OUTPUT"
+          echo "post_file=$POST_FILE" >> "$GITHUB_OUTPUT"
+          echo "endpoint=$ENDPOINT" >> "$GITHUB_OUTPUT"
+          echo "audience=$AUDIENCE" >> "$GITHUB_OUTPUT"
+
+      - name: Request GitHub OIDC token
+        env:
+          AUDIENCE: ${{ steps.context.outputs.audience }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ENCODED_AUDIENCE="$(python3 -c 'import os,urllib.parse; print(urllib.parse.quote(os.environ["AUDIENCE"], safe=""))')"
+          TOKEN_JSON="$(curl --fail --silent --show-error -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${ENCODED_AUDIENCE}")"
+          TOKEN="$(printf '%s' "$TOKEN_JSON" | jq -r '.value // empty')"
+          test -n "$TOKEN"
+          printf '%s' "$TOKEN" > "$RUNNER_TEMP/oidc-token"
+          chmod 600 "$RUNNER_TEMP/oidc-token"
+          echo "::add-mask::$TOKEN"
+
+      - name: Call exact authorized LinkedIn Bridge endpoint
+        id: bridge
+        env:
+          ENDPOINT: ${{ steps.context.outputs.endpoint }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOKEN="$(cat "$RUNNER_TEMP/oidc-token")"
+          set +e
+          HTTP_CODE="$(curl --silent --show-error \
+            --max-time 90 \
+            --output "$RUNNER_TEMP/response.json" \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --header "Authorization: Bearer ${TOKEN}" \
+            --data-binary "@$RUNNER_TEMP/request.json" \
+            "$ENDPOINT")"
+          CURL_RC=$?
+          set -e
+          if [[ "$CURL_RC" -ne 0 || ! -s "$RUNNER_TEMP/response.json" ]]; then
+            printf '%s\n' '{"ok":false,"error":{"code":"bridge_transport_uncertain","message":"Bridge transport failed or returned no body; retry is safe only through Bridge idempotency evidence."}}' > "$RUNNER_TEMP/response.json"
+          elif ! jq -e . "$RUNNER_TEMP/response.json" >/dev/null 2>&1; then
+            printf '%s\n' '{"ok":false,"error":{"code":"bridge_response_invalid","message":"Bridge response was not valid JSON."}}' > "$RUNNER_TEMP/response.json"
+          fi
+          echo "http_code=${HTTP_CODE:-0}" >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/response.json"
+
+      - name: Persist publication evidence or retryable state
+        id: apply
+        env:
+          AUTH_FILE: ${{ steps.context.outputs.authorization_path }}
+          POST_FILE: ${{ steps.context.outputs.post_file }}
+        shell: bash
+        run: |
+          set +e
+          python3 scripts/linkedin-scheduler-v1.py apply --authorization "$AUTH_FILE" --response "$RUNNER_TEMP/response.json"
+          RC=$?
+          set -e
+          echo "rc=$RC" >> "$GITHUB_OUTPUT"
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --quiet; then
+            git add "$AUTH_FILE" "$POST_FILE"
+            git commit -m "chore(social): sync scheduled LinkedIn publication state"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Send optional Telegram publication report
+        if: always() && steps.context.outcome == 'success' && steps.apply.outcome == 'success'
+        continue-on-error: true
+        env:
+          AUTH_FILE: ${{ steps.context.outputs.authorization_path }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        shell: bash
+        run: |
+          set +e
+          python3 scripts/telegram-publication-report.py \
+            --profile user-data/profile.json \
+            --authorization "$AUTH_FILE" \
+            --platform linkedin
+          RC=$?
+          set -e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --quiet -- "$AUTH_FILE"; then
+            git add "$AUTH_FILE"
+            git commit -m "chore(social): record LinkedIn Telegram report state"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+          if [[ "$RC" -ne 0 ]]; then
+            echo 'Telegram report failed; publication state is unchanged.' >&2
+          fi
+          exit 0
+
+      - name: Fail run when publication did not complete
+        if: steps.apply.outputs.rc != '0'
+        shell: bash
+        run: |
+          echo 'LinkedIn publication did not complete; persisted authorization remains retryable.' >&2
+          exit 1

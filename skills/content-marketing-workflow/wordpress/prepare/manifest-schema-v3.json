@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wordpress/prepare/manifest-schema-v3.json",
+  "title": "WordPress preparation manifest v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "connection_id", "source", "wordpress"],
+  "properties": {
+    "schema_version": {"const": 3},
+    "connection_id": {"type": "string", "pattern": "^[A-Za-z0-9._-]{1,80}$"},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["article_path", "article_commit", "article_git_blob_sha"],
+      "properties": {
+        "article_path": {"type": "string", "minLength": 1},
+        "article_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "article_git_blob_sha": {"type": "string", "pattern": "^[a-f0-9]{40}$"}
+      }
+    },
+    "wordpress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["post_type", "title", "slug", "content"],
+      "properties": {
+        "post_type": {"enum": ["post", "page"]},
+        "title": {"type": "string", "minLength": 1},
+        "slug": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "excerpt": {"type": "string"},
+        "author_login": {"type": "string"},
+        "content": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": {
+            "mode": {"enum": ["github_markdown", "repository_file"]},
+            "server_transform": {"enum": ["divi_d4_to_d5"]},
+            "presentation_profile_path": {"type": "string", "minLength": 1},
+            "presentation_profile_git_blob_sha": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+            "strip_front_matter": {"type": "boolean"},
+            "strip_first_h1": {"type": "boolean"},
+            "stop_before_marker": {"type": "string", "minLength": 1},
+            "path": {"type": "string"},
+            "git_blob_sha": {"type": "string", "pattern": "^[a-f0-9]{40}$"}
+          }
+        },
+        "media": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["key", "source", "title", "alt"],
+            "properties": {
+              "key": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+              "source": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["type", "path", "git_blob_sha"],
+                    "properties": {
+                      "type": {"const": "repository_file"},
+                      "path": {"type": "string", "minLength": 1},
+                      "git_blob_sha": {"type": "string", "pattern": "^[a-f0-9]{40}$"}
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["type", "provider", "asset_id", "filename", "sha256", "mime_type", "delivery"],
+                    "properties": {
+                      "type": {"const": "public_media_source"},
+                      "provider": {"enum": ["google_drive", "dropbox"]},
+                      "asset_id": {"type": "string", "minLength": 1, "maxLength": 300},
+                      "filename": {"type": "string", "pattern": "^[^/\\\\]+$"},
+                      "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+                      "mime_type": {"enum": ["image/png", "image/jpeg", "image/webp", "image/gif"]},
+                      "width": {"type": "integer", "minimum": 1},
+                      "height": {"type": "integer", "minimum": 1},
+                      "size_bytes": {"type": "integer", "minimum": 1, "maximum": 8388608},
+                      "delivery": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["file_id", "delivery_url"],
+                        "properties": {
+                          "file_id": {"type": "string", "minLength": 1, "maxLength": 300},
+                          "delivery_url": {"type": "string", "pattern": "^https://"},
+                          "resource_key": {"type": "string", "minLength": 1, "maxLength": 300}
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              "title": {"type": "string"},
+              "alt": {"type": "string"},
+              "caption": {"type": "string"},
+              "placement": {
+                "oneOf": [
+                  {"type": "object", "additionalProperties": false, "required": ["after_heading"], "properties": {"after_heading": {"type": "string", "minLength": 1}}},
+                  {"type": "object", "additionalProperties": false, "required": ["after_section"], "properties": {"after_section": {"type": "string", "minLength": 1}}},
+                  {"type": "object", "additionalProperties": false, "required": ["before_heading"], "properties": {"before_heading": {"type": "string", "minLength": 1}}},
+                  {"type": "object", "additionalProperties": false, "required": ["at_end"], "properties": {"at_end": {"const": true}}}
+                ]
+              }
+            }
+          }
+        },
+        "featured_media_key": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+        "taxonomies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["taxonomy", "terms"],
+            "properties": {
+              "taxonomy": {"type": "string", "pattern": "^[a-z0-9_-]+$"},
+              "terms": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["slug", "name"], "properties": {"slug": {"type": "string", "minLength": 1}, "name": {"type": "string", "minLength": 1}}}}
+            }
+          }
+        },
+        "post_meta": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {"type": ["string", "number", "integer", "boolean", "null"]},
+              {"type": "object", "additionalProperties": false, "required": ["term_id_from_taxonomy"], "properties": {"term_id_from_taxonomy": {"type": "object", "additionalProperties": false, "required": ["taxonomy", "slug"], "properties": {"taxonomy": {"type": "string", "pattern": "^[a-z0-9_-]+$"}, "slug": {"type": "string", "minLength": 1}}}}}
+            ]
+          }
+        }
+      }
+    }
+  }
+}

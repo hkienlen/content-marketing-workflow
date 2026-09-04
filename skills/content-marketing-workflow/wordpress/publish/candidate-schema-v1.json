@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wordpress/publish/candidate-schema-v1.json",
+  "title": "SEO Workflow Bridge publication candidate v1",
+  "description": "Immutable post-human-validation WordPress publication eligibility snapshot. Runtime publication authorization is deliberately excluded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "candidate_id",
+    "connection_id",
+    "post_id",
+    "validation",
+    "expected"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "candidate_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "connection_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,80}$"
+    },
+    "post_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "authorization_included"],
+      "properties": {
+        "status": {"const": "captured_after_human_validation"},
+        "authorization_included": {"const": false},
+        "scope": {"type": "string", "minLength": 1},
+        "work_item_issue": {"type": "integer", "minimum": 1}
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "post_type",
+        "slug",
+        "title",
+        "excerpt",
+        "content_sha256",
+        "featured_media_id",
+        "manifest_path",
+        "source_commit",
+        "source_article_path",
+        "source_article_sha256",
+        "post_meta",
+        "taxonomies"
+      ],
+      "properties": {
+        "post_type": {"enum": ["post", "page"]},
+        "slug": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "excerpt": {"type": "string"},
+        "content_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "featured_media_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "manifest_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "source_article_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_article_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "post_meta": {
+          "type": "object",
+          "additionalProperties": {
+            "type": ["string", "number", "integer", "boolean", "null"]
+          }
+        },
+        "taxonomies": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true
+          }
+        }
+      }
+    }
+  }
+}

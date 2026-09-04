@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/wordpress-relay-request-v1.json",
+  "title": "WordPress relay request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "connection_id",
+    "operation",
+    "issued_at",
+    "payload"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "request_id": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "connection_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^[A-Za-z0-9._-]+$"
+    },
+    "operation": {
+      "enum": [
+        "site_info",
+        "content_list",
+        "reference_read",
+        "draft_create",
+        "draft_read",
+        "draft_delete",
+        "prepare_article",
+        "article_read",
+        "presentation_probe",
+        "publication_capture",
+        "publication_preflight",
+        "publish_article",
+        "published_article_read"
+      ]
+    },
+    "issued_at": {"type": "string", "format": "date-time"},
+    "payload": {"type": "object"}
+  }
+}

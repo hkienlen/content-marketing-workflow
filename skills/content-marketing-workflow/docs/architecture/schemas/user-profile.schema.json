@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/content-marketing/user-profile.schema.json",
+  "title": "Content/Marketing skill user profile",
+  "type": "object",
+  "required": ["schema_version", "profile_id", "active_project_id", "projects"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "profile_id": {"type": "string", "minLength": 1, "maxLength": 120},
+    "active_project_id": {"type": "string", "minLength": 1, "maxLength": 120},
+    "projects": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/$defs/project"}
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "isoDateTime": {"type": ["string", "null"], "format": "date-time"},
+    "visualSourceMode": {
+      "enum": ["ai_first", "user_images_first", "strict_user_images", "hybrid_best_fit"]
+    },
+    "missingUserImagesBehavior": {
+      "enum": ["ask_before_drafting", "allow_ai_generation", "continue_without_visuals"]
+    },
+    "sourceFidelity": {
+      "enum": ["strict", "high", "moderate", "flexible"]
+    },
+    "aiTreatment": {
+      "enum": ["none", "light_correction", "natural_enhancement", "marketing_enhancement", "creative_transformation"]
+    },
+    "visualPolicy": {
+      "type": "object",
+      "required": ["visual_source", "missing_user_images_behavior", "source_fidelity", "ai_treatment"],
+      "properties": {
+        "visual_source": {"$ref": "#/$defs/visualSourceMode"},
+        "missing_user_images_behavior": {"$ref": "#/$defs/missingUserImagesBehavior"},
+        "source_fidelity": {"$ref": "#/$defs/sourceFidelity"},
+        "ai_treatment": {"$ref": "#/$defs/aiTreatment"},
+        "ai_treatment_directive": {"type": ["string", "null"], "maxLength": 4000}
+      },
+      "additionalProperties": false
+    },
+    "visualPolicyOverride": {
+      "type": "object",
+      "properties": {
+        "visual_source": {"$ref": "#/$defs/visualSourceMode"},
+        "missing_user_images_behavior": {"$ref": "#/$defs/missingUserImagesBehavior"},
+        "source_fidelity": {"$ref": "#/$defs/sourceFidelity"},
+        "ai_treatment": {"$ref": "#/$defs/aiTreatment"},
+        "ai_treatment_directive": {"type": ["string", "null"], "maxLength": 4000}
+      },
+      "minProperties": 1,
+      "additionalProperties": false
+    },
+    "visualPreferences": {
+      "type": "object",
+      "required": ["default"],
+      "properties": {
+        "default": {"$ref": "#/$defs/visualPolicy"},
+        "article": {"$ref": "#/$defs/visualPolicyOverride"},
+        "social": {"$ref": "#/$defs/visualPolicyOverride"},
+        "configured_at": {"$ref": "#/$defs/isoDateTime"},
+        "updated_at": {"$ref": "#/$defs/isoDateTime"}
+      },
+      "additionalProperties": false
+    },
+    "repository": {
+      "type": "object",
+      "required": ["provider", "full_name", "default_branch"],
+      "properties": {
+        "provider": {"type": "string"},
+        "full_name": {"type": "string", "minLength": 1},
+        "default_branch": {"type": "string", "minLength": 1},
+        "repository_id": {"type": ["string", "null"]},
+        "owner_id": {"type": ["string", "null"]}
+      },
+      "additionalProperties": true
+    },
+    "bridge": {
+      "type": "object",
+      "required": ["connection_id", "execute_endpoint", "audience"],
+      "properties": {
+        "connection_id": {"type": "string", "minLength": 1},
+        "execute_endpoint": {"type": "string", "format": "uri"},
+        "audience": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "credentialMetadata": {
+      "type": "object",
+      "required": ["kind", "secret_location"],
+      "properties": {
+        "kind": {"type": "string", "minLength": 1},
+        "secret_location": {"type": "string", "minLength": 1},
+        "token_expires_at": {"$ref": "#/$defs/isoDateTime"},
+        "data_access_expires_at": {"$ref": "#/$defs/isoDateTime"},
+        "last_observed_valid": {"type": ["boolean", "null"]},
+        "last_observed_at": {"$ref": "#/$defs/isoDateTime"}
+      },
+      "additionalProperties": true
+    },
+    "connectionHealth": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "unknown",
+            "healthy",
+            "healthy_no_fixed_expiry",
+            "renewal_due_30",
+            "renewal_due_14",
+            "renewal_required_7",
+            "expired_or_invalid"
+          ]
+        },
+        "checked_at": {"$ref": "#/$defs/isoDateTime"},
+        "credential_live_valid": {"type": ["boolean", "null"]},
+        "expiry_basis": {"type": ["string", "null"]},
+        "effective_expiry_at": {"$ref": "#/$defs/isoDateTime"},
+        "days_until_expiry": {"type": ["number", "null"]},
+        "scheduled_after_expiry": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "next_action": {"type": ["string", "null"]}
+      },
+      "additionalProperties": true
+    },
+    "socialConnection": {
+      "type": "object",
+      "required": ["connection_id", "platform", "credential"],
+      "properties": {
+        "connection_id": {"type": "string", "minLength": 1},
+        "platform": {"enum": ["facebook", "linkedin"]},
+        "enabled": {"type": "boolean"},
+        "target_type": {"type": ["string", "null"]},
+        "remote_id": {"type": ["string", "null"]},
+        "remote_name": {"type": ["string", "null"]},
+        "scopes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "credential": {"$ref": "#/$defs/credentialMetadata"},
+        "health": {"$ref": "#/$defs/connectionHealth"}
+      },
+      "additionalProperties": true
+    },
+    "telegramPublicationReports": {
+      "type": "object",
+      "properties": {
+        "success": {"type": "boolean"},
+        "failure": {"type": "boolean"},
+        "uncertain": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "telegramNotification": {
+      "type": "object",
+      "required": ["enabled", "setup_status", "secret_name", "publication_reports"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "setup_status": {"enum": ["not_configured", "verified"]},
+        "chat_id": {"type": ["string", "null"], "pattern": "^-?[0-9]+$"},
+        "bot_username": {"type": ["string", "null"]},
+        "secret_name": {"type": "string", "minLength": 1},
+        "configured_at": {"$ref": "#/$defs/isoDateTime"},
+        "last_verified_at": {"$ref": "#/$defs/isoDateTime"},
+        "disabled_at": {"$ref": "#/$defs/isoDateTime"},
+        "publication_reports": {"$ref": "#/$defs/telegramPublicationReports"}
+      },
+      "additionalProperties": true
+    },
+    "notifications": {
+      "type": "object",
+      "properties": {
+        "telegram": {"$ref": "#/$defs/telegramNotification"}
+      },
+      "additionalProperties": true
+    },
+    "project": {
+      "type": "object",
+      "required": ["repository", "site", "publishing_preferences", "wordpress", "social"],
+      "properties": {
+        "repository": {"$ref": "#/$defs/repository"},
+        "site": {
+          "type": "object",
+          "required": ["domain", "canonical_url"],
+          "properties": {
+            "domain": {"type": "string", "minLength": 1},
+            "canonical_url": {"type": "string", "format": "uri"},
+            "name": {"type": ["string", "null"]}
+          },
+          "additionalProperties": true
+        },
+        "publishing_preferences": {
+          "type": "object",
+          "required": ["timezone"],
+          "properties": {
+            "timezone": {"type": "string", "minLength": 1},
+            "social": {"type": "object", "additionalProperties": true}
+          },
+          "additionalProperties": true
+        },
+        "visual_preferences": {"$ref": "#/$defs/visualPreferences"},
+        "storage": {"type": "object", "additionalProperties": true},
+        "wordpress": {
+          "type": "object",
+          "required": ["enabled", "bridge"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "publish_enabled": {"type": "boolean"},
+            "site_url": {"type": ["string", "null"], "format": "uri"},
+            "bridge": {"$ref": "#/$defs/bridge"}
+          },
+          "additionalProperties": true
+        },
+        "social": {
+          "type": "object",
+          "required": ["enabled", "connections"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "connections": {
+              "type": "object",
+              "additionalProperties": {"$ref": "#/$defs/socialConnection"}
+            }
+          },
+          "additionalProperties": true
+        },
+        "notifications": {"$ref": "#/$defs/notifications"}
+      },
+      "additionalProperties": true
+    }
+  }
+}
