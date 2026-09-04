@@ -4,6 +4,17 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-05
+
+- Promoted `skills/content-marketing-workflow/` to the canonical Skill source for direct ChatGPT installation.
+- Kept the Codex plugin Skill as a byte-for-byte mirror of the canonical Skill and added CI drift checks.
+- Added deterministic `.skill` and Skill ZIP build artifacts for direct ChatGPT upload.
+- Added direct ChatGPT runtime/onboarding rules, including connected-tool detection and selective project-repository migration.
+- Clarified that repository work can remain in ChatGPT when the required connected tools are available and does not automatically require Codex.
+- Added `tools/sync-skill-mirror.py` for maintainers.
+- Updated CI and tagged releases to validate and publish both direct Skill and Codex plugin artifacts.
+- Updated documentation so direct ChatGPT Skill installation is the primary ChatGPT path while the Codex plugin remains supported.
+
 ## [0.1.1] - 2026-09-05
 
 - Added the selected Content Marketing Workflow visual identity to the repository and installable plugin assets.

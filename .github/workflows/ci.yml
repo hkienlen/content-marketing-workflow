@@ -20,15 +20,26 @@ jobs:
         run: python3 tests/test_repository.py
       - name: Build exact plugin artifact
         run: python3 tools/build-release.py --source-sha "$GITHUB_SHA"
-      - name: Verify ZIP integrity
+      - name: Build direct ChatGPT Skill artifacts
+        run: python3 tools/build-skill.py
+      - name: Verify plugin ZIP integrity
         run: unzip -t "build/content-marketing-workflow-$(cat VERSION).zip"
+      - name: Verify Skill bundle integrity
+        run: |
+          unzip -t "build/content-marketing-workflow-$(cat VERSION).skill"
+          unzip -t "build/content-marketing-workflow-skill-$(cat VERSION).zip"
       - name: Emit SHA-256
-        run: sha256sum "build/content-marketing-workflow-$(cat VERSION).zip"
-      - name: Upload installable plugin artifact
+        run: |
+          sha256sum "build/content-marketing-workflow-$(cat VERSION).zip"
+          sha256sum "build/content-marketing-workflow-$(cat VERSION).skill"
+          sha256sum "build/content-marketing-workflow-skill-$(cat VERSION).zip"
+      - name: Upload installable artifacts
         uses: actions/upload-artifact@v4
         with:
           name: content-marketing-workflow-${{ github.sha }}
-          path: build/content-marketing-workflow-*.zip
+          path: |
+            build/content-marketing-workflow-*.zip
+            build/content-marketing-workflow-*.skill
           if-no-files-found: error
           retention-days: 30
 

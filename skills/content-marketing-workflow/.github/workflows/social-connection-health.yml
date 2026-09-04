@@ -1,0 +1,151 @@
+name: Social connection health
+
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  id-token: write
+
+concurrency:
+  group: social-connection-health
+  cancel-in-progress: false
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Resolve active user profile
+        id: profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROFILE='user-data/profile.json'
+          test -f "$PROFILE"
+          PROJECT_ID="$(jq -r '.active_project_id' "$PROFILE")"
+          test -n "$PROJECT_ID"
+          test "$PROJECT_ID" != null
+          CONNECTION_ID="$(jq -r --arg p "$PROJECT_ID" '.projects[$p].wordpress.bridge.connection_id' "$PROFILE")"
+          ENDPOINT="$(jq -r --arg p "$PROJECT_ID" '.projects[$p].wordpress.bridge.execute_endpoint' "$PROFILE")"
+          AUDIENCE="$(jq -r --arg p "$PROJECT_ID" '.projects[$p].wordpress.bridge.audience' "$PROFILE")"
+          for value in "$CONNECTION_ID" "$ENDPOINT" "$AUDIENCE"; do
+            test -n "$value"
+            test "$value" != null
+          done
+          case "$ENDPOINT" in
+            https://*) ;;
+            *) echo 'Bridge health endpoint must use HTTPS.' >&2; exit 1 ;;
+          esac
+          echo "profile=$PROFILE" >> "$GITHUB_OUTPUT"
+          echo "project_id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
+          echo "connection_id=$CONNECTION_ID" >> "$GITHUB_OUTPUT"
+          echo "endpoint=$ENDPOINT" >> "$GITHUB_OUTPUT"
+          echo "audience=$AUDIENCE" >> "$GITHUB_OUTPUT"
+
+      - name: Obtain short-lived GitHub OIDC token
+        id: oidc
+        shell: bash
+        env:
+          AUDIENCE: ${{ steps.profile.outputs.audience }}
+        run: |
+          set -euo pipefail
+          ENCODED_AUDIENCE="$(python - <<'PY'
+          import os
+          import urllib.parse
+          print(urllib.parse.quote(os.environ['AUDIENCE'], safe=''))
+          PY
+          )"
+          RESPONSE="$(curl --silent --show-error --fail-with-body \
+            -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${ENCODED_AUDIENCE}")"
+          TOKEN="$(printf '%s' "$RESPONSE" | jq -r '.value')"
+          test -n "$TOKEN"
+          test "$TOKEN" != null
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Probe provider connections through Bridge
+        shell: bash
+        env:
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+          ENDPOINT: ${{ steps.profile.outputs.endpoint }}
+          CONNECTION_ID: ${{ steps.profile.outputs.connection_id }}
+        run: |
+          set -euo pipefail
+          NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          REQUEST_ID="social-health-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          jq -n \
+            --arg request_id "$REQUEST_ID" \
+            --arg connection_id "$CONNECTION_ID" \
+            --arg issued_at "$NOW" \
+            '{schema_version:1, request_id:$request_id, connection_id:$connection_id, operation:"social_connection_health", issued_at:$issued_at, payload:{}}' \
+            > "$RUNNER_TEMP/social-health-request.json"
+          curl --silent --show-error --fail-with-body \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H 'Content-Type: application/json' \
+            --data-binary "@$RUNNER_TEMP/social-health-request.json" \
+            "$ENDPOINT" \
+            > "$RUNNER_TEMP/social-health-bridge.json"
+          jq -e '.ok == true and .operation == "social_connection_health" and (.result | type == "object")' \
+            "$RUNNER_TEMP/social-health-bridge.json" >/dev/null
+
+      - name: Evaluate expirations and scheduled horizon
+        shell: bash
+        env:
+          PROFILE: ${{ steps.profile.outputs.profile }}
+        run: |
+          set -euo pipefail
+          python scripts/social-connection-health.py \
+            --profile "$PROFILE" \
+            --authorizations-root social/publication-authorizations \
+            --bridge-response "$RUNNER_TEMP/social-health-bridge.json" \
+            --write \
+            --report-json "$RUNNER_TEMP/social-health-report.json" \
+            --report-markdown "$RUNNER_TEMP/social-health-report.md"
+          cat "$RUNNER_TEMP/social-health-report.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Persist non-secret user health metadata
+        shell: bash
+        env:
+          PROFILE: ${{ steps.profile.outputs.profile }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- "$PROFILE"; then
+            echo 'No profile health change.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- "$PROFILE"
+          git commit -m 'chore(social): refresh connection health metadata'
+          git push origin HEAD:main
+
+      - name: Manage renewal warning issue
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TITLE='Social connection renewal required'
+          NEEDS_ATTENTION="$(jq -r '.requires_attention' "$RUNNER_TEMP/social-health-report.json")"
+          BODY_FILE="$RUNNER_TEMP/social-health-report.md"
+          ISSUE_NUMBER="$(gh issue list --state open --search "${TITLE} in:title" --json number,title --jq '.[] | select(.title == "Social connection renewal required") | .number' | head -n1)"
+
+          if [ "$NEEDS_ATTENTION" = true ]; then
+            if [ -n "$ISSUE_NUMBER" ]; then
+              gh issue comment "$ISSUE_NUMBER" --body-file "$BODY_FILE"
+            else
+              gh issue create --title "$TITLE" --body-file "$BODY_FILE"
+            fi
+          elif [ -n "$ISSUE_NUMBER" ]; then
+            gh issue comment "$ISSUE_NUMBER" --body 'All configured social publication connections are healthy again. Closing this renewal warning.'
+            gh issue close "$ISSUE_NUMBER"
+          fi

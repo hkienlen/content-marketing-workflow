@@ -1,0 +1,419 @@
+schema_version: 2
+status: architecture_source
+help_command: /help
+status_command: /status
+
+commands:
+  - id: system.help
+    command: /help
+    family: system
+    behavior: command-help
+    summary: List available commands and their current availability.
+    availability: core
+    feature_gate: null
+    mode: read_only
+    side_effects: none
+    arguments: []
+    response_contract: help-list
+    help_source: docs/architecture/user-command-system-behaviors.md
+
+  - id: system.help-detail
+    command: /help <command-or-family>
+    family: system
+    behavior: command-help-detail
+    summary: Explain one command or command family, including gates and side effects.
+    availability: core
+    feature_gate: null
+    mode: read_only
+    side_effects: none
+    arguments:
+      - name: command-or-family
+        kind: trailing_text
+        required: true
+        identity: command_or_family
+        description: Canonical command syntax without arguments, command ID, or command family.
+    response_contract: help-detail
+    help_source: docs/architecture/user-command-system-behaviors.md
+
+  - id: system.status
+    command: /status
+    family: system
+    behavior: project-status
+    summary: Show a read-only overview of durable project and workflow state.
+    availability: core
+    feature_gate: null
+    mode: read_only
+    side_effects: none
+    arguments: []
+    response_contract: project-status
+    help_source: docs/architecture/user-command-system-behaviors.md
+
+  - id: project.start
+    command: /start
+    family: project
+    capability: start
+    summary: Start or resume onboarding and durable project configuration.
+    availability: core
+    feature_gate: null
+    mode: mutating
+    side_effects: durable_project_state
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Optional onboarding/resume request or configuration detail.
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/start.md
+
+  - id: strategy.update
+    command: /strategy update
+    family: strategy
+    capability: strategy-update
+    summary: Persist a durable strategy, directive or architecture change in its authoritative location.
+    availability: core
+    feature_gate: null
+    mode: mutating
+    side_effects: durable_repository_state
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: true
+        identity: null
+        description: Strategy, directive or architecture change to persist.
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/strategy-update.md
+
+  - id: article.list
+    command: /article list
+    family: article
+    capability: article-inspect
+    operation: list
+    summary: List known articles with derived editorial, WordPress and verified publication state.
+    availability: core
+    feature_gate: null
+    mode: read_only
+    side_effects: none
+    arguments: []
+    response_contract: article-list
+    help_source: docs/architecture/capabilities/article-inspect.md
+
+  - id: article.details
+    command: /article details <article>
+    family: article
+    capability: article-inspect
+    operation: details
+    summary: Show one resolved article's workflow state, metadata and complete current Markdown content.
+    availability: core
+    feature_gate: null
+    mode: read_only
+    side_effects: none
+    arguments:
+      - name: article
+        kind: trailing_text
+        required: true
+        identity: article
+        description: Exact repository path, exact filename or exact slug.
+    response_contract: article-details
+    help_source: docs/architecture/capabilities/article-inspect.md
+
+  - id: article.plan
+    command: /article plan
+    family: article
+    capability: seo-plan-article
+    summary: Plan a new SEO article from the current strategy and research context.
+    availability: core
+    feature_gate: null
+    mode: mutating
+    side_effects: durable_repository_state
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Optional topic, intent or planning instruction; missing context may be resolved from durable project state.
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/seo-plan-article.md
+
+  - id: article.create
+    command: /article create
+    family: article
+    capability: seo-create-article
+    summary: Create a new SEO article through the validated article workflow.
+    availability: core
+    feature_gate: null
+    mode: mutating
+    side_effects: durable_repository_and_media_state
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Optional article identity/topic or creation instruction; capability prerequisites remain authoritative.
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/seo-create-article.md
+
+  - id: article.update
+    command: /article update
+    family: article
+    capability: seo-update-article
+    summary: Revise an existing article while preserving validated components unless explicitly changed.
+    availability: core
+    feature_gate: null
+    mode: mutating
+    side_effects: durable_repository_and_media_state
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Optional article identity and requested change; capability must fail if target cannot be resolved safely.
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/seo-update-article.md
+
+  - id: social.list
+    command: /social list
+    family: social
+    capability: social-inspect
+    operation: list
+    summary: List the unified social reserve, including unmaterialized series concepts and materialized posts with provenance/state.
+    availability: optional
+    feature_gate: social.enabled
+    mode: read_only
+    side_effects: none
+    arguments: []
+    response_contract: social-list
+    help_source: docs/architecture/capabilities/social-inspect.md
+
+  - id: social.details
+    command: /social details <post-or-concept>
+    family: social
+    capability: social-inspect
+    operation: details
+    summary: Show one resolved social post or series concept with durable source, content, provider publication evidence and verification state when materialized.
+    availability: optional
+    feature_gate: social.enabled
+    mode: read_only
+    side_effects: none
+    arguments:
+      - name: post-or-concept
+        kind: trailing_text
+        required: true
+        identity: social_post_or_concept
+        description: Exact post_id, exact series_concept key or exact social post path.
+    response_contract: social-details
+    help_source: docs/architecture/capabilities/social-inspect.md
+
+  - id: social.create
+    command: /social create
+    family: social
+    capability: social-create-post
+    operation: next
+    summary: Create or resume the next not-yet-written social post from the durable queue, automatically rolling to the next eligible article and generating its series plan when needed.
+    availability: optional
+    feature_gate: social.enabled
+    mode: mutating
+    side_effects: durable_repository_and_media_state
+    arguments: []
+    response_contract: capability-result
+    help_source: docs/architecture/user-help-social.md
+
+  - id: social.create-free
+    command: /social create free <topic>
+    family: social
+    capability: social-create-post
+    operation: free
+    summary: Create a standalone social post intentionally unrelated to an article series while preserving normal deduplication, ID, visual, review and publication gates.
+    availability: optional
+    feature_gate: social.enabled
+    mode: mutating
+    side_effects: durable_repository_and_media_state
+    arguments:
+      - name: topic
+        kind: trailing_text
+        required: true
+        identity: null
+        description: Free-post topic, angle or intent. It is not treated as an article identity.
+    response_contract: capability-result
+    help_source: docs/architecture/user-help-social.md
+
+  - id: social.plan
+    command: /social plan
+    family: social
+    capability: social-extract-posts
+    summary: Inventory or rebuild an article's complete deduplicated social series plan without requiring post creation.
+    availability: optional
+    feature_gate: social.enabled
+    mode: mutating
+    side_effects: durable_repository_state
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Optional source article identity or planning instruction.
+    response_contract: capability-result
+    help_source: docs/architecture/user-help-social.md
+
+  - id: social.visual
+    command: /social visual
+    family: social
+    capability: social-create-visual
+    summary: Create or review the post visual according to the effective visual policy, using A/B/C for generated or materially transformed work and exact-source review for use_as_is.
+    availability: optional
+    feature_gate: social.enabled
+    mode: mutating
+    side_effects: provider_and_durable_repository_state
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Optional post/concept identity or visual instruction.
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/social-create-visual.md
+
+  - id: social.check
+    command: /social check
+    family: social
+    capability: social-check-before-publish
+    summary: Run fail-closed readiness checks without publishing.
+    availability: optional
+    feature_gate: social.enabled
+    mode: read_only
+    side_effects: none
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Optional post/platform target; capability resolution remains fail-closed.
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/social-check-before-publish.md
+
+  - id: social.health
+    command: /social health
+    family: social
+    capability: social-connection-health
+    summary: Show read-only social connection validity, known expiry horizons and scheduled posts that extend beyond credential validity.
+    availability: optional
+    feature_gate: social.enabled
+    mode: read_only
+    side_effects: none
+    arguments: []
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/social-connection-health.md
+
+  - id: social.telegram-notifications
+    command: /social notifications telegram
+    family: social
+    capability: telegram-publication-notifications
+    summary: Inspect, enable, disable or reconfigure optional Telegram publication reports, reusing verified setup when possible and guiding missing BotFather/chat configuration without exposing the bot token.
+    availability: optional
+    feature_gate: social.enabled
+    mode: mutating
+    side_effects: durable_user_preference_and_optional_telegram_test_message
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Optional status, enable, disable or reconfigure instruction. Missing setup is resumed from durable profile state and may require the user to create/store a Telegram bot token outside chat.
+    response_contract: capability-result
+    help_source: docs/architecture/user-help-telegram-notifications.md
+
+  - id: social.schedule
+    command: /social schedule
+    family: social
+    capability: social-schedule
+    summary: Persist per-platform publication timing, apply the platform's active publication-consent policy and materialize the exact scheduled-publication authorization when all required gates are satisfied.
+    availability: optional
+    feature_gate: social.enabled
+    mode: mutating
+    side_effects: durable_schedule_and_optional_publication_authorization_state
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Post/platform/date-time instruction. One-off policies may require explicit exact authorization; an active standing scheduled policy may materialize the exact authorization automatically after final content and schedule validation.
+    response_contract: capability-result
+    help_source: docs/architecture/user-help-social.md
+
+  - id: social.publish
+    command: /social publish
+    family: social
+    capability: social-publish
+    summary: Publish through an exact ready platform adapter and authorization; if the adapter is disabled, postponed or incomplete, resume its guided onboarding instead of treating setup state as a publication failure.
+    availability: optional
+    feature_gate: social.enabled
+    mode: external_side_effect
+    side_effects: external_social_publication
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Exact post/platform publication or adapter-activation request. Scheduled execution may rely on a durable standing publication-consent policy, but never bypasses exact runtime authorization; immediate publish-now remains subject to its explicit gate.
+    response_contract: capability-result
+    help_source: docs/architecture/user-help-social.md
+
+  - id: wordpress.connect
+    command: /wordpress connect
+    family: wordpress
+    capability: wordpress-connect
+    summary: Connect and verify a configured WordPress site through the supported integration boundary.
+    availability: optional
+    feature_gate: wordpress.enabled
+    mode: mutating
+    side_effects: durable_connection_state
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Optional site/environment connection target or instruction.
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/wordpress-connect.md
+
+  - id: wordpress.prepare
+    command: /wordpress prepare
+    family: wordpress
+    capability: wordpress-prepare-article
+    summary: Create or update a controlled WordPress draft from validated article state.
+    availability: optional
+    feature_gate: wordpress.enabled
+    mode: external_side_effect
+    side_effects: wordpress_draft_write
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Optional article/site target; capability prerequisites and exact managed-draft rules remain authoritative.
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/wordpress-prepare-article.md
+
+  - id: wordpress.publish
+    command: /wordpress publish
+    family: wordpress
+    capability: wordpress-publish-article
+    summary: Publish an exact validated WordPress candidate only with the required publish gate and runtime authorization.
+    availability: optional
+    feature_gate: wordpress.publish_enabled
+    mode: external_side_effect
+    side_effects: wordpress_publication
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Exact candidate/publication request; never substitutes for publish_now authorization.
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/wordpress-publish-article.md
+
+internal_only_capabilities:
+  - capability: visual-source-resolve
+    reason: Shared policy/source-intake capability invoked by article/social creation workflows before drafting when the effective visual policy requires source resolution; not a separate user command.
+  - capability: asset-ingest
+    reason: Supporting media-normalization/finalization capability invoked automatically by higher-level article/social workflows.

@@ -20,15 +20,27 @@ jobs:
         run: |
           test "${GITHUB_REF_NAME}" = "v$(cat VERSION)"
           python3 tests/test_repository.py
-      - name: Build exact release
+      - name: Build Codex plugin release
         run: python3 tools/build-release.py --source-sha "$GITHUB_SHA"
+      - name: Build direct ChatGPT Skill release
+        run: python3 tools/build-skill.py
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          sha256sum "build/content-marketing-workflow-$(cat VERSION).zip" > "build/content-marketing-workflow-$(cat VERSION).zip.sha256"
+          version="$(cat VERSION)"
+          for artifact in \
+            "build/content-marketing-workflow-${version}.zip" \
+            "build/content-marketing-workflow-${version}.skill" \
+            "build/content-marketing-workflow-skill-${version}.zip"; do
+            sha256sum "$artifact" > "${artifact}.sha256"
+          done
           gh release create "$GITHUB_REF_NAME" \
-            "build/content-marketing-workflow-$(cat VERSION).zip" \
-            "build/content-marketing-workflow-$(cat VERSION).zip.sha256" \
-            --title "Content Marketing Workflow $(cat VERSION)" \
+            "build/content-marketing-workflow-${version}.zip" \
+            "build/content-marketing-workflow-${version}.zip.sha256" \
+            "build/content-marketing-workflow-${version}.skill" \
+            "build/content-marketing-workflow-${version}.skill.sha256" \
+            "build/content-marketing-workflow-skill-${version}.zip" \
+            "build/content-marketing-workflow-skill-${version}.zip.sha256" \
+            --title "Content Marketing Workflow ${version}" \
             --generate-notes

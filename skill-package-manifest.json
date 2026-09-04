@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "skill_name": "content-marketing-workflow",
+  "display_name": "Content Marketing Workflow",
+  "version_file": "VERSION",
+  "skill_source_root": "skills/content-marketing-workflow",
+  "skill_version_file": "skills/content-marketing-workflow/VERSION",
+  "plugin_skill_mirror": "plugins/content-marketing-workflow/skills/content-marketing-workflow",
+  "artifacts": {
+    "skill": "content-marketing-workflow-{version}.skill",
+    "zip": "content-marketing-workflow-skill-{version}.zip"
+  }
+}
