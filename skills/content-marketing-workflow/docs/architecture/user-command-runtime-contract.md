@@ -64,7 +64,7 @@ Examples that resolve to the same command:
 Example whose argument must remain intact:
 
 ```text
-/article details articles/entrepreneurs/Mon-Article.md
+/article details articles/<audience>/<article-slug>.md
 ```
 
 ## Command matching precedence

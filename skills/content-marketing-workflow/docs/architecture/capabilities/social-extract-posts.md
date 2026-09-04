@@ -152,7 +152,7 @@ completion_conditions:
    - `positioning`;
    - `conversion`;
 6. add a concise `series_role` explaining what the post contributes to the reader journey;
-7. evaluate the series as a whole: does repeated exposure make the professional/activity/offer understandable, not merely the entrepreneurship topic?;
+7. evaluate the series as a whole: does repeated exposure make the professional/activity/offer understandable, not merely the subject area?;
 8. when coverage is weak and durable source truth supports it, add/replace/reframe concepts so method/positioning and offer/conversion are represented without making every post promotional;
 9. propose a durable order that alternates functions naturally and avoids consecutive conversion/strong CTA posts;
 10. do not allocate `post_id` during planning.

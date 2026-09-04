@@ -15,7 +15,7 @@ WordPress OK
 
 It intentionally does not name a page builder.
 
-Older pilot execution records may retain an adapter-specific wording such as `Divi OK`. Such wording is historical evidence only. New/current workflow contracts and user-facing prompts must use `WordPress OK`.
+Legacy integration records may retain adapter-specific wording. Such wording is external project history only. Current workflow contracts and user-facing prompts must use `WordPress OK`.
 
 ## Meaning
 

@@ -116,9 +116,9 @@ The retained private final is the durable binary identity. A temporary delivery 
 Current CLI entrypoints remain:
 
 ```bash
-./social-publisher.bash check-before-publish 2026-0001
-./social-publisher.bash check-before-publish 2026-0001 --platform facebook
-./social-publisher.bash check-before-publish 2026-0001 --platform linkedin
+./social-publisher.bash check-before-publish <post-id>
+./social-publisher.bash check-before-publish <post-id> --platform facebook
+./social-publisher.bash check-before-publish <post-id> --platform linkedin
 ./social-publisher.bash check-before-publish --all
 ```
 

@@ -260,8 +260,8 @@ Critical invariant:
 A final derivative uses a different object/file, for example:
 
 ```text
-source-user/bougie-ambre.jpg
-final/bougie-ambre-social.jpg
+source-user/source-image.jpg
+final/final-social-image.jpg
 ```
 
 Only `tmp-outbox/` may be public-by-link for temporary delivery. `source-user/` is always private.

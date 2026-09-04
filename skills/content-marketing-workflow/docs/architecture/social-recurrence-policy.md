@@ -143,7 +143,7 @@ When useful, a series concept may store recurrence metadata such as:
 ```yaml
 overlap_class: related_distinct|intentional_recurrence|harmful_duplicate|no_material_overlap
 related_posts:
-  - 2026-0007
+  - <post-id>
 recurrence_note: "Same core theme, different angle and strategic function."
 ```
 

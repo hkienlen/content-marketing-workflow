@@ -116,20 +116,14 @@ GitHub persists at least:
 - LinkedIn API version;
 - GitHub Actions run ID.
 
-## Current pilot authorizations
+## User/project authorization boundary
 
-The user explicitly authorized scheduled LinkedIn publication for exactly:
+Concrete post IDs, scheduled timestamps and authorization records are user/project state and must not be embedded in this generic contract or release payload.
 
-- `2026-0003` at `2026-09-08T07:30:00+02:00`;
-- `2026-0004` at `2026-09-10T07:30:00+02:00`.
-
-No other post is authorized by that decision.
-
-Canonical records:
+Canonical generic record shape:
 
 ```text
-social/publication-authorizations/linkedin/2026-0003.json
-social/publication-authorizations/linkedin/2026-0004.json
+social/publication-authorizations/linkedin/<post-id>.json
 ```
 
 ## Future skill requirement
