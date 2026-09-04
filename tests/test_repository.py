@@ -22,11 +22,6 @@ ALLOWED_URL_HOSTS = {
     "token.actions.githubusercontent.com",
     "www.linkedin.com",
 }
-TEMP_SANITATION_FILES = {
-    Path("tools/sanitize-generic-boundary.py"),
-    Path("tools/test_repository_generic.py"),
-    Path(".github/workflows/sanitize-generic-boundary.yml"),
-}
 URL_RE = re.compile(r"https?://[^\s\)\]\}>\"'`]+", re.IGNORECASE)
 FR_HOST_RE = re.compile(r"\b(?:[a-z0-9-]+\.)+[a-z0-9-]*\.fr\b", re.IGNORECASE)
 EMAIL_RE = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
@@ -42,12 +37,8 @@ def text_files(root: Path):
     for path in root.rglob("*"):
         if not path.is_file() or ".git" in path.parts or "build" in path.parts:
             continue
-        if path.suffix.lower() not in TEXT_SUFFIXES:
-            continue
-        rel = path.relative_to(ROOT)
-        if rel in TEMP_SANITATION_FILES:
-            continue
-        yield path
+        if path.suffix.lower() in TEXT_SUFFIXES:
+            yield path
 
 
 def privacy_errors(label: str, text: str):
