@@ -18,7 +18,7 @@
     "displayName": "Content Marketing Workflow",
     "shortDescription": "One governed workflow for SEO, content, WordPress and social publishing.",
     "longDescription": "Plan, research, create, review, prepare, schedule and publish content through one resumable workflow with durable state, human review gates and provider-specific publication safeguards.",
-    "developerName": "Content Marketing Workflow",
+    "developerName": "Hervé Kienlen",
     "category": "Productivity",
     "capabilities": [
       "Interactive",
@@ -28,6 +28,8 @@
       "Plan and create my next SEO article.",
       "Create the next social post from my content queue.",
       "Show my content workflow status."
-    ]
+    ],
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png"
   }
 }

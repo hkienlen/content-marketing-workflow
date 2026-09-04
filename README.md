@@ -1,5 +1,9 @@
 # Content Marketing Workflow
 
+<p align="center">
+  <img src="assets/repository-icon.png" alt="Content Marketing Workflow icon" width="180">
+</p>
+
 **Content Marketing Workflow** is the canonical source repository for the ChatGPT/Codex plugin `content-marketing-workflow`.
 
 Current version: `0.1.0`
@@ -11,10 +15,15 @@ content-marketing-workflow/
 ├── .agents/
 │   └── plugins/
 │       └── marketplace.json
+├── assets/
+│   └── repository-icon.png
 ├── plugins/
 │   └── content-marketing-workflow/
 │       ├── .codex-plugin/
 │       │   └── plugin.json
+│       ├── assets/
+│       │   ├── icon.png
+│       │   └── logo.png
 │       └── skills/
 │           └── content-marketing-workflow/
 │               └── SKILL.md
@@ -23,6 +32,15 @@ content-marketing-workflow/
 ```
 
 The plugin contains one primary skill. SEO, article, visual, WordPress, social, scheduling, publication, verification and notification behaviors remain internal capabilities of that single skill.
+
+## Branding
+
+The canonical repository artwork is stored in `assets/repository-icon.png` and displayed above. The installable plugin uses the same visual identity through:
+
+- `plugins/content-marketing-workflow/assets/icon.png` for compact plugin/composer views;
+- `plugins/content-marketing-workflow/assets/logo.png` for larger plugin presentation surfaces.
+
+The plugin manifest references those assets through `interface.composerIcon` and `interface.logo`. The human-readable developer name is `Hervé Kienlen`.
 
 ## ChatGPT Web workspace import
 
