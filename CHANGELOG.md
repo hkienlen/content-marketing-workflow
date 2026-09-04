@@ -4,6 +4,9 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+- Documented ChatGPT Web workspace import from the same private/public GitHub marketplace used by Codex.
+- Formalized that no separate Apps SDK/MCP wrapper is required merely to distribute this skill-only plugin on ChatGPT Web.
+- Added a repository-maintainer guide for ChatGPT Web marketplace import and synchronization.
 - Added the canonical Codex repo/team marketplace manifest at `.agents/plugins/marketplace.json`.
 - Moved installable plugin source under `plugins/content-marketing-workflow/` to match the official marketplace layout and avoid repository-root plugin path issues.
 - Added repository tests that bind marketplace discovery, plugin source, package manifest and release ZIP to the same canonical plugin.
