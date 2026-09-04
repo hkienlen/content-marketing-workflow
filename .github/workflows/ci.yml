@@ -1,0 +1,33 @@
+name: Test Content Marketing Workflow
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate canonical repository
+        run: python3 tests/test_repository.py
+      - name: Build exact plugin artifact
+        run: python3 tools/build-release.py --source-sha "$GITHUB_SHA"
+      - name: Verify ZIP integrity
+        run: unzip -t "build/content-marketing-workflow-$(cat VERSION).zip"
+      - name: Emit SHA-256
+        run: sha256sum "build/content-marketing-workflow-$(cat VERSION).zip"
+      - name: Upload installable plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: content-marketing-workflow-${{ github.sha }}
+          path: build/content-marketing-workflow-*.zip
+          if-no-files-found: error
+          retention-days: 30
