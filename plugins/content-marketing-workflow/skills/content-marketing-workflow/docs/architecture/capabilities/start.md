@@ -1,6 +1,6 @@
 # Internal capability: start
 
-Date: 2026-09-04
+Date: 2026-09-05
 Status: current capability contract
 
 ## Purpose
@@ -10,6 +10,36 @@ Status: current capability contract
 It initializes or resumes one user/project without making the user understand repository layout, Git, Work Items, external-media hierarchy or optional integration internals.
 
 The skill owns the schema and onboarding behavior. Concrete user/site/project values are persisted in user data.
+
+## Runtime compatibility authority
+
+Before treating onboarding as operational, read and apply:
+
+```text
+docs/architecture/runtime-compatibility-matrix.md
+```
+
+`/start` performs compatibility discovery immediately. A new user is not expected to know or pre-install CMW's integration plugins before onboarding.
+
+Hard rule:
+
+```text
+no usable GitHub repository access -> BLOCKED -> stop CMW onboarding
+```
+
+Cloud-media rule:
+
+```text
+no supported operational cloud-media provider -> DEGRADED
+```
+
+The current implemented cloud-media provider is Google Drive. Dropbox is reserved for a future adapter and must not be presented as usable until implemented. GitHub, WordPress and local filesystem are not media-storage fallbacks.
+
+When runtime plugin discovery is available, onboarding must search for each implemented cloud-media provider even when not installed, distinguish eligibility/installability/installation/connection state, propose installation when eligible, and guide connection/verification immediately. Never infer provider eligibility solely from a ChatGPT plan name.
+
+Onboarding must also detect whether the active runtime can generate/edit images. When required image generation is unavailable but cloud storage works, configure the manual image handoff defined by `runtime-compatibility-matrix.md`: produce a complete external-generation prompt, receive the user-generated result back, then persist/inspect/finalize it normally.
+
+When WordPress or social publication is enabled, verify the WordPress-hosted SEO Workflow Bridge runtime because the current LinkedIn/Facebook publication architecture depends on it. Without WordPress/Bridge, authoring may continue but current automated social publication is unavailable.
 
 ## Capability contract
 
@@ -21,13 +51,15 @@ feature_gate: null
 mode: mutating
 
 prerequisites:
-  - GitHub repository access is available
+  - GitHub repository access is available; absence is a fatal BLOCKED state
   - repository-wide instructions can be read
+  - runtime compatibility is evaluated from docs/architecture/runtime-compatibility-matrix.md
   - configured external-media provider access can be verified before asset-producing workflows are considered ready
 
 mandatory_context:
   - AGENTS.md
   - docs/architecture/single-skill-scope.md
+  - docs/architecture/runtime-compatibility-matrix.md
   - docs/architecture/business-model-extensibility.md
   - docs/architecture/persistence-contract.md
   - docs/architecture/user-profile-data-contract.md
@@ -55,6 +87,7 @@ reads:
   - existing durable business/site facts
   - existing strategy and content indexes/state when available
   - configured external-media workspace state
+  - runtime/plugin eligibility/availability state when inspectable
   - existing visual_preferences when present
   - optional WordPress/social/notification capability state
 
@@ -65,7 +98,7 @@ writes:
   - structured visual_preferences when the user confirms them
   - tmp-outbox non-secret configuration and verified accessibility state
   - optional capability flags and notification preferences selected by the user
-  - verified onboarding/progress state in user/project data
+  - verified onboarding/progress state and durable blockers in user/project data
 
 persists:
   - selected repository/site identity
@@ -84,6 +117,8 @@ persists:
 
 external_side_effects:
   - inspect the existing public website when useful
+  - discover supported provider plugins when runtime tooling exposes plugin management
+  - propose installation/connection of an implemented provider during onboarding when eligible
   - create/reuse required external-media workspace folders
   - test anonymous read access to tmp-outbox after the user configures its share setting
   - delegate to wordpress-connect only when WordPress is enabled/relevant and the user proceeds with that integration
@@ -103,6 +138,8 @@ human_approval:
 validation:
   - active profile validates against docs/architecture/schemas/user-profile.schema.json
   - existing onboarding state is reused instead of duplicated
+  - GitHub hard prerequisite is verified before CMW proceeds
+  - cloud-media and runtime capability states are reported truthfully and never inferred from subscription label alone
   - every durable answer is persisted immediately in the correct user/project authority
   - visual_preferences, when present, use only the structured schema enums and do not contain pilot-specific defaults
   - content-local visual instructions are not promoted to project preference without explicit user intent
@@ -118,8 +155,11 @@ completion_conditions:
   - required core user/project/site/business facts are durably recoverable
   - active profile is valid and points to richer authorities when applicable
   - visual preference is explicitly configured, or its missing state is explicitly recorded/resumable rather than silently inferred from one-off content
-  - GitHub and external-media prerequisites are verified
-  - media provider and delivery-folder configuration are recoverable and verified
+  - GitHub is verified or onboarding is truthfully BLOCKED
+  - cloud-media readiness is verified or explicit DEGRADED blockers/affected features are reported
+  - media provider and delivery-folder configuration are recoverable and verified when media readiness is claimed
+  - image-generation/editing runtime availability is known for the current surface when visual generation is in scope, with manual handoff available when needed
+  - WordPress/Bridge dependency is verified when WordPress or automated social publication is enabled
   - relevant strategy exists or is explicitly marked incomplete
   - optional capability choices are persisted
   - optional notification preference is explicit when offered
@@ -142,10 +182,11 @@ On every invocation:
 1. read `user-data/profile.json` first when it exists;
 2. resolve `active_project_id` and referenced user-owned authorities;
 3. determine which onboarding facts/checkpoints are already complete;
-4. ask only for missing or contradictory information;
-5. persist each durable answer immediately;
-6. verify the write before continuing to a dependent step;
-7. finish with the next unresolved checkpoint or next useful capability.
+4. re-evaluate runtime compatibility needed for the active surface/scope rather than assuming a previous conversation exposed the same tools;
+5. ask only for missing or contradictory information;
+6. persist each durable answer immediately;
+7. verify the write before continuing to a dependent step;
+8. finish with the next unresolved checkpoint or next useful capability.
 
 Do not restart onboarding from zero just because the conversation is new.
 
@@ -171,7 +212,7 @@ Existing older project files such as `strategy/storage-workspace.md`, `wordpress
 
 ## Information gathering
 
-Gather progressively, not as one giant questionnaire.
+Gather progressively, not as one giant questionnaire, but perform prerequisite discovery at the beginning rather than deferring integration requirements until first use.
 
 Useful durable categories include:
 
@@ -253,9 +294,11 @@ wordpress:
 
 `publish_enabled` never authorizes a particular publication.
 
+When WordPress or social publication is enabled, verify that the selected WordPress connection hosts a compatible operational SEO Workflow Bridge. In the current architecture that Bridge runtime is a prerequisite of automated LinkedIn/Facebook publication.
+
 ### Social
 
-Persist availability/connection data under `social`. Platform publication-consent preferences belong to user/project data. External social publication still requires the gates declared by `social-publish`.
+Persist availability/connection data under `social`. Platform publication-consent preferences belong to user/project data. External social publication still requires the gates declared by `social-publish` and the prerequisite graph from `runtime-compatibility-matrix.md`.
 
 ### Telegram publication reports
 
@@ -274,6 +317,15 @@ TELEGRAM_BOT_TOKEN
 ## Media provider and Google Drive
 
 The generic media architecture is provider-neutral and currently supports Google Drive, with Dropbox reserved as a future adapter.
+
+Onboarding must present the implemented provider list before configuration. For this version:
+
+```text
+Supported now: Google Drive
+Future/not selectable: Dropbox
+```
+
+If Google Drive is discoverable and installable but not installed, propose installation during onboarding. If installed but not connected, guide connection immediately. If it is not visible/eligible for the current account/runtime, report that fact (or `eligibility_unknown` when it cannot be inspected) and enter the cloud-media DEGRADED state; do not propose GitHub, WordPress or local filesystem as alternatives.
 
 For Google Drive, onboarding resolves and verifies:
 
@@ -303,6 +355,22 @@ Then retrieve/confirm the folder ID/link, persist non-secret values, verify perm
 
 The user does not need a Google Cloud project, service account, OAuth client, API credential or GitHub secret containing Google credentials for normal setup.
 
+## Image-generation runtime fallback
+
+Image generation/editing capability is runtime state, not a permanent user preference.
+
+When the active environment cannot generate/edit an image required by the owning visual workflow but cloud-media storage is operational:
+
+1. preserve the exact article/post revision and visual policy;
+2. generate a complete copy/paste prompt for an image-capable ChatGPT conversation or another compatible image AI;
+3. include dimensions/format, approved brief, source/fidelity/treatment requirements, branding and prohibited elements;
+4. ask the user to return/upload the generated result;
+5. inspect the returned asset and continue through provider retention, proposal review where applicable, `asset-ingest` and `verified_final` creation.
+
+Never claim the visual workflow complete from the prompt alone.
+
+If cloud storage is also unavailable, the image may not become a durable final and publication remains blocked.
+
 ## Existing website/editorial learning
 
 Observed content/image patterns are proposals until intentionally adopted as durable user/project rules. Do not silently convert every legacy inconsistency into a new strategy or visual preference.
@@ -311,4 +379,4 @@ Observed content/image patterns are proposals until intentionally adopted as dur
 
 Onboarding is complete for the enabled scope only when required user/project facts/configuration are persisted and required infrastructure checkpoints are verified.
 
-A missing explicitly required visual preference, inaccessible media workspace, failed anonymous tmp-outbox delivery, unverified WordPress connection, unhealthy social credential or enabled-but-unverified notification channel remains explicit and resumable rather than silently complete.
+A missing GitHub hard prerequisite makes onboarding BLOCKED. An inaccessible supported media workspace, unavailable image-generation runtime requiring manual handoff, failed anonymous tmp-outbox delivery, unverified WordPress/Bridge connection, unhealthy social credential or enabled-but-unverified notification channel remains explicit and resumable rather than silently complete.

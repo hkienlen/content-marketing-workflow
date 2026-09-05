@@ -6,7 +6,7 @@
 
 **Content Marketing Workflow** is the canonical source repository for the reusable Content Marketing Workflow Skill and its optional Codex plugin distribution.
 
-Current version: `0.1.3`
+Current version: `0.2.0`
 
 ## Distribution model
 
@@ -36,6 +36,30 @@ content-marketing-workflow/
 The **Skill is the canonical reasoning/workflow boundary**. The Codex plugin is an optional packaging/distribution envelope and must not develop a separate behavior model.
 
 SEO, article, visual, WordPress, social, scheduling, publication, verification and notification behaviors remain internal capabilities of this single Skill.
+
+## Runtime prerequisites and compatibility
+
+CMW does not assume that a new user already installed its integration plugins. `/start` performs compatibility discovery immediately and reports one of:
+
+```text
+READY
+DEGRADED
+BLOCKED
+```
+
+The central authority is `skills/content-marketing-workflow/docs/architecture/runtime-compatibility-matrix.md`.
+
+Current product rules:
+
+- **GitHub repository access is mandatory.** Without a usable GitHub repository, CMW is `BLOCKED` and does not continue using conversation memory as a substitute.
+- **Online cloud-media storage is required for the complete media workflow.** Google Drive is the only implemented provider in 0.2.0. Dropbox is reserved for a future adapter.
+- GitHub, WordPress and local filesystem are **not** automatic media-storage fallbacks.
+- When the runtime cannot generate/edit images but cloud storage is available, CMW produces a complete external-generation prompt and resumes after the user returns/uploads the generated image.
+- Without required verified final media, CMW does **not** degrade to image-less WordPress publication or text-only social publication.
+- Current LinkedIn/Facebook automated publication depends on a verified WordPress-hosted SEO Workflow Bridge runtime.
+- Telegram remains optional; notification failure never changes publication state.
+
+When ChatGPT exposes plugin discovery/management, CMW should inspect provider visibility/eligibility even when the plugin is not installed, propose installation when eligible and guide connection during onboarding. Eligibility must not be guessed from the subscription plan name alone.
 
 ## Direct installation in ChatGPT
 
@@ -68,16 +92,17 @@ The workflow is intentionally usable directly in ChatGPT when the required conne
 
 Typical direct-ChatGPT usage includes:
 
-- `/start` onboarding and durable project configuration;
+- `/start` onboarding, prerequisite discovery and durable project configuration;
 - inspection of an existing/new project repository when GitHub tools are connected;
 - selective migration of articles, social posts and related assets from an older project repository;
 - article planning, drafting, review and update;
 - social-series planning, post creation and review;
-- WordPress/social preparation and publication only through their explicit authorization gates.
+- visual creation or manual image-generation handoff according to runtime capability;
+- WordPress/social preparation and publication only through their explicit authorization gates and satisfied prerequisites.
 
 The Skill must not claim an external write succeeded when the active conversation does not expose the required connection/tool.
 
-`/help` is generated exhaustively from the authoritative command catalogue and must preserve canonical command syntax. `/status` is read-only and includes non-secret Telegram notification configuration when present. Telegram delivery can be checked explicitly with:
+`/help` is generated exhaustively from the authoritative command catalogue and must preserve canonical command syntax while annotating current prerequisite availability. `/status` is read-only and reports compatibility/readiness plus non-secret Telegram notification configuration when present. Telegram delivery can be checked explicitly with:
 
 ```text
 /social notifications telegram test

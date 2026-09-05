@@ -1,6 +1,6 @@
 {
   "name": "content-marketing-workflow",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Plan, create, review, prepare, schedule and publish content across SEO, WordPress and supported social channels through one governed workflow.",
   "author": {
     "name": "Content Marketing Workflow"
@@ -17,7 +17,7 @@
   "interface": {
     "displayName": "Content Marketing Workflow",
     "shortDescription": "One governed workflow for SEO, content, WordPress and social publishing.",
-    "longDescription": "Plan, research, create, review, prepare, schedule and publish content through one resumable workflow with durable state, human review gates and provider-specific publication safeguards.",
+    "longDescription": "Plan, research, create, review, prepare, schedule and publish content through one resumable workflow with durable state, runtime compatibility checks, human review gates and provider-specific publication safeguards.",
     "developerName": "Hervé Kienlen",
     "category": "Productivity",
     "capabilities": [
