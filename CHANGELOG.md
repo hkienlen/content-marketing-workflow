@@ -4,6 +4,19 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-05
+
+- Completed the 0.2.0 runtime-compatibility handoff across media, article, WordPress and social capability contracts.
+- Generalized media workspace/delivery contracts around the `cloud_media_storage` capability while keeping Google Drive as the only implemented provider and Dropbox future-only.
+- Made legacy `repository_file` media explicitly compatibility/migration-only and prohibited it as an automatic fallback.
+- Aligned `seo-create-article` and `social-create-visual` with runtime image-generation detection plus the external-generation prompt/user-upload handoff.
+- Aligned WordPress preparation/publication with strict required-media behavior and the central prerequisite graph; no image-less WordPress fallback.
+- Aligned social scheduling/publication with required cloud media, WordPress-hosted SEO Workflow Bridge and GitHub Actions scheduler; no text-only publication fallback.
+- Added durable non-secret `runtime_compatibility` state to the user-profile schema for cloud media, WordPress Bridge and scheduler health while keeping image-generation availability runtime-ephemeral.
+- Expanded direct ChatGPT installation/onboarding documentation so new users are guided through dependency discovery instead of needing to know which plugins to install beforehand.
+- Strengthened regression tests to assert the central compatibility model across media/article/WordPress/social contracts.
+- Bumped the Skill/Codex plugin version to 0.2.1 and synchronized the canonical Skill with the plugin mirror.
+
 ## [0.2.0] - 2026-09-05
 
 - Added a central runtime compatibility/prerequisite matrix with `READY`, `DEGRADED` and `BLOCKED` states.
