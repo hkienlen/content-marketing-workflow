@@ -1,11 +1,22 @@
 # User help - Telegram publication notifications
 
-Date: 2026-09-04
+Date: 2026-09-05
 Status: current guided onboarding/reconfiguration help
 
 ## Purpose
 
-Guide a user through enabling, disabling or reconfiguring optional Telegram publication reports without ever exposing the bot token in chat or repository content.
+Guide a user through enabling, disabling, testing or reconfiguring optional Telegram publication reports without ever exposing the bot token in chat or repository content.
+
+## Public commands
+
+```text
+/social notifications telegram
+/social notifications telegram test
+```
+
+`/social notifications telegram` inspects/configures/enables/disables/reconfigures Telegram notification preferences.
+
+`/social notifications telegram test` performs one explicit diagnostic delivery to the already configured destination. It does not publish, schedule, retry or alter any Facebook/LinkedIn content.
 
 ## What the user gets
 
@@ -39,7 +50,43 @@ setup_status=not_configured or chat_id missing
 -> run initial setup below
 ```
 
-The skill cannot infer that a GitHub secret still exists merely from profile metadata. If there is doubt, use the verification workflow before declaring the configuration healthy.
+The skill cannot infer that a GitHub secret still exists merely from profile metadata. If there is doubt, use the explicit test/verification path before declaring the configuration healthy.
+
+## Explicit diagnostic test
+
+When the user invokes:
+
+```text
+/social notifications telegram test
+```
+
+preconditions are:
+
+```text
+setup_status = verified
+chat_id exists
+secret_name exists
+```
+
+The command must use the supported Telegram setup/verification runtime and send exactly one diagnostic message to the persisted destination. It must never ask the user to paste the bot token into chat.
+
+Recommended diagnostic message:
+
+```text
+✅ Test Content Marketing Workflow : les notifications Telegram sont opérationnelles.
+```
+
+On success, update only non-secret verification evidence such as `last_verified_at` and any supported non-secret bot/destination metadata returned by the verification workflow. Keep the existing `enabled` preference unchanged unless the user separately asked to enable notifications.
+
+On failure:
+
+- do not retry or alter any social publication;
+- do not claim Telegram is healthy;
+- report the exact safe blocker available from the runtime;
+- keep publication state independent from notification state;
+- offer `/social notifications telegram` when reconfiguration is needed.
+
+`/status` may recommend this test but must never run it automatically because `/status` is read-only.
 
 ## Initial setup - exact procedure
 
@@ -212,7 +259,7 @@ bot_username exists
 
 then do not recreate the bot.
 
-If the configuration was recently verified and no credential problem is reported, re-enable the preference. If the secret may have been removed/rotated, run `verify` again with the stored chat ID first.
+If the configuration was recently verified and no credential problem is reported, re-enable the preference. If the secret may have been removed/rotated, run the explicit Telegram test/verification again with the stored chat ID first.
 
 ## Reconfigure bot or chat
 
@@ -251,7 +298,7 @@ Then:
 
 1. replace the value of the GitHub repository secret `TELEGRAM_BOT_TOKEN`;
 2. do not commit the new token anywhere;
-3. run `Telegram notification setup` in `verify` mode with the existing intended `chat_id`;
+3. run the explicit Telegram test/verification with the existing intended `chat_id`;
 4. confirm the test message arrives;
 5. only then treat the configuration as verified again.
 
@@ -280,7 +327,7 @@ The social publication state remains authoritative. Notification failure is reco
 
 ## Onboarding prompt
 
-During initial Content/Marketing skill onboarding, when social publication is enabled, the skill may ask once:
+During initial Content Marketing Workflow onboarding, when social publication is enabled, the skill may ask once:
 
 ```text
 Souhaites-tu recevoir sur Telegram un rapport après les publications sociales ?

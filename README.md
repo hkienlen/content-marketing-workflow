@@ -6,11 +6,11 @@
 
 **Content Marketing Workflow** is the canonical source repository for the reusable Content Marketing Workflow Skill and its optional Codex plugin distribution.
 
-Current version: `0.1.2`
+Current version: `0.1.3`
 
 ## Distribution model
 
-The workflow now has one canonical Skill source and two supported distributions:
+The workflow has one canonical Skill source and two supported distributions:
 
 ```text
 content-marketing-workflow/
@@ -76,6 +76,12 @@ Typical direct-ChatGPT usage includes:
 - WordPress/social preparation and publication only through their explicit authorization gates.
 
 The Skill must not claim an external write succeeded when the active conversation does not expose the required connection/tool.
+
+`/help` is generated exhaustively from the authoritative command catalogue and must preserve canonical command syntax. `/status` is read-only and includes non-secret Telegram notification configuration when present. Telegram delivery can be checked explicitly with:
+
+```text
+/social notifications telegram test
+```
 
 ## Codex plugin distribution
 

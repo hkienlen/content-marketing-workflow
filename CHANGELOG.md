@@ -4,6 +4,14 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-09-05
+
+- Made `/help` exhaustive and deterministic from `user-command-catalog.yaml`, preserving canonical syntax and showing disabled/optional commands instead of silently omitting them.
+- Added explicit `/social notifications telegram test` command for one diagnostic Telegram delivery without publishing or retrying social content.
+- Extended `/status` to report non-secret Telegram configuration/verification state when Telegram notifications are configured or enabled.
+- Added a real Telegram `test` runtime/workflow mode that reuses the persisted destination, preserves the existing enabled preference and updates non-secret verification evidence only.
+- Strengthened the Skill entrypoint so `/help` and `/status` load their authoritative contracts/state before answering.
+
 ## [0.1.2] - 2026-09-05
 
 - Promoted `skills/content-marketing-workflow/` to the canonical Skill source for direct ChatGPT installation.

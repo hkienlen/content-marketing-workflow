@@ -22,6 +22,10 @@ The workflow semantics are the same in both modes. Distribution mode never chang
 4. Load only the task-relevant capability contracts and supporting authorities. Do not mechanically load every packaged file.
 5. Preserve durable state, human review gates, exact publication authorization, idempotency and verification semantics defined by the packaged contracts.
 
+For `/help` specifically, always read the current `user-command-catalog.yaml` before answering. `/help` is exhaustive, not a shortlist: render every public catalogue command with its canonical syntax, grouped by family, and annotate current availability/feature-gate state. Never invent, rename, abbreviate or omit a public command merely to make the answer shorter.
+
+For `/status`, always read the current project/profile state before answering. When Telegram notifications are configured or enabled, include their non-secret configuration/health summary as defined by the status contract. `/status` itself remains read-only and must not send a Telegram test message; expose the explicit Telegram test command as the next action when a test is useful.
+
 ## Direct ChatGPT runtime
 
 When running as an installed ChatGPT Skill, read `docs/architecture/chatgpt-skill-runtime.md` whenever the request concerns installation, `/start`, onboarding, project initialization, repository migration, connected-tool availability or the boundary between ChatGPT and Codex.

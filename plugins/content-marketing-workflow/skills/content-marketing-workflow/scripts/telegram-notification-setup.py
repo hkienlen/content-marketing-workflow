@@ -6,7 +6,6 @@ import datetime as dt
 import json
 import os
 import urllib.error
-import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -80,10 +79,26 @@ def write_profile(path: Path, profile: dict[str, Any]) -> None:
     path.write_text(json.dumps(profile, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def verify_chat_and_send(token: str, chat_id: str, text: str) -> None:
+    chat = api_call(token, "getChat", {"chat_id": chat_id})
+    chat_result = chat.get("result") if isinstance(chat.get("result"), dict) else {}
+    returned_id = str(chat_result.get("id") or "")
+    if returned_id != chat_id:
+        raise SystemExit("Telegram getChat returned a different chat ID")
+    test = api_call(token, "sendMessage", {
+        "chat_id": chat_id,
+        "text": text,
+        "disable_web_page_preview": True,
+    })
+    message = test.get("result") if isinstance(test.get("result"), dict) else {}
+    if not isinstance(message.get("message_id"), int):
+        raise SystemExit("Telegram test message returned no message_id")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile", required=True)
-    parser.add_argument("--mode", choices=["discover", "verify", "disable"], required=True)
+    parser.add_argument("--mode", choices=["discover", "verify", "test", "disable"], required=True)
     parser.add_argument("--chat-id")
     args = parser.parse_args()
 
@@ -126,23 +141,35 @@ def main() -> int:
             print(f"- chat_id={chat['chat_id']} type={chat['type']} label={chat['label']}{username}")
         return 0
 
+    if args.mode == "test":
+        if telegram.get("setup_status") != "verified":
+            raise SystemExit("Telegram notifications are not in verified setup state")
+        chat_id = str(telegram.get("chat_id") or "").strip()
+        if not chat_id or not chat_id.lstrip("-").isdigit():
+            raise SystemExit("Telegram test requires a persisted numeric chat_id")
+        previous_enabled = bool(telegram.get("enabled", False))
+        verify_chat_and_send(
+            token,
+            chat_id,
+            "✅ Test Content Marketing Workflow : les notifications Telegram sont opérationnelles.",
+        )
+        now = utc_now()
+        telegram["last_verified_at"] = now
+        telegram["bot_username"] = bot_username
+        telegram["secret_name"] = SECRET_NAME
+        telegram["enabled"] = previous_enabled
+        write_profile(profile_path, profile)
+        print(f"Telegram diagnostic test succeeded for @{bot_username}, chat_id={chat_id}, project={project_id}.")
+        return 0
+
     chat_id = str(args.chat_id or "").strip()
     if not chat_id or not chat_id.lstrip("-").isdigit():
         raise SystemExit("verify mode requires a numeric --chat-id")
-    chat = api_call(token, "getChat", {"chat_id": chat_id})
-    chat_result = chat.get("result") if isinstance(chat.get("result"), dict) else {}
-    returned_id = str(chat_result.get("id") or "")
-    if returned_id != chat_id:
-        raise SystemExit("Telegram getChat returned a different chat ID")
-
-    test = api_call(token, "sendMessage", {
-        "chat_id": chat_id,
-        "text": "✅ Notifications de publication configurées. Ce message confirme que le bot Telegram peut envoyer les rapports de publication.",
-        "disable_web_page_preview": True,
-    })
-    message = test.get("result") if isinstance(test.get("result"), dict) else {}
-    if not isinstance(message.get("message_id"), int):
-        raise SystemExit("Telegram test message returned no message_id")
+    verify_chat_and_send(
+        token,
+        chat_id,
+        "✅ Notifications de publication configurées. Ce message confirme que le bot Telegram peut envoyer les rapports de publication.",
+    )
 
     now = utc_now()
     telegram.update({

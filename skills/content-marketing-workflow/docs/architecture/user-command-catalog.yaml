@@ -8,7 +8,7 @@ commands:
     command: /help
     family: system
     behavior: command-help
-    summary: List available commands and their current availability.
+    summary: List every public command from the authoritative catalogue with its current availability.
     availability: core
     feature_gate: null
     mode: read_only
@@ -39,7 +39,7 @@ commands:
     command: /status
     family: system
     behavior: project-status
-    summary: Show a read-only overview of durable project and workflow state.
+    summary: Show a read-only overview of durable project, integration, notification and workflow state.
     availability: core
     feature_gate: null
     mode: read_only
@@ -308,6 +308,7 @@ commands:
     command: /social notifications telegram
     family: social
     capability: telegram-publication-notifications
+    operation: configure
     summary: Inspect, enable, disable or reconfigure optional Telegram publication reports, reusing verified setup when possible and guiding missing BotFather/chat configuration without exposing the bot token.
     availability: optional
     feature_gate: social.enabled
@@ -319,6 +320,20 @@ commands:
         required: false
         identity: null
         description: Optional status, enable, disable or reconfigure instruction. Missing setup is resumed from durable profile state and may require the user to create/store a Telegram bot token outside chat.
+    response_contract: capability-result
+    help_source: docs/architecture/user-help-telegram-notifications.md
+
+  - id: social.telegram-notifications-test
+    command: /social notifications telegram test
+    family: social
+    capability: telegram-publication-notifications
+    operation: test
+    summary: Send one diagnostic Telegram message to the already configured destination and record non-secret verification evidence without publishing or retrying social content.
+    availability: optional
+    feature_gate: social.enabled
+    mode: external_side_effect
+    side_effects: telegram_test_message_and_non_secret_verification_state
+    arguments: []
     response_contract: capability-result
     help_source: docs/architecture/user-help-telegram-notifications.md
 
