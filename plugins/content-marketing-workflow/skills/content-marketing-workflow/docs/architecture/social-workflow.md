@@ -1,6 +1,6 @@
 # Social workflow architecture
 
-Date: 2026-09-04
+Date: 2026-09-05
 Status: current architecture contract
 
 ## Purpose
@@ -12,7 +12,10 @@ It covers article-derived and free posts, source planning, strategic function, i
 Read together with:
 
 ```text
+docs/architecture/runtime-compatibility-matrix.md
 docs/architecture/user-provided-images.md
+docs/architecture/google-drive-workspace.md
+docs/architecture/dropbox-workspace.md
 docs/architecture/capabilities/visual-source-resolve.md
 docs/architecture/social-creation-queue.md
 docs/architecture/social-series-review-gate.md
@@ -39,14 +42,6 @@ series planning/validation
 != notification delivery
 ```
 
-In particular:
-
-```text
-scheduler success
-!= provider creation evidence
-!= post-publication verification
-```
-
 A source image, selected image or successful visual review is never publication authorization.
 
 ## Generic social flow
@@ -68,6 +63,7 @@ validated source article
 -> social-create-visual
 -> combined human review
 -> selected/final visual normalized/verified through asset-ingest
+-> provider-appropriate final text artifact stored with final visual
 -> final coherent snapshot
 -> scheduling when requested
 -> exact authorization materialized when policy/gates permit
@@ -92,22 +88,11 @@ positioning
 conversion
 ```
 
-User-facing labels:
-
-```text
-Identification
-Expertise / compréhension
-Méthode / positionnement
-Offre / conversion
-```
-
 The goal is coverage and balance, not a rigid quota. Never invent unsupported offers or commercial claims merely to fill a function. Default ordering avoids consecutive `conversion`/strong CTA posts when a reasonable alternative exists.
 
 ## Series planning and review
 
 A new/materially revised article series must be fully generated/persisted before review and fully human-validated before first new post drafting.
-
-The review shows at least proposed order, concept/title, angle, strategic function, concrete role/purpose, state, useful source/offer/link/deduplication notes, distribution/coverage summary and order rationale.
 
 After exact list validation, continue automatically to first eligible post. Do not ask another generic `go`.
 
@@ -130,49 +115,30 @@ visual_preferences.social
 
 A post may add a local partial override without changing those durable project preferences.
 
-`visual-source-resolve` resolves:
+`visual-source-resolve` resolves project default -> social override -> post-local override.
+
+When user media is relevant, the capability creates/reuses in the selected provider:
 
 ```text
-project default
--> social override
--> post-local override
-```
-
-Supported source modes:
-
-```text
-ai_first
-user_images_first
-strict_user_images
-hybrid_best_fit
-```
-
-When user media is relevant, the capability creates/reuses:
-
-```text
-<drive-root>/<site-domain>/social/<post-name>/source-user/
+<provider-root>/<site-domain>/social/<post-name>/source-user/
 ```
 
 and verifies/inspects real files before their visible attributes influence master text or visual brief.
 
-When asking the user to deposit images in Drive, always display:
+When asking the user to deposit images, display:
 
 ```text
-exact canonical source-user path
-+ verified direct clickable Google Drive folder link
+exact canonical selected-provider source-user path
++ verified direct clickable provider folder link when available
 ```
 
-Never guess a folder link or claim files exist without resolving them.
+Never guess a folder link or claim files exist without resolving them. Google Drive and Dropbox provider-specific behavior is governed by their workspace contracts.
 
-A direct chat upload is valid when a real image attachment exists and is inspected. Retain/copy original into provider-backed `source-user/` when durable continuation requires it and preserve source provenance/hash when exact bytes are available.
+A direct chat upload is valid when a real image attachment exists and is inspected. Retain/copy original into selected-provider `source-user/` when durable continuation requires it and preserve source provenance/hash when exact bytes are available.
 
-User originals are never overwritten.
+User originals are never overwritten. Provider failure never silently switches the project to the other provider.
 
-### Strict mode
-
-`strict_user_images` and strict/high fidelity prohibit silent synthetic replacement of the real subject. A generic `allow_ai_generation` missing-source value does not override a strict truth requirement. A deliberately different one-off result requires an explicit compatible local override.
-
-## Source roles
+## Source roles and fidelity
 
 Durable source role may be:
 
@@ -184,15 +150,13 @@ inspiration_reference
 composition_input
 ```
 
-If role is obvious from explicit instruction, do not ask again. Ask only when ambiguity materially changes fidelity/treatment/result.
+`strict_user_images` and strict/high fidelity prohibit silent synthetic replacement of the real subject. Ask only when ambiguity materially changes fidelity/treatment/result.
 
 ## Master text
 
 Draft only after all applicable series/source gates pass.
 
 Master text must be complete publishable copy, derived from validated concept/source/article/free topic and current writing strategy. Do not include production notes/Markdown not intended for publication.
-
-When verified user source is available, use only visible/verified facts. Never infer unsupported product material, dimensions, performance, identity or business claims from a photo.
 
 Persist `text_status: in_review` before first combined review. Explicit human approval is required for `approved`.
 
@@ -205,13 +169,11 @@ master text + visual brief + source/fidelity constraints
 -> generate/treat candidates
 -> inspect/regenerate off-brief outputs
 -> retain exactly three genuinely distinct reviewable A/B/C
--> persist/verify in private Drive proposals
+-> persist/verify in selected provider private proposals
 -> combined review
 ```
 
 ### Exact `use_as_is`
-
-When exact verified user source is intended unchanged and `ai_treatment: none`/only non-material normalization applies:
 
 ```text
 verified source
@@ -220,68 +182,45 @@ verified source
 -> combined review with exact visual
 ```
 
-Do **not** generate fake A/B/C alternatives solely to satisfy the old generated-proposal rule.
-
-### Other user-source roles
-
-Enhance/reference/composition modes may produce A/B/C when materially distinct compliant choices are useful. Strict/high fidelity remains a hard constraint on subject truth.
+Do not generate fake A/B/C alternatives solely to satisfy the generated-proposal rule.
 
 ## Combined review
 
-Normal first review presents one package.
-
-Generated/materially transformed:
-
-```text
-post ID/concept/function
-complete master text
-Visual A
-Visual B
-Visual C
-explicit guidance
-```
-
-Exact `use_as_is`:
-
-```text
-post ID/concept/function
-complete master text
-exact source/final candidate
-explicit guidance
-```
-
-Guidance allows text-only changes, visual-only changes, both, new visual round where applicable, changing treatment/source, or validating text + exact visual choice.
-
-Approved components remain frozen unless explicitly reopened or materially invalidated by another requested change.
+Normal first review presents one package: complete master text plus either A/B/C or the exact `use_as_is` visual. Approved components remain frozen unless explicitly reopened or materially invalidated by another requested change.
 
 ## Final media and provenance
 
-`asset-ingest` normalizes/verifies human-selected candidate and persists final provider identity, filename, SHA-256, MIME, dimensions and `asset_status: verified_final`.
+`asset-ingest` normalizes/verifies human-selected candidate and persists provider-qualified final identity, filename, SHA-256, MIME, dimensions and `asset_status: verified_final`.
 
-When user-provided source is involved, retain source provenance including `source_type: user_provided`, provider/source asset identity/original filename/hash when available, source role, fidelity and treatment.
+When user-provided source is involved, retain `source_type: user_provided`, provider/source identity/reference, original filename/hash when available, source role, fidelity and treatment.
 
 Source original and final derivative are distinct durable concepts and source original is not destroyed during normalization.
 
-## Final Drive package
+## Final cloud package
 
-For Drive-backed social post finalization:
+For every supported cloud-media provider, finalization uses:
 
 ```text
-social/<post-name>/
+<provider-root>/<site-domain>/social/<post-name>/
 ├── source-user/   # when applicable; private originals
 ├── proposals/
 └── final/
     ├── selected normalized visual
-    └── one native Google Doc containing only exact approved publishable text
+    └── provider-appropriate copy/paste-ready final text artifact
 ```
 
-The Google Doc is canonical per post final package and reused/updated on revised approval rather than duplicated.
+Provider-specific final text artifact:
+
+```text
+google_drive -> one native Google Doc containing only exact approved publishable text
+dropbox      -> one UTF-8 plain-text .txt file containing only exact approved publishable text
+```
+
+The final text artifact is canonical per post package and reused/updated on revised approval rather than duplicated. The historical filename `social-final-drive-package.md` remains the authority for this provider-neutral contract.
 
 ## Scheduling
 
-Scheduling occurs only after complete text/media approval.
-
-Before fixing `planned_at`, inspect neighbouring global scheduled/published content and avoid unnecessary consecutive conversion/strong-CTA posts. Never silently override an exact user-selected time; propose alternative or persist deliberate exception rationale.
+Scheduling occurs only after complete text/media/final-package approval.
 
 Keep distinct:
 
@@ -290,10 +229,6 @@ planned_at
 publication-consent policy
 exact authorized_for_scheduled_publication record
 ```
-
-Active per-platform user profile policy may be `one_off_exact_confirmation` or `standing_auto_publish_scheduled`.
-
-Standing scheduled policy may eliminate repetitive confirmation only after final content/visual/ALT/schedule validation and by materializing an exact per-post authorization. It never becomes wildcard permission.
 
 Any bound text/ALT/media/target/time/hash change invalidates exact authorization and requires reconciliation/revalidation.
 
@@ -322,37 +257,13 @@ Historical/mismatched idempotency evidence must never be projected as a new publ
 
 If external creation may have occurred but result is not definitive, use `uncertain_external_result` and stop blind automatic retry.
 
-Current platform evidence:
-
-```text
-LinkedIn -> HTTP 201 + x-restli-id
-Facebook -> definitive remote post/media IDs + HTTP success + exact current authorization binding
-```
-
 ## Post-publication verification
 
-### Facebook Page
-
-After definitive creation with current supported Bridge, read back exact remote post/media; verify Page identity, remote IDs and expected message hash; bind verification to current authorization and persisted IDs; persist `verification_state: remote_verified` on success.
-
-If definite creation succeeded but read-back fails, publication remains `published`; do not republish solely because verification failed.
-
-### LinkedIn member
-
-Current access persists definitive provider creation evidence and:
-
-```text
-verification_state: provider_acknowledged
-readback_available: false
-```
-
-Do not label it `remote_verified` without future supported independent read-back.
+Facebook Page and LinkedIn verification rules remain platform-specific and independent of the selected cloud-media provider. A cloud provider is transport/storage, not social publication authority.
 
 ## Optional Telegram publication report
 
-When verified/enabled in active profile, report only after durable publication/verification reconciliation. Use `TELEGRAM_BOT_TOKEN` only from GitHub Actions Repository Secrets, never expose token in profile/Git/chat/logs, honor success/failure/uncertain preferences and suppress duplicate exact reports.
-
-Notification failure never changes publication state and never triggers republication.
+When verified/enabled in active profile, report only after durable publication/verification reconciliation. Notification failure never changes publication state and never triggers republication.
 
 ## Observable state invariant
 
@@ -364,6 +275,7 @@ source inspected != master text approved
 visual generated != visual stored != visual selected != verified_final
 use_as_is source != synthetic proposal
 combined review shown != fully approved
+final visual != complete final cloud package
 scheduled != exact publication authorization
 scheduler success != provider creation evidence
 provider creation evidence != post-publication verification
@@ -372,10 +284,10 @@ publication state != Telegram delivery state
 
 ## Resume/idempotency
 
-On every resume read exact durable series/post/checklist/ID/source-policy/source-provenance/provider-media/schedule/authorization/publication/verification/notification state.
+On every resume read exact durable series/post/checklist/ID/source-policy/source-provenance/provider-media/final-package/schedule/authorization/publication/verification/notification state.
 
 Continue from first incomplete task whose prerequisites are satisfied.
 
-Do not duplicate IDs, series plans, source-user folders, retained source copies, proposal rounds, final assets, external posts or notifications merely because execution restarted.
+Do not duplicate IDs, series plans, selected-provider source-user folders, retained source copies, proposal rounds, final assets, final text artifacts, external posts or notifications merely because execution restarted.
 
-Once provider creation is definitive, editorial reset is not a retry mechanism. Verification/notification repair remains separate from publication mutation.
+A project provider change requires explicit migration/rebinding before old provider identities are treated as current.
