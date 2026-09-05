@@ -55,11 +55,43 @@ class DropboxProviderContractTests(unittest.TestCase):
         self.assertIn("UTF-8 plain-text file", final_package)
         self.assertIn("text_plain_utf8", final_package)
 
+    def test_social_create_post_uses_provider_appropriate_final_artifact(self):
+        social = self.read("docs/architecture/capabilities/social-create-post.md")
+        self.assertIn("selected cloud_media_storage provider is operational", social)
+        self.assertIn("google_drive -> native Google Doc", social)
+        self.assertIn("dropbox      -> UTF-8 plain-text .txt file", social)
+
+    def test_user_image_and_source_resolution_support_both_providers(self):
+        images = self.read("docs/architecture/user-provided-images.md")
+        resolve = self.read("docs/architecture/capabilities/visual-source-resolve.md")
+        self.assertIn("source_provider: google_drive|dropbox|chat_upload", images)
+        self.assertIn("selected cloud_media_storage provider", resolve)
+        self.assertIn("silently switch providers", resolve)
+
     def test_direct_runtime_and_skill_entrypoint_offer_dropbox(self):
         runtime = self.read("docs/architecture/chatgpt-skill-runtime.md")
         skill = self.read("SKILL.md")
         self.assertIn("Dropbox (`dropbox`)", runtime)
         self.assertIn("implemented providers are Google Drive and Dropbox", skill)
+
+    def test_no_current_contract_still_marks_dropbox_future_only(self):
+        forbidden = (
+            "Dropbox is reserved for a future adapter",
+            "Dropbox: future adapter, not selectable yet",
+            "Future/not selectable: Dropbox",
+            "The current implemented provider is Google Drive",
+            "Current adapter maps this to Google Drive",
+            "Google Drive social workspace is available before user-source/proposal media work",
+            "persist/verify A/B/C in Google Drive",
+            "final Google Doc invariant is satisfied when Drive-backed finalization applies",
+        )
+        offenders = []
+        for path in (SKILL / "docs/architecture").rglob("*.md"):
+            text = path.read_text()
+            for phrase in forbidden:
+                if phrase in text:
+                    offenders.append(f"{path.relative_to(SKILL)}: {phrase}")
+        self.assertEqual(offenders, [], "\n".join(offenders))
 
 
 if __name__ == "__main__":
