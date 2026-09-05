@@ -4,6 +4,20 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-05
+
+- Added a central runtime compatibility/prerequisite matrix with `READY`, `DEGRADED` and `BLOCKED` states.
+- Made GitHub repository access a fatal prerequisite; CMW no longer treats conversation memory as a fallback project store.
+- Made cloud-media availability an explicit onboarding requirement for the complete media workflow while preserving repository-only strategy/content work in degraded mode.
+- Kept Google Drive as the only implemented cloud-media provider for this release and reserved Dropbox as a future adapter.
+- Explicitly prohibited GitHub, WordPress and local filesystem as automatic media-storage fallbacks; legacy repository-backed media remains compatibility-only.
+- Added plugin/provider discovery expectations during onboarding so new users do not need to pre-install Google Drive before `/start`; eligibility is detected from runtime/plugin state rather than subscription labels.
+- Added runtime image-generation/editing detection and a manual image handoff path that produces a complete external-generation prompt and resumes after user upload.
+- Preserved strict current no-image publication behavior: no WordPress preparation/publication for publication and no social publication without required verified final media.
+- Made the current WordPress-hosted SEO Workflow Bridge dependency explicit for automated LinkedIn/Facebook publication.
+- Extended `/status` and `/help` availability annotations to expose prerequisite health, impacted features and degraded/manual fallback behavior.
+- Added dedicated runtime compatibility regression tests and synchronized the direct Skill/Codex-plugin behavior model.
+
 ## [0.1.3] - 2026-09-05
 
 - Made `/help` exhaustive and deterministic from `user-command-catalog.yaml`, preserving canonical syntax and showing disabled/optional commands instead of silently omitting them.
