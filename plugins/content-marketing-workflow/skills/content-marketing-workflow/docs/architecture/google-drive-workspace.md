@@ -1,13 +1,19 @@
 # Google Drive asset workspace contract
 
-Date: 2026-09-04
-Status: current architecture decision
+Date: 2026-09-05
+Status: current provider adapter
 
 ## Authority
 
-This document defines the current Google Drive workspace contract for the installable skill.
+Google Drive is the only implemented `cloud_media_storage` adapter in CMW 0.2.1.
 
-The current media-delivery authority is:
+Global prerequisite/degradation behavior is owned by:
+
+```text
+docs/architecture/runtime-compatibility-matrix.md
+```
+
+Media identity/delivery behavior is owned by:
 
 ```text
 docs/architecture/media-delivery-architecture.md
@@ -19,55 +25,78 @@ User-provided source media is governed by:
 docs/architecture/user-provided-images.md
 ```
 
+This file defines Google Drive-specific workspace behavior only. It must not redefine global readiness or fallback policy.
+
+## Product boundary
+
+Current implemented provider:
+
+```text
+google_drive
+```
+
+Future reserved adapter:
+
+```text
+dropbox
+```
+
+GitHub, WordPress and local filesystem are not alternate media-storage providers and must never be proposed as automatic fallback choices.
+
+Legacy `repository_file` media may remain readable only where an owning compatibility/migration contract explicitly permits it. It is not selectable as a new storage provider and must never make cloud-media readiness pass.
+
 ## Purpose
 
-Google Drive is the mandatory current provider-backed workspace for:
+Google Drive stores provider-backed binary media for:
 
 - private user-provided source originals used by content workflows;
 - generated/treated review image proposals;
 - private retained selected/final binaries;
 - temporary public delivery copies through `tmp-outbox`.
 
-GitHub remains the durable editorial/workflow source of truth and stores the exact media source/final provider identity, provenance, SHA-256 and metadata required to recover/verify durable assets.
+GitHub remains the durable editorial/workflow source of truth and stores exact media identity, provenance, SHA-256 and metadata, not the normal media binary store.
 
-Concrete Drive folder names/IDs and site domains belong to the active user/project profile, not this skill contract.
+Concrete Drive folder names/IDs and site domains belong to active user/project data.
 
-## Prerequisite
+## Onboarding prerequisite discovery
 
-In addition to GitHub access, the current skill design requires Google Drive access.
+`/start` must enumerate implemented cloud providers and discover Google Drive even when it is not already installed, when the active runtime exposes plugin discovery/management.
 
-During onboarding, the skill asks the user for the Drive folder to use as workspace root and resolves/verifies that exact folder.
-
-Generic example:
+Distinguish:
 
 ```text
-<drive-root>
+not_visible_or_ineligible
+visible_installable_not_installed
+installed_not_connected
+installed_connected_unverified
+operational
+eligibility_unknown
 ```
 
-## Site-domain folder
+Rules:
 
-Under the selected root, create/reuse a folder named after the configured site domain:
+- if visible/installable but absent, propose installation during onboarding;
+- if installed but disconnected, guide connection immediately;
+- if operational, configure/verify the workspace;
+- if unavailable or ineligible and no other implemented provider exists, enter the `cloud_media_storage` DEGRADED state;
+- never infer eligibility from Free/Plus/Pro/Enterprise labels alone;
+- never offer GitHub, WordPress or local filesystem as a fallback.
+
+## Site-domain workspace
+
+Under the selected root, create/reuse:
 
 ```text
 <drive-root>/
 └── <site-domain>/
+    ├── articles/
+    ├── social/
+    └── tmp-outbox/
 ```
 
 Never mix assets from several sites in one site-domain namespace.
 
-## Required site folders
-
-Inside the site-domain folder, create/reuse:
-
-```text
-<drive-root>/<site-domain>/articles/
-<drive-root>/<site-domain>/social/
-<drive-root>/<site-domain>/tmp-outbox/
-```
-
-`articles/` and `social/` remain private workspaces.
-
-`tmp-outbox/` is a shared temporary transport folder configured as public-link reader only.
+`articles/` and `social/` remain private. `tmp-outbox/` is a temporary public-link reader transport folder only.
 
 ## Article assets
 
@@ -80,13 +109,11 @@ Each article uses:
 └── final/
 ```
 
-- `source-user/` contains original user-provided source files when that content uses them;
-- `proposals/` contains generated/treated candidates and review variants;
+- `source-user/` contains original user-provided source files;
+- `proposals/` contains generated/treated review candidates;
 - `final/` contains retained human-selected/final binaries;
-- all three remain private;
-- the folder name comes from the article's canonical name/slug, not its Work Item number.
-
-`source-user/` is created/reused lazily when the effective visual policy or local override requires user-source intake. The original source must never be overwritten by treatment, normalization or finalization.
+- all remain private;
+- source originals are never overwritten.
 
 ## Social assets
 
@@ -99,35 +126,16 @@ Each social post/concept uses:
 └── final/
 ```
 
-The immutable post ID remains durable metadata but must not be the only human-facing folder identity.
+The immutable post ID remains durable metadata but is not the only human-facing folder identity.
 
-`source-user/` is private and preserves original user files. Generated/treated proposals and finals use distinct provider objects/files.
+## Source-image placement UX
 
-## Mandatory source-image placement UX
+When the skill asks the user to place source images in Google Drive, it first creates/reuses/verifies the exact private `source-user/` folder and shows:
 
-When the skill asks the user to place source images in Google Drive, it must first create/reuse and verify the exact private `source-user/` folder, then show both:
+1. exact canonical human-readable path;
+2. resolved direct clickable Drive folder link.
 
-1. the exact human-readable canonical path/name;
-2. the resolved direct clickable Google Drive folder link.
-
-Example:
-
-```text
-<drive-root>/<site-domain>/articles/<article-slug>/source-user/
-Ouvrir le dossier : <resolved direct Drive folder link>
-```
-
-Do not say only `place the images in Drive`. Do not guess a URL from a folder name. The link must come from the resolved provider folder identity, and the non-secret folder ID/link may be persisted in content/project state when needed for resume.
-
-## Reusable project media-library extension point
-
-The architecture remains compatible with a future private reusable project library such as:
-
-```text
-<drive-root>/<site-domain>/media-library/
-```
-
-A full media-library indexing/search implementation is not required for the first user-image workflow. Any future library source must still be resolved, verified, inspected and traced before use.
+Never guess a Drive URL from a folder name. The non-secret folder ID/link may be persisted for resume.
 
 ## `tmp-outbox`
 
@@ -143,50 +151,31 @@ Purpose:
 temporary public read-only delivery copies only
 ```
 
-It may serve WordPress and supported social destination adapters.
-
-The outbox does **not** contain the retained source-of-record binary and never contains user-source originals merely for intake/review.
-
 Rules:
 
-- normal article/social/source-user/proposal/final folders remain private;
-- only exact final files needed for an active external operation are copied into the outbox;
-- the delivery copy must resolve to the expected SHA-256 before external mutation;
-- stable destination identity uses the private retained final asset identity (`asset_id`), not the outbox copy ID;
-- after verified destination success, the outbox copy should be deleted when practical;
-- never delete the private retained final file or any source-user original during outbox cleanup.
+- normal article/social/source-user/proposals/final folders remain private;
+- only exact verified final files required for an active external operation are copied to outbox;
+- outbox bytes must match expected SHA-256 before external mutation;
+- stable destination identity uses the private final `asset_id`, never the outbox copy ID;
+- delete temporary copies after verified destination success when practical;
+- never delete private retained finals or source originals during outbox cleanup.
 
-## Naming rule
-
-Use stable, descriptive, URL/filesystem-friendly names.
-
-Requirements:
-
-- human-recognizable;
-- no content numbering as the primary identity;
-- stable once actively used when practical;
-- collision-safe within the namespace;
-- article and social folders are separate namespaces.
-
-Source originals keep their original filename when practical; a collision-safe provider copy may add a suffix while durable provenance retains `source_original_filename`.
+If `tmp-outbox` cannot be configured/verified, media-dependent WordPress/social publication remains unavailable according to the central compatibility matrix.
 
 ## What belongs in Drive
 
 Drive may contain:
 
 - user-provided source originals;
-- generated proposals;
-- retained A/B/C candidates when the effective workflow uses alternatives;
-- regenerated candidates;
+- generated/treated proposals;
+- retained review candidates;
 - temporary normalization source files;
-- selected normalized private final binaries;
-- temporary `tmp-outbox` delivery copies.
-
-Rejected/superseded proposals may be retained during active review/debugging and cleaned later according to retention policy. User originals are not treated as disposable rejected proposals.
+- selected normalized private finals;
+- temporary `tmp-outbox` copies.
 
 ## What belongs in GitHub
 
-For provider-backed source media used durably, GitHub stores provenance such as:
+GitHub persists identity and provenance, for example:
 
 ```yaml
 source_type: user_provided
@@ -199,7 +188,7 @@ source_fidelity: strict|high|moderate|flexible
 ai_treatment: none|light_correction|natural_enhancement|marketing_enhancement|creative_transformation
 ```
 
-For provider-backed final media, GitHub stores durable identity/state, not necessarily the binary:
+Final provider-backed media metadata:
 
 ```yaml
 provider: google_drive
@@ -211,13 +200,9 @@ width: <pixels>
 height: <pixels>
 ```
 
-plus source provenance reference when applicable, ALT/title/caption/placement, selection/validation state and downstream destination evidence.
-
-Repository-backed binaries remain supported only when `repository_file` is intentionally selected.
+plus ALT/title/caption/placement, validation and source relationship.
 
 ## Lifecycle
-
-Source intake and finalization are distinct:
 
 ```text
 source_discovered
@@ -231,52 +216,31 @@ source_discovered
 -> destination_verified when delivered
 ```
 
-Drive storage alone never means a source was verified/inspected or a proposal was selected/final.
-
-A public outbox copy never becomes the durable source or final identity.
+Drive storage alone never means a source was inspected or a proposal selected/final.
 
 ## Onboarding behavior
 
-The skill must:
+After Google Drive is discovered/eligible/connected, the skill must:
 
-1. verify GitHub access;
-2. verify Google Drive access;
-3. ask/select the Drive workspace root;
-4. persist the non-secret root folder reference in user/project data;
-5. determine the configured site domain from the active profile;
-6. create/reuse `<drive-root>/<site-domain>/`;
-7. create/reuse `articles/`, `social/`, and `tmp-outbox/`;
-8. explain that only `tmp-outbox` should be shared publicly;
-9. ask the user to set `tmp-outbox` to `Anyone with the link -> Viewer` when the connector cannot perform that folder-sharing mutation itself;
-10. retrieve/persist the non-secret outbox folder ID/link in user/project data;
-11. run an anonymous read-only accessibility test;
-12. verify the resulting hierarchy and privacy boundary;
-13. create content-level `source-user/`, `proposals/` and `final/` lazily as workflows need them.
+1. resolve/select the Drive workspace root;
+2. persist the non-secret root reference;
+3. resolve site domain;
+4. create/reuse site root, `articles/`, `social/`, `tmp-outbox/`;
+5. explain that only `tmp-outbox` is public-link reader;
+6. when connector cannot mutate sharing, instruct `Anyone with the link -> Viewer` for `tmp-outbox` only;
+7. retrieve/persist non-secret outbox ID/link;
+8. test anonymous read-only accessibility;
+9. verify hierarchy/privacy boundary;
+10. lazily create content-level `source-user/`, `proposals/`, `final/` as workflows require.
 
-The setup must remain suitable for non-technical users and must not require Google Cloud Console, a service account, OAuth client creation or manual API credentials.
+Normal setup must not require Google Cloud Console, service account, OAuth client creation or manually pasted Google credentials.
 
 ## Multiple sites
 
-The same Drive root may serve several sites:
-
-```text
-<drive-root>/
-├── <site-a-domain>/
-│   ├── articles/
-│   ├── social/
-│   └── tmp-outbox/
-└── <site-b-domain>/
-    ├── articles/
-    ├── social/
-    └── tmp-outbox/
-```
-
-Each site has its own outbox and private workspaces.
+The same Drive root may serve several sites, each with its own private article/social workspaces and outbox.
 
 ## Secrets and sharing
 
-Drive folder/file IDs and public read-only delivery URLs are non-secret metadata and may be persisted in user/project data when required.
+Drive folder/file IDs and public read-only delivery URLs are non-secret metadata and may be persisted when required.
 
-Do not persist OAuth tokens, access tokens or other reusable credentials in GitHub.
-
-Do not broaden sharing of the site root, article folders, social folders, `source-user/`, proposal folders, private final folders or a future media library merely because `tmp-outbox` is public by link.
+Never persist OAuth/access tokens in GitHub. Never broaden sharing of the site root, article/social folders, source-user/proposals/final or future media library merely because `tmp-outbox` is public by link.
