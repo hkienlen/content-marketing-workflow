@@ -4,12 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: Discover candidate chats, verify/enable one chat, or disable notifications
+        description: Discover chats, verify/enable one chat, test the configured chat, or disable notifications
         required: true
         type: choice
         options:
           - discover
           - verify
+          - test
           - disable
       chat_id:
         description: Numeric Telegram chat ID; required only for verify
@@ -45,7 +46,7 @@ jobs:
             [[ "$CHAT_ID" =~ ^-?[0-9]+$ ]] || { echo 'verify mode requires a numeric chat_id' >&2; exit 1; }
           fi
 
-      - name: Discover, verify or disable Telegram notifications
+      - name: Discover, verify, test or disable Telegram notifications
         id: setup
         shell: bash
         env:
@@ -71,19 +72,19 @@ jobs:
           cat "$RUNNER_TEMP/telegram-setup.txt"
           exit "$RC"
 
-      - name: Persist verified user notification preference
-        if: inputs.mode == 'verify' || inputs.mode == 'disable'
+      - name: Persist Telegram notification preference or verification evidence
+        if: inputs.mode == 'verify' || inputs.mode == 'test' || inputs.mode == 'disable'
         shell: bash
         run: |
           set -euo pipefail
           PROFILE='user-data/profile.json'
           if git diff --quiet -- "$PROFILE"; then
-            echo 'No Telegram preference change to persist.'
+            echo 'No Telegram profile change to persist.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -- "$PROFILE"
-          git commit -m 'chore(user-data): update Telegram notification preference'
+          git commit -m 'chore(user-data): update Telegram notification state'
           git pull --rebase origin main
           git push origin HEAD:main
