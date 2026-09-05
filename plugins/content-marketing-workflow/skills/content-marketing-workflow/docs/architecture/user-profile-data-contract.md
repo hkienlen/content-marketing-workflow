@@ -45,14 +45,14 @@ Global compatibility behavior is normative in:
 docs/architecture/runtime-compatibility-matrix.md
 ```
 
-The schema supports optional project-level:
+The schema supports optional project-level runtime compatibility state such as:
 
 ```yaml
 runtime_compatibility:
   overall_status: READY|DEGRADED|BLOCKED|UNKNOWN
   checked_at: <timestamp>
   cloud_media_storage:
-    provider: google_drive
+    provider: google_drive|dropbox
     state: operational|...
     operational: true|false|null
     last_checked_at: <timestamp>
@@ -70,9 +70,39 @@ Persist only non-secret, future-relevant observations. This persisted projection
 
 Whether the **current ChatGPT/Codex conversation can generate/edit images** is runtime/surface state and must be re-detected when needed. It is intentionally not a permanent `runtime_compatibility.image_generation=true` preference in the schema.
 
-A previous image-capable conversation must not cause a later Codex-only conversation to claim generation is available.
-
 Similarly, plugin eligibility may change with account/workspace/runtime. Persisting the last observation never replaces fresh discovery when the capability is needed.
+
+## Cloud-media storage selection
+
+CMW 0.3.0 implements:
+
+```text
+google_drive
+dropbox
+```
+
+Exactly one provider is active per project. The durable project profile/state must preserve the selected provider and provider-specific non-secret workspace references required for exact resume.
+
+Conceptual project storage state:
+
+```yaml
+storage:
+  cloud_media_storage:
+    provider: google_drive|dropbox
+    root_ref: <provider root identity/reference>
+    site_ref: <site workspace identity/reference>
+    articles_ref: <articles workspace identity/reference>
+    social_ref: <social workspace identity/reference>
+    tmp_outbox_ref: <outbox identity/reference>
+    tmp_outbox_link: <public read-only delivery link when configured/needed>
+    verified_at: <timestamp>
+```
+
+Provider-specific IDs/paths/links may differ. Do not force a Google Drive ID shape onto Dropbox or vice versa.
+
+Google Drive remains the recommended/default choice when both providers are operational, but the selected value is user/project state, not a generic hard-coded default that silently overrides an existing Dropbox project.
+
+Switching provider is an explicit migration/configuration operation. Existing source/final provider identities must be migrated/rebound with exact hash/provenance verification; they are never reinterpreted under the new provider namespace.
 
 ## User-data categories
 
@@ -81,7 +111,7 @@ User/project data includes:
 - profile/project IDs;
 - GitHub repository identity/default branch;
 - site domain/name/URLs;
-- cloud-media provider choice and workspace/folder IDs;
+- selected cloud-media provider and workspace/folder/file references;
 - runtime compatibility checkpoints/blockers and last verification timestamps;
 - WordPress site/Bridge connection IDs and non-secret relay endpoints/audience;
 - audiences/offers/editorial/SEO preferences;
@@ -118,7 +148,7 @@ When user-provided image becomes durable input, persist provenance in content st
 
 ```yaml
 source_type: user_provided
-source_provider: google_drive|chat_upload
+source_provider: google_drive|dropbox|chat_upload
 source_asset_id: <provider identity when available>
 source_original_filename: <original filename>
 source_sha256: <exact bytes when available>
@@ -127,11 +157,19 @@ source_fidelity: strict|high|moderate|flexible
 ai_treatment: none|light_correction|natural_enhancement|marketing_enhancement|creative_transformation
 ```
 
-Provider folder IDs/links used for resume are non-secret user/project state.
+Provider folder/file IDs/paths/links used for resume are non-secret user/project state.
+
+Final media records must also persist the provider name because provider identity is part of the stable asset namespace:
+
+```yaml
+provider: google_drive|dropbox
+asset_id: <provider-qualified final identity/reference>
+sha256: <exact final bytes>
+```
 
 ## Storage/provider boundary
 
-The profile may select/configure `cloud_media_storage`, currently `google_drive`.
+The profile may select/configure `cloud_media_storage` as `google_drive` or `dropbox`.
 
 GitHub, WordPress and local filesystem are not alternate media-storage provider choices. Legacy repository-backed media compatibility belongs to explicit migration/content state and must not be represented as cloud-media readiness.
 
@@ -141,19 +179,7 @@ Raw credentials never belong in profile or committed GitHub content, including a
 
 The profile may retain non-secret credential owner/name/reference and lifecycle metadata.
 
-Example Telegram:
-
-```yaml
-notifications:
-  telegram:
-    enabled: true
-    setup_status: verified
-    chat_id: "<numeric-chat-id>"
-    bot_username: "<bot-username>"
-    secret_name: TELEGRAM_BOT_TOKEN
-```
-
-The token value itself remains in the credential owner, currently GitHub Actions Repository Secrets.
+Provider OAuth/access tokens for Google Drive or Dropbox are owned by the active integration/runtime and are never persisted in GitHub user/project data.
 
 ## Compatibility projections
 
@@ -187,7 +213,7 @@ When a capability discovers/receives durable user value:
 1. classify it as user/project data;
 2. write it to profile or referenced richer authority;
 3. update compatibility projection atomically where applicable;
-4. verify consistency;
+4. verify provider-qualified identities and schema/consistency;
 5. never modify generic skill contracts just to save one user's value.
 
 Runtime-only facts must be re-detected rather than promoted into permanent preferences.
@@ -201,6 +227,8 @@ Site-specific repository/storage/visual/social/notification/compatibility state 
 - `docs/architecture/runtime-compatibility-matrix.md`
 - `docs/architecture/persistence-contract.md`
 - `docs/architecture/capabilities/start.md`
+- `docs/architecture/google-drive-workspace.md`
+- `docs/architecture/dropbox-workspace.md`
 - `docs/architecture/schemas/user-profile.schema.json`
 - `docs/architecture/user-provided-images.md`
 - `docs/architecture/capabilities/social-connection-health.md`
