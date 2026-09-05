@@ -107,6 +107,23 @@ class RepositoryTests(unittest.TestCase):
     def test_canonical_skill_and_plugin_mirror_are_identical(self):
         self.assertEqual(file_map(CANONICAL_SKILL), file_map(PLUGIN_SKILL))
 
+    def test_help_and_telegram_command_contract(self):
+        catalogue = (CANONICAL_SKILL / "docs/architecture/user-command-catalog.yaml").read_text()
+        help_contract = (CANONICAL_SKILL / "docs/architecture/user-command-system-behaviors.md").read_text()
+        workflow = (CANONICAL_SKILL / ".github/workflows/telegram-notification-setup.yml").read_text()
+        script = (CANONICAL_SKILL / "scripts/telegram-notification-setup.py").read_text()
+        skill = (CANONICAL_SKILL / "SKILL.md").read_text()
+
+        self.assertIn("command: /social notifications telegram test", catalogue)
+        self.assertNotIn("command: /check-before-publish", catalogue)
+        self.assertIn("exhaustive catalogue view", help_contract)
+        self.assertIn("enumerate every public command entry", help_contract)
+        self.assertIn("Never invent, rename, abbreviate or omit", skill)
+        self.assertIn("- test", workflow)
+        self.assertIn('choices=["discover", "verify", "test", "disable"]', script)
+        self.assertIn("previous_enabled", script)
+        self.assertIn("last_verified_at", script)
+
     def test_marketplace_manifest_resolves_plugin_source(self):
         marketplace = json.loads(MARKETPLACE_PATH.read_text())
         self.assertEqual(marketplace["name"], PLUGIN)
