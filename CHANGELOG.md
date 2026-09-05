@@ -4,6 +4,16 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-05
+
+- Added Dropbox as a first-class `cloud_media_storage` provider alongside Google Drive.
+- Defined explicit provider selection: exactly one cloud-media provider is active per project; Google Drive remains recommended/default when both providers are operational.
+- Added a Dropbox workspace contract covering private source/proposal/final storage, site isolation, `tmp-outbox`, public read-only delivery links, provenance and onboarding.
+- Updated runtime compatibility/onboarding behavior so `/start` discovers Google Drive and Dropbox, proposes installation/connection when available, and persists the selected provider.
+- Preserved provider-neutral publication gates: no verified final media means no media-dependent WordPress or social publication.
+- Kept GitHub, WordPress and local filesystem excluded as automatic media-storage fallbacks.
+- Bumped the Skill/Codex plugin version to 0.3.0 and synchronized changed canonical Skill files with the plugin mirror.
+
 ## [0.2.1] - 2026-09-05
 
 - Completed the 0.2.0 runtime-compatibility handoff across media, article, WordPress and social capability contracts.
@@ -74,4 +84,4 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 - Initial plugin productization.
 - One primary `content-marketing-workflow` skill with governed SEO, visual, WordPress and social capabilities.
 - Explicit user/project data and credential boundaries.
-- Bundled SEO Workflow Bridge companion.
+- Bundled SEO Workflow Bridge companion resource.
