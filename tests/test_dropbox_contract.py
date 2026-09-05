@@ -1,3 +1,4 @@
+import json
 import unittest
 from pathlib import Path
 
@@ -15,6 +16,16 @@ class DropboxProviderContractTests(unittest.TestCase):
         self.assertIn("dropbox", matrix)
         self.assertIn("exactly one cloud-media provider is active per project", matrix)
         self.assertIn("Google Drive is the recommended/default choice", matrix)
+
+    def test_profile_schema_models_exact_provider_choice(self):
+        schema = json.loads(self.read("docs/architecture/schemas/user-profile.schema.json"))
+        self.assertEqual(schema["$defs"]["cloudMediaProvider"]["enum"], ["google_drive", "dropbox"])
+        storage = schema["$defs"]["project"]["properties"]["storage"]
+        self.assertEqual(
+            storage["properties"]["cloud_media_storage"]["$ref"],
+            "#/$defs/cloudMediaStorage",
+        )
+        self.assertEqual(schema["$defs"]["cloudMediaStorage"]["required"], ["provider"])
 
     def test_dropbox_workspace_contract_is_packaged(self):
         contract = SKILL / "docs/architecture/dropbox-workspace.md"
@@ -84,6 +95,8 @@ class DropboxProviderContractTests(unittest.TestCase):
             "Google Drive social workspace is available before user-source/proposal media work",
             "persist/verify A/B/C in Google Drive",
             "final Google Doc invariant is satisfied when Drive-backed finalization applies",
+            "mandatory current provider-backed workspace",
+            "current `google_drive` and future `dropbox`",
         )
         offenders = []
         for path in (SKILL / "docs/architecture").rglob("*.md"):
