@@ -1,13 +1,27 @@
 # Internal capability: telegram-publication-notifications
 
-Date: 2026-09-04
+Date: 2026-09-05
 Status: current capability contract
 
 ## Purpose
 
-Send an optional Telegram report after social publication state has been reconciled, preferably after the strongest post-publication verification available for that platform.
+Send optional Telegram reports after social publication state has been reconciled, and support explicit setup, status/configuration and diagnostic test operations for the notification channel.
 
 The capability is optional and user-controlled.
+
+## Public operations
+
+The public command catalogue exposes this capability through:
+
+```text
+/social notifications telegram
+  operation: configure
+
+/social notifications telegram test
+  operation: test
+```
+
+The `test` operation is diagnostic notification delivery only. It must never publish, schedule, retry or modify Facebook/LinkedIn content.
 
 ## Ownership boundary
 
@@ -44,6 +58,7 @@ Telegram notifications may be:
 - offered during onboarding;
 - enabled later on explicit request;
 - disabled later on explicit request;
+- explicitly tested later;
 - reconfigured when bot/token/chat changes.
 
 Before starting a fresh setup, the skill must inspect the active user profile.
@@ -59,11 +74,11 @@ chat_id exists
 bot_username exists
 ```
 
-report the existing configuration and do not recreate the bot. Offer a verification test only when useful.
+report the existing configuration and do not recreate the bot. Offer `/social notifications telegram test` when useful.
 
 ### Configured but disabled
 
-When `setup_status = verified` and `chat_id` exists but `enabled = false`, re-enable the existing configuration rather than forcing BotFather setup again. If the previous verification is old or the user reports a problem, run the verification workflow again first.
+When `setup_status = verified` and `chat_id` exists but `enabled = false`, re-enable the existing configuration rather than forcing BotFather setup again. If the previous verification is old or the user reports a problem, the explicit test operation may be run first without changing `enabled`.
 
 ### Not configured
 
@@ -83,15 +98,40 @@ Generic workflow:
 .github/workflows/telegram-notification-setup.yml
 ```
 
-Modes:
+Supported semantics:
 
 ```text
 discover -> verify bot token and list candidate chat IDs after the user has messaged the bot
-verify   -> verify exact chat, send a test message, persist enabled=true and non-secret bot/chat metadata
- disable -> set enabled=false while retaining verified non-secret configuration for easy re-enable
+verify   -> verify exact chat, send one test message, persist enabled=true and non-secret bot/chat metadata
+disable  -> set enabled=false while retaining verified non-secret configuration for easy re-enable
+test     -> use existing persisted destination to verify the bot/chat and send one diagnostic message without changing enabled
 ```
 
+If the packaged GitHub workflow does not yet expose a literal `test` input mode, the command may reuse the safe verification path with the persisted chat ID, provided the implementation preserves the existing `enabled` preference and records only non-secret verification evidence. It must not require the user to recreate the bot or re-enter routing metadata that is already durably known.
+
 The workflow reads the repository secret at runtime. GitHub Actions masks the secret; scripts must not print the token or construct log messages containing the Bot API URL with the token.
+
+## Explicit test contract
+
+`operation: test` requires durable non-secret configuration sufficient to identify the existing destination:
+
+```text
+setup_status = verified
+chat_id exists
+secret_name exists
+```
+
+The runtime must:
+
+1. resolve the active project repository and persisted Telegram configuration;
+2. use the configured secret reference without exposing the token;
+3. verify bot/chat reachability through the supported runtime;
+4. send exactly one diagnostic Telegram message;
+5. update `last_verified_at` and other supported non-secret verification metadata on success;
+6. preserve the existing `enabled` value unless the user separately requested enable/disable;
+7. report failure separately from all social publication state.
+
+A test failure must never cause a social publication retry or duplicate publication.
 
 ## Publication report workflow
 
