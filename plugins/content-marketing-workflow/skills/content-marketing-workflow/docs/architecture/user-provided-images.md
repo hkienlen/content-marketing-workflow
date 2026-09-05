@@ -1,6 +1,6 @@
 # User-provided images workflow
 
-Date: 2026-09-04
+Date: 2026-09-05
 Status: normative architecture contract
 
 ## Purpose
@@ -14,7 +14,9 @@ Read this contract together with:
 ```text
 docs/architecture/user-profile-data-contract.md
 docs/architecture/persistence-contract.md
+docs/architecture/runtime-compatibility-matrix.md
 docs/architecture/google-drive-workspace.md
+docs/architecture/dropbox-workspace.md
 docs/architecture/media-delivery-architecture.md
 docs/architecture/image-asset-ingestion.md
 docs/architecture/capabilities/visual-source-resolve.md
@@ -97,17 +99,7 @@ project visual default
 
 Only explicitly present fields override inherited fields.
 
-A local instruction such as:
-
-```text
-For this post, generate the image completely with AI.
-For this article only, use my supplied photo without retouching.
-Keep this product exact but replace only the background.
-```
-
-applies only to that content item unless the user explicitly asks to change the durable project preference.
-
-Never silently mutate project/global preferences from one-off content instructions.
+A local instruction applies only to that content item unless the user explicitly asks to change the durable project preference. Never silently mutate project/global preferences from one-off content instructions.
 
 ## Mandatory pre-draft source resolution
 
@@ -129,13 +121,9 @@ creation request
 -> human review/final selection
 ```
 
-The source images may materially influence angle, wording and placement. Therefore they are collected and inspected before drafting rather than attached afterward.
-
-A one-off instruction such as `write first, I will provide the photos later` is allowed. Persist it only as a content-local override/checkpoint; it does not alter the project preference.
+A one-off `write first` instruction may move drafting ahead for that content item only.
 
 ## Missing-source decision table
-
-After effective policy resolution:
 
 ### `ai_first`
 
@@ -150,11 +138,7 @@ Normal drafting may continue without user media. User-provided media is still al
 
 ### `strict_user_images`
 
-Do not silently switch to fully synthetic replacement imagery.
-
-- source available -> inspect/use it under fidelity/treatment rules;
-- source missing + `ask_before_drafting` -> stop before drafting and request/locate it;
-- source missing + another behavior -> continue only to the extent that behavior is compatible with the exact local/user intent; full AI replacement requires an explicit local override when the visual truth requirement would otherwise be violated.
+Do not silently switch to fully synthetic replacement imagery. Full AI replacement requires an explicit compatible local override when the visual truth requirement would otherwise be violated.
 
 ### `hybrid_best_fit`
 
@@ -172,17 +156,7 @@ inspiration_reference
 composition_input
 ```
 
-Semantics:
-
-- `use_as_is`: the source image itself is the intended visual; only explicitly allowed normalization/export operations may occur;
-- `enhance`: improve the source within the effective fidelity/treatment limits;
-- `subject_reference`: the represented product/person/object must be respected while composition may change within limits;
-- `inspiration_reference`: mood/style reference only; not a claim that the depicted subject must be preserved;
-- `composition_input`: integrate the supplied image into a broader composition.
-
-Do not assume a photographer's image is merely inspiration. Do not assume a product photo may be redesigned freely.
-
-When role ambiguity materially changes fidelity or allowed transformation, ask one concise business/content question.
+Do not assume a photographer's image is merely inspiration. Do not assume a product photo may be redesigned freely. Ask only when role ambiguity materially changes fidelity or allowed transformation.
 
 ## Intake channels
 
@@ -194,51 +168,40 @@ Before relying on an uploaded image:
 
 1. verify a real usable image attachment exists;
 2. inspect the image itself;
-3. when it becomes durable workflow input, copy/retain the original in the configured private `source-user/` workspace when provider access permits;
-4. preserve original provenance/filename and a SHA-256 when exact bytes are available;
+3. when it becomes durable workflow input, retain the original in the selected provider's private `source-user/` workspace when provider access permits;
+4. preserve original provenance/filename and SHA-256 when exact bytes are available;
 5. never overwrite the original upload/source.
 
-### Google Drive
+### Selected cloud-media provider
 
-Suitable for recurring/professional workflows and larger sets.
+Supported providers are:
 
-The user may provide exact filenames, place files in the content `source-user/` folder, ask to use all images there, or request a relevant existing source be located.
+```text
+google_drive
+dropbox
+```
 
-The skill must verify the real files before claiming they exist or using them.
+The user may provide exact filenames, place files in the content `source-user/` folder, ask to use all images there, or request a relevant existing source be located. The skill must verify the real files before claiming they exist or using them.
 
-## Mandatory Google Drive request UX
+Exactly one provider is active per project. Never silently read/write from the non-selected provider as a fallback.
 
-Whenever the skill asks the user to place source images in Drive, the response must show both:
+## Mandatory provider placement UX
+
+Whenever the skill asks the user to place source images in the selected provider, the response must show:
 
 1. the exact human-readable canonical folder path/name;
-2. a direct clickable Google Drive folder link resolved from the verified provider folder identity.
+2. a direct clickable provider folder link resolved from the verified provider folder identity when the active integration exposes one.
 
-Article example:
+Never guess a provider URL from a folder name/path alone. If the folder does not yet exist and the skill owns workspace setup, create/reuse it, resolve its provider identity/link, verify it, persist the non-secret identity, then present path + link.
 
-```text
-Déposez vos photos dans :
-<drive-root>/<site-domain>/articles/<article-slug>/source-user/
+Provider-specific details are governed by `google-drive-workspace.md` and `dropbox-workspace.md`.
 
-Ouvrir le dossier : <resolved direct Drive folder link>
-```
-
-Social example:
-
-```text
-Déposez votre photo dans :
-<drive-root>/<site-domain>/social/<post-name>/source-user/
-
-Ouvrir le dossier : <resolved direct Drive folder link>
-```
-
-Never guess a folder URL from a name alone. If the folder does not yet exist and the skill owns workspace setup, create/reuse it, resolve its provider ID/link, verify it, persist the non-secret identity, then present path + link.
-
-## Drive workspace layout
+## Provider-neutral workspace layout
 
 Article:
 
 ```text
-<drive-root>/<site-domain>/articles/<article-slug>/
+<provider-root>/<site-domain>/articles/<article-slug>/
 ├── source-user/     private originals
 ├── proposals/       private generated/treated candidates
 └── final/           private selected/normalized finals
@@ -247,7 +210,7 @@ Article:
 Social:
 
 ```text
-<drive-root>/<site-domain>/social/<post-name>/
+<provider-root>/<site-domain>/social/<post-name>/
 ├── source-user/     private originals
 ├── proposals/       private generated/treated candidates
 └── final/           private selected/normalized finals
@@ -257,26 +220,17 @@ Critical invariant:
 
 > Never overwrite or destructively normalize the original user-provided file.
 
-A final derivative uses a different object/file, for example:
-
-```text
-source-user/source-image.jpg
-final/final-social-image.jpg
-```
-
-Only `tmp-outbox/` may be public-by-link for temporary delivery. `source-user/` is always private.
+Only `tmp-outbox/` delivery material may be public-by-link temporarily. `source-user/` is always private.
 
 ## Reusable project media library extension point
 
-The architecture must remain compatible with a persistent project media library such as:
+The architecture remains compatible with a persistent provider media library such as:
 
 ```text
-<drive-root>/<site-domain>/media-library/
+<provider-root>/<site-domain>/media-library/
 ```
 
-Possible assets include portraits, locations, products, brand assets and portfolio images.
-
-Full media-library search/index implementation is not required for the first user-image feature. Future use must still verify/inspect the real asset and respect its provenance/usage/fidelity constraints.
+Future use must still verify/inspect the real asset and respect provenance/usage/fidelity constraints.
 
 ## Provenance record
 
@@ -286,7 +240,7 @@ Minimum conceptual record:
 
 ```yaml
 source_type: user_provided
-source_provider: google_drive|chat_upload
+source_provider: google_drive|dropbox|chat_upload
 source_asset_id: <provider identity when available>
 source_original_filename: <original filename>
 source_sha256: <64 lowercase hex when exact bytes are available>
@@ -296,37 +250,23 @@ ai_treatment: none|light_correction|natural_enhancement|marketing_enhancement|cr
 ai_treatment_directive: <durable project directive or local override>
 ```
 
-For Drive-backed sources, also persist/recover the source folder identity/path/link when needed for resumption.
+For provider-backed sources, also persist/recover the source folder identity/path/link when needed for resumption.
 
-The final asset retains the normal provider identity/hash/format/dimensions/ALT/title/caption/placement plus a reference or embedded provenance snapshot sufficient to trace its user-provided origin.
+The final asset retains provider-qualified identity/hash/format/dimensions/ALT/title/caption/placement plus a reference or embedded provenance snapshot sufficient to trace its user-provided origin.
 
 ## Review behavior
 
 The existing human final-image review gate remains mandatory.
 
-The generic rule `exactly three A/B/C generated proposals` applies when the effective workflow is generating or materially transforming alternatives.
-
-It must **not** force synthetic alternatives when the user's exact source is intended `use_as_is` with `ai_treatment: none` (or equivalent faithful documentary intent). In that case the review presents/verifies the exact source/final candidate and asks for the normal content/media validation without inventing two unnecessary variants.
-
-For enhancement/transformation workflows, A/B/C may represent distinct compliant treatments/compositions. All variants must preserve the effective fidelity constraints.
+The generic rule `exactly three A/B/C generated proposals` applies when the effective workflow is generating or materially transforming alternatives. It must not force synthetic alternatives when the user's exact source is intended `use_as_is` with `ai_treatment: none` or equivalent faithful documentary intent.
 
 ## Onboarding and changing preferences
 
-When visual generation is relevant, `start` guides the user in plain language through:
+When visual generation is relevant, `start` guides the user in plain language through source preference, strict-real subjects, treatment intensity, fidelity, channel overrides and missing-source behavior. The user may change durable preference later through natural language or `/strategy update` without reinstalling the skill.
 
-1. whether their own photos should normally be preferred;
-2. whether some real subjects must never be synthetically replaced;
-3. acceptable AI treatment intensity;
-4. required fidelity;
-5. whether article and social behavior should differ;
-6. what to do when a user image is missing;
-7. confirmation that content-local overrides remain possible.
+## Provider switching
 
-The skill summarizes the resulting policy in plain language before persisting it when a durable preference is being set.
-
-The user may change the durable preference later through natural language or `/strategy update` without reinstalling the skill.
-
-`/status` exposes the active resolved project visual preference and any blocking missing-source state, but never mutates it.
+Switching between Google Drive and Dropbox is explicit migration work. Preserve exact source/final bytes and hashes, create destination-provider identities, update references, and never reinterpret an ID/path from one provider as belonging to the other.
 
 ## Safety and truthfulness invariants
 
@@ -338,7 +278,7 @@ The user may change the durable preference later through natural language or `/s
 - Never treat source media as publication authorization.
 - Image intake, treatment, final selection, scheduling and publication are distinct states.
 - User-specific preferences/directives stay in user/project data, not generic skill code.
-- Provider failures do not authorize substitution with a different binary.
+- Provider failures do not authorize substitution with a different provider or binary.
 
 ## Testing requirements
 
@@ -352,7 +292,8 @@ Tests must cover at least:
 - source-role handling;
 - `use_as_is` does not require fake A/B/C generation;
 - original/non-overwrite invariant;
-- exact Drive path + direct-link UX requirement;
-- source provenance fields;
+- selected-provider exact path + direct-link UX requirement;
+- Google Drive and Dropbox source provenance fields;
+- explicit provider migration/rebinding;
 - existing AI-first behavior remains valid;
 - existing publication/scheduling gates remain unchanged.
