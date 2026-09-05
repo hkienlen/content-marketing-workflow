@@ -30,7 +30,7 @@ prerequisites:
   - master text/visual brief are ready
   - effective visual policy was resolved by visual-source-resolve
   - required user source is verified/inspected when source-dependent
-  - cloud_media_storage is operational before any proposal/final is claimed durable
+  - selected cloud_media_storage provider is operational before any proposal/final is claimed durable
   - runtime image generation/editing is available OR manual image handoff is used
 
 mandatory_context:
@@ -38,6 +38,8 @@ mandatory_context:
   - docs/architecture/runtime-compatibility-matrix.md
   - docs/architecture/persistence-contract.md
   - docs/architecture/user-provided-images.md
+  - docs/architecture/google-drive-workspace.md
+  - docs/architecture/dropbox-workspace.md
   - docs/architecture/media-delivery-architecture.md
   - docs/architecture/image-asset-ingestion.md
   - docs/architecture/capabilities/visual-source-resolve.md
@@ -52,7 +54,7 @@ reads:
   - resolved source policy/local override
   - verified user source when applicable
   - current visual review state
-  - configured cloud-media source/proposals/final state
+  - selected cloud-media source/proposals/final state
 
 writes:
   - visual review round state
@@ -62,10 +64,10 @@ writes:
   - selected final metadata through delegated asset-ingest
 
 external_side_effects:
-  - read verified source files from configured cloud provider or usable chat upload
+  - read verified source files from selected cloud provider or usable chat upload
   - generate/edit images through current runtime when available
   - otherwise execute manual image handoff prompt workflow
-  - persist returned/generated proposals in configured cloud provider
+  - persist returned/generated proposals in selected cloud provider
   - no public sharing, scheduling or publication
 
 validation:
@@ -78,10 +80,11 @@ validation:
   - strict/high fidelity preserves real subject appearance
   - proposals are persisted/recoverable before combined review
   - selected final is normalized/verified separately from source original
+  - provider identity matches the selected project provider
   - no publication side effect occurs
 
 completion_conditions:
-  - review package is persisted/recoverable in configured cloud provider
+  - review package is persisted/recoverable in selected cloud provider
   - generated/materially transformed mode -> durable A/B/C identities exist
   - exact use_as_is mode -> exact source/final candidate identity exists
   - after human selection, asset-ingest creates/reuses verified_final
@@ -100,7 +103,7 @@ When generation/editing is required but unavailable in the current ChatGPT/Codex
 3. include objective, format/dimensions, style, composition, brand constraints, required/forbidden elements, source role/fidelity/treatment and text constraints;
 4. ask the user to return/upload the generated result;
 5. inspect returned image;
-6. persist it in provider-backed `proposals/`;
+6. persist it in selected provider `proposals/`;
 7. continue normal review and `asset-ingest` finalization.
 
 The prompt itself is not a visual proposal and never completes the capability.
@@ -133,7 +136,7 @@ Conceptual provider-neutral path:
 └── final/
 ```
 
-Current adapter maps this to Google Drive. GitHub, WordPress and local filesystem are not fallback media stores.
+Implemented adapters are Google Drive and Dropbox. Use the selected project provider and its provider-specific workspace contract. GitHub, WordPress and local filesystem are not fallback media stores.
 
 ## Combined review and revisions
 
@@ -143,8 +146,8 @@ Preserve frozen components during targeted revisions. A new generation round kee
 
 ## Finalization
 
-After human selection/validation invoke `asset-ingest`. Result preserves source original and persists final provider identity/SHA-256/format/dimensions/ALT plus source relationship.
+After human selection/validation invoke `asset-ingest`. Result preserves source original and persists provider-qualified final identity/SHA-256/format/dimensions/ALT plus source relationship.
 
 ## Resume/idempotency
 
-Reuse exact provider folders/source records/review rounds when recoverable. Do not regenerate solely because conversation restarted. Source/final hash drift fails closed.
+Reuse exact selected-provider folders/source records/review rounds when recoverable. Do not regenerate solely because conversation restarted. Source/final hash drift fails closed. A provider change requires explicit migration/rebinding rather than silent reuse.

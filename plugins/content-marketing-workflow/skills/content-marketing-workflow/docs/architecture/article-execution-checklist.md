@@ -1,6 +1,6 @@
 # Article execution checklist
 
-Date: 2026-09-04
+Date: 2026-09-05
 Status: architecture contract
 
 ## Purpose
@@ -14,7 +14,10 @@ A task is checked only when its expected result is actually observable and verif
 Read together with:
 
 ```text
+docs/architecture/runtime-compatibility-matrix.md
 docs/architecture/user-provided-images.md
+docs/architecture/google-drive-workspace.md
+docs/architecture/dropbox-workspace.md
 docs/architecture/capabilities/visual-source-resolve.md
 docs/architecture/github-transparency.md
 docs/architecture/wordpress-review-gate.md
@@ -22,19 +25,7 @@ docs/architecture/wordpress-review-gate.md
 
 ## Canonical per-article file
 
-For:
-
-```text
-articles/<target>/<slug>.md
-```
-
-maintain:
-
-```text
-articles/<target>/<slug>.checklist.md
-```
-
-on the same article branch.
+For `articles/<target>/<slug>.md`, maintain `articles/<target>/<slug>.checklist.md` on the same article branch.
 
 ## Required task groups
 
@@ -43,13 +34,15 @@ on the same article branch.
 - Work Item exists;
 - dedicated branch exists/reused;
 - research/context persisted;
+- selected `cloud_media_storage` provider resolved from durable project state when media is in scope;
+- selected provider is `google_drive` or `dropbox` and operational before provider-backed source/proposal/final state is claimed durable;
 - effective visual policy resolved through `visual-source-resolve` **before drafting**;
 - content-local visual override persisted when applicable without mutating project preference;
 - if effective policy prioritizes/requires user images, exact candidate sources are located/uploaded or missing-source behavior is applied;
-- any required Drive `source-user/` folder exists/reused and its exact path + verified direct link were shown when user placement is required;
+- any required selected-provider `source-user/` folder exists/reused and its exact canonical path + verified direct provider link are shown when the active adapter exposes one and user placement is required;
 - actual user source files/bytes are verified before claiming them;
 - relevant user source images are inspected before visible facts are used in drafting;
-- source role/fidelity/treatment/provenance is persisted when source becomes durable input;
+- source provider/role/fidelity/treatment/provenance is persisted when source becomes durable input;
 - one truthful state is recorded: `source_ready`, `ai_generation_allowed`, `continue_without_visuals` or `awaiting_user_images`.
 
 If state is `awaiting_user_images`, **full article drafting remains unchecked and must not begin** until source intake completes or the user explicitly supplies a compatible content-local override.
@@ -70,18 +63,21 @@ Only after pre-draft source gate permits it:
 
 When article requires visuals:
 
-- Drive article workspace exists;
+- selected-provider article workspace exists;
 - private `source-user/`, `proposals/`, `final/` are created/reused as applicable;
 - user originals remain unchanged;
 - visual production mode is derived from effective source role/treatment;
 - for generated/materially transformed visuals, proposal round is generated and exactly three reviewable A/B/C candidates per required visual are retained;
+- when runtime image generation/editing is unavailable, documented manual handoff is used rather than false generation success;
 - for exact `use_as_is` + no-material-treatment visuals, exact source/final review candidate is prepared instead of fake synthetic A/B/C alternatives;
-- proposal/review files are persisted in Drive;
-- Drive recoverability is verified;
+- proposal/review files are persisted in selected provider;
+- provider recoverability is verified;
 - each visual group is actually presented in ChatGPT with Emplacement / Objectif / Description / source role or A-B-C as applicable;
 - explicit human selection/validation or targeted rejection is recorded;
 - selected finals normalized and verified;
-- source provenance and final private Drive asset identity/hash are persisted/re-read.
+- source provenance and provider-qualified final identity/reference/hash are persisted/re-read.
+
+No provider failure silently switches to another provider.
 
 ### Final snapshot and GitHub integration
 
@@ -99,10 +95,11 @@ There is no separate `go merge` task.
 When `wordpress.enabled = true` and draft preparation is in scope:
 
 - manifest built from exact merged commit;
-- temporary delivery copies staged when needed from verified finals only;
+- temporary delivery copies staged from exact selected-provider `verified_final` assets only when needed;
+- public read-only delivery bytes verified against persisted SHA-256;
 - managed draft prepared;
 - technical readback verified;
-- temporary delivery cleaned;
+- temporary delivery copy/link cleaned when practical;
 - draft presented for WordPress/editor review;
 - explicit `WordPress OK` received.
 
@@ -128,19 +125,15 @@ When publication stage is active:
 
 ## Automatic continuation invariant
 
-There are two distinct continuation points.
-
 ### Before drafting
 
 ```text
 creation request
--> `visual-source-resolve`
+-> visual-source-resolve
 -> source_ready | ai_generation_allowed | continue_without_visuals | awaiting_user_images
 ```
 
-If `awaiting_user_images`, stop before drafting and present the actual source-intake action. This is not an unnecessary generic confirmation; it is missing business input required by the effective policy.
-
-If drafting is allowed, continue automatically.
+If `awaiting_user_images`, stop before drafting and present the actual selected-provider source-intake action. If drafting is allowed, continue automatically.
 
 ### After drafting/brief persistence
 
@@ -148,21 +141,17 @@ When visual generation/treatment is applicable and available:
 
 ```text
 article + image briefs persisted
--> create/reuse Drive review workspace
+-> create/reuse selected-provider review workspace
 -> generate/treat all required proposal families
 -> visually reject/regenerate off-brief outputs internally
 -> persist exactly three reviewable candidates per generated/materially transformed visual
--> verify Drive recoverability
+-> verify provider recoverability
 -> present complete article and all visual groups
 ```
 
-Do not ask another `go` merely to start permitted generation/treatment.
+When generation/editing is unavailable but selected cloud storage is operational, use the documented external-generation/manual-handoff path and resume from the same review state after returned asset inspection/retention.
 
-For `use_as_is`, replace the fake proposal-generation steps with exact source/final verification and presentation.
-
-## Markdown formatting invariant
-
-Final public `## Références` section is preceded by two blank lines immediately before heading.
+For `use_as_is`, replace fake proposal-generation steps with exact source/final verification and presentation.
 
 ## Observable-result invariant
 
@@ -187,7 +176,7 @@ For first normal review after drafting, response is complete only when:
 ```text
 full article persisted
 + full article displayed
-+ required visual review package persisted/recoverable
++ required visual review package persisted/recoverable in selected provider
 + each visual group displayed with Emplacement / Objectif / Description / appropriate candidate(s)
 + explicit request for article feedback and media selections
 ```
@@ -196,10 +185,8 @@ Generated/materially transformed visuals normally show A/B/C. Exact `use_as_is` 
 
 ## Resume behavior
 
-On every resume/retry, read checklist first together with article, effective visual policy/local override, user-source provenance/media state, Work Item and PR.
+On every resume/retry, read checklist first together with article, selected provider/workspace, effective visual policy/local override, user-source provenance/media state, Work Item and PR.
 
 Continue from first incomplete task whose prerequisites are satisfied and within requested scope.
 
-Do not infer completion from conversation memory. Repair stale durable checkbox when observable history proves it stale.
-
-Do not enter drafting while truthful source state is `awaiting_user_images`. Do not enter optional publication merely because later tasks exist. GitHub mechanics remain automatic under `github-transparency`.
+Do not infer completion from conversation memory. Do not enter drafting while truthful source state is `awaiting_user_images`. Do not enter optional publication merely because later tasks exist. A provider change requires explicit migration/rebinding before old provider identities are treated as current.

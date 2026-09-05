@@ -6,7 +6,7 @@
 
 **Content Marketing Workflow** is the canonical source repository for the reusable Content Marketing Workflow Skill and its optional Codex plugin distribution.
 
-Current version: `0.2.1`
+Current version: `0.3.0`
 
 ## Distribution model
 
@@ -42,16 +42,16 @@ skills/content-marketing-workflow/docs/architecture/runtime-compatibility-matrix
 Current product rules:
 
 - **GitHub repository access is mandatory.** Without a usable repository CMW is `BLOCKED`; conversation memory is not a substitute.
-- **Online cloud-media storage is required for the complete media workflow.** Google Drive is the only implemented provider in 0.2.1. Dropbox remains a future adapter.
+- **Online cloud-media storage is required for the complete media workflow.** Google Drive and Dropbox are implemented providers in 0.3.0; exactly one is active per project, with Google Drive recommended/default when both are operational.
 - GitHub, WordPress and local filesystem are not automatic media-storage fallbacks.
-- New users do not need to pre-install Google Drive before `/start`; when runtime plugin discovery is available CMW discovers eligibility/installability/connection state and guides setup.
+- New users do not need to pre-install Google Drive or Dropbox before `/start`; when runtime plugin discovery is available CMW discovers eligibility/installability/connection state and guides setup.
 - When the runtime cannot generate/edit images but cloud storage is available, CMW produces a complete external-generation prompt and resumes after the user returns/uploads the image.
 - Without required verified final media, CMW does not degrade to image-less WordPress publication or text-only social publication.
 - Current LinkedIn/Facebook automated publication depends on a verified WordPress-hosted SEO Workflow Bridge runtime.
 - GitHub Actions is required for current unattended scheduled publication.
 - Telegram remains optional and never changes publication truth.
 
-The 0.2.1 patch completes alignment of article, media, WordPress and social capability contracts with this central prerequisite model and adds durable non-secret compatibility state to the user-profile schema.
+The 0.3.0 release adds Dropbox as a first-class `cloud_media_storage` adapter while preserving provider-neutral media identity, publication gates and runtime-degradation behavior.
 
 ## Direct installation in ChatGPT
 

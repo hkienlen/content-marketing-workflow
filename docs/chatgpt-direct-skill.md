@@ -59,16 +59,20 @@ If GitHub integration exists but is not connected/configured, onboarding guides 
 
 Online cloud media storage is required for the complete media workflow.
 
-Providers implemented by the current version must be listed during onboarding. In 0.2.x:
+Providers implemented in 0.3.0:
 
 ```text
-Google Drive: supported/current
-Dropbox: future adapter, not selectable yet
+Google Drive (`google_drive`): supported, recommended/default
+Dropbox (`dropbox`): supported alternative
 ```
 
-When plugin discovery is available, `/start` should find Google Drive even when it is not installed, distinguish eligibility/installability/installation/connection state, propose installation when eligible, then guide connection/workspace verification.
+Exactly one provider is active per project. When both are operational, `/start` presents both choices and defaults to Google Drive unless the user selects Dropbox.
 
-If Google Drive is unavailable/ineligible and no other implemented provider exists, CMW enters `DEGRADED` mode. GitHub, WordPress and local filesystem are not media-storage fallbacks.
+When plugin discovery is available, `/start` should discover both implemented providers even when they are not installed, distinguish eligibility/installability/installation/connection state, propose installation when eligible, then guide connection/workspace verification for the selected provider.
+
+If neither Google Drive nor Dropbox is usable, CMW enters `DEGRADED` mode. GitHub, WordPress and local filesystem are not media-storage fallbacks.
+
+Switching an existing project from one provider to the other is explicit migration work: provider-backed asset references are not interchangeable and exact hashes/provenance must be preserved.
 
 ### Image generation/editing
 
@@ -79,7 +83,7 @@ If image generation is unavailable but cloud storage works, CMW uses a manual ha
 1. generates a complete ready-to-use image prompt;
 2. user runs it in an image-capable ChatGPT conversation or compatible image AI;
 3. user returns/uploads the result;
-4. CMW inspects and persists it to the configured cloud provider;
+4. CMW inspects and persists it to the selected cloud provider;
 5. normal review/finalization resumes.
 
 If cloud storage is unavailable, generated/returned images cannot become durable `verified_final` media and cannot unlock publication.
@@ -113,13 +117,14 @@ The Skill contains no project-specific site names, repositories, identities, cre
 On first use `/start`:
 
 1. verifies GitHub first;
-2. discovers/configures implemented cloud-media provider(s);
-3. detects image-generation/editing capability;
-4. verifies WordPress/Bridge if WordPress or social publication is enabled;
-5. verifies GitHub Actions/scheduler for unattended scheduling;
-6. verifies enabled social adapters independently;
-7. treats Telegram as optional notification capability;
-8. reports exact feature availability/degradations.
+2. discovers Google Drive and Dropbox;
+3. selects and verifies exactly one cloud-media provider;
+4. detects image-generation/editing capability;
+5. verifies WordPress/Bridge if WordPress or social publication is enabled;
+6. verifies GitHub Actions/scheduler for unattended scheduling;
+7. verifies enabled social adapters independently;
+8. treats Telegram as optional notification capability;
+9. reports exact feature availability/degradations.
 
 When an older project repository is a migration source, migration is selective. Generic Skill source, product tests, release machinery, credentials and unrelated historical implementation material stay out of the project repository.
 

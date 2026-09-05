@@ -29,7 +29,7 @@ prerequisites:
   - project onboarding completed sufficiently for article creation
   - Human Item / Work Item / task prompt and planning exist
   - mandatory strategy/template files readable
-  - cloud_media_storage is operational before any source/proposal/final is claimed durable
+  - selected cloud_media_storage provider is operational before any source/proposal/final is claimed durable
   - when image generation/editing is unavailable, manual image handoff is used instead of false generation success
 
 mandatory_context:
@@ -39,6 +39,8 @@ mandatory_context:
   - docs/architecture/github-transparency.md
   - docs/architecture/user-profile-data-contract.md
   - docs/architecture/user-provided-images.md
+  - docs/architecture/google-drive-workspace.md
+  - docs/architecture/dropbox-workspace.md
   - docs/architecture/article-execution-checklist.md
   - docs/architecture/capabilities/visual-source-resolve.md
   - Work Item state
@@ -51,7 +53,7 @@ reads:
   - effective visual policy/local override
   - verified user source media when applicable
   - article/branch/PR state
-  - configured cloud-media workspace state
+  - selected cloud-media workspace state
   - current runtime image generation/editing availability
 
 writes:
@@ -65,7 +67,7 @@ writes:
 external_side_effects:
   - web/SERP/source research when required
   - create/reuse work branch and PR automatically
-  - create/reuse configured cloud-media source/proposals/final workspace
+  - create/reuse selected cloud-media source/proposals/final workspace
   - generate/edit visual proposals when runtime allows
   - otherwise produce complete external-generation prompt and resume after user returns/uploads image
 
@@ -91,7 +93,7 @@ completion_conditions:
   - visual policy resolved
   - truthful pre-draft visual-source state reached
   - article/research/briefs persisted when drafting is allowed
-  - applicable visual review package persisted/recoverable in cloud provider
+  - applicable visual review package persisted/recoverable in selected cloud provider
   - if runtime generation unavailable, manual handoff completed before visual package is called ready
   - PR exists/reused
   - exact review version identifiable and presented
@@ -133,7 +135,7 @@ Conceptually:
 └── final/
 ```
 
-The current implemented provider is Google Drive. If asking the user to place source images, show the exact provider path plus a verified direct link when the adapter supplies one.
+Implemented adapters are Google Drive and Dropbox. Use the provider selected in durable project state. If asking the user to place source images, show the exact provider path plus a verified direct folder link when the active adapter exposes one. Never silently switch providers during the article workflow.
 
 GitHub, WordPress and local filesystem are not fallback media stores.
 
@@ -161,7 +163,7 @@ After pre-draft gate permits drafting:
 research + full article drafting
 -> persist article + complete visual briefs/roles in GitHub
 -> continue to normal generation or manual handoff
--> persist/verify media in cloud provider
+-> persist/verify media in selected cloud provider
 -> present article + applicable visual review package
 ```
 

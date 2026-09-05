@@ -1,6 +1,6 @@
 # Internal capability: visual-source-resolve
 
-Date: 2026-09-04
+Date: 2026-09-05
 Status: current implementation contract
 
 ## Purpose
@@ -22,14 +22,16 @@ prerequisites:
   - active project profile is readable
   - repository persistence contracts are readable
   - content kind is article or social
-  - configured external-media provider is verified before provider-backed source intake is required
+  - selected cloud_media_storage provider is operational before provider-backed source intake is required
 
 mandatory_context:
   - AGENTS.md
   - docs/architecture/persistence-contract.md
   - docs/architecture/user-profile-data-contract.md
+  - docs/architecture/runtime-compatibility-matrix.md
   - docs/architecture/user-provided-images.md
   - docs/architecture/google-drive-workspace.md
+  - docs/architecture/dropbox-workspace.md
   - docs/architecture/media-delivery-architecture.md
   - docs/architecture/schemas/user-profile.schema.json
   - active user-data/profile.json when present
@@ -38,7 +40,7 @@ mandatory_context:
 optional_context:
   - relevant existing project media-library source references
   - chat-uploaded images in the current task
-  - exact Drive filenames supplied by the user
+  - exact provider filenames/paths supplied by the user
   - user-owned image/social visual strategy authorities
 
 reads:
@@ -60,11 +62,11 @@ persists:
   - content-local override without mutating project defaults
   - source provider/asset identity/original filename/hash when available
   - source role/fidelity/treatment/directive
-  - verified source folder ID/path/link when user placement is requested
+  - verified source folder identity/path/link when user placement is requested
   - truthful blocker/readiness state
 
 external_side_effects:
-  - create/reuse private source-user Drive folder when required
+  - create/reuse private source-user folder in selected cloud provider when required
   - inspect/read actual provider files
   - copy a chat-uploaded original into private source-user workspace when durable retention is required
   - no public sharing
@@ -73,7 +75,7 @@ external_side_effects:
 
 human_approval:
   - ask only when source role/fidelity/treatment ambiguity materially changes the result
-  - when required source media is missing under ask_before_drafting, ask/provide the exact placement method before drafting
+  - when required source media is missing under ask_before_drafting, ask/provide the exact selected-provider placement method before drafting
   - a content-local override may be accepted from explicit user instruction without changing project preference
   - final visual selection/review remains owned by article/social visual workflow
 
@@ -85,8 +87,9 @@ validation:
   - strict/high fidelity never permits invented subject appearance
   - original source is not overwritten
   - source-user folder remains private
-  - Drive placement request displays exact canonical path and resolved direct folder link
+  - provider placement request displays exact canonical path and resolved direct folder link when available
   - source provenance is persisted when source becomes durable workflow input
+  - source provider identity matches the selected project provider
   - missing-source behavior is applied without silent fallback
 
 completion_conditions:
@@ -132,7 +135,7 @@ The deterministic helper is:
 scripts/visual-policy-resolve.py
 ```
 
-The helper performs policy resolution/validation only. It does not access Drive, inspect images or mutate GitHub.
+The helper performs policy resolution/validation only. It does not access cloud storage, inspect images or mutate GitHub.
 
 ## Intake decision
 
@@ -151,16 +154,16 @@ For `strict_user_images`, `allow_ai_generation` must not be interpreted as permi
 
 ## Source workspace
 
-When content-level user media is involved, create/reuse:
+When content-level user media is involved, create/reuse under the selected provider:
 
 ```text
-articles/<article-slug>/source-user/
+<provider-root>/<site-domain>/articles/<article-slug>/source-user/
 ```
 
 or:
 
 ```text
-social/<post-name>/source-user/
+<provider-root>/<site-domain>/social/<post-name>/source-user/
 ```
 
 The folder is private and distinct from `proposals/` and `final/`.
@@ -168,11 +171,11 @@ The folder is private and distinct from `proposals/` and `final/`.
 If user placement is required, present both:
 
 ```text
-exact canonical path
-+ resolved direct clickable Drive folder link
+exact canonical provider path
++ resolved direct clickable provider folder link when available
 ```
 
-Never construct a guessed link from a folder name alone.
+Never construct a guessed link from a folder name/path alone.
 
 ## Chat-upload intake
 
@@ -182,7 +185,7 @@ Before use:
 
 1. confirm a usable image target actually exists in the current task;
 2. inspect it;
-3. when durable continuation requires provider-backed retention, copy/retain the original into `source-user/` without modifying its bytes where possible;
+3. when durable continuation requires provider-backed retention, copy/retain the original into selected-provider `source-user/` without modifying its bytes where possible;
 4. persist provenance and exact SHA-256 when exact bytes are available;
 5. verify the retained provider source.
 
@@ -226,12 +229,14 @@ After content drafting:
 
 On rerun:
 
-- reuse the existing source-user folder;
+- reuse the existing selected-provider source-user folder;
 - reuse already verified identical source assets/provenance;
 - do not duplicate provider copies for the same retained source identity/hash;
 - re-check a provider source before using it if durable state no longer proves accessibility/identity;
 - preserve project preferences unchanged when a local override is resumed;
 - return the existing truthful terminal state when nothing changed.
+
+If durable project provider changes, require explicit provider migration/rebinding before treating old provider identities as source-ready in the new provider.
 
 ## Failure behavior
 
@@ -241,7 +246,7 @@ Fail closed when:
 - a claimed source file cannot be verified;
 - a source resolves to non-image/preview-only bytes when full source is required;
 - source identity/hash drift is detected;
-- exact Drive folder identity/link cannot be resolved for a placement request;
+- exact selected-provider folder identity/link cannot be resolved when the active adapter requires it for placement UX;
 - strict/high-fidelity requirements conflict with the requested transformation.
 
-Do not substitute another image, infer appearance or silently switch to full AI generation.
+Do not substitute another image, infer appearance, silently switch providers or silently switch to full AI generation.

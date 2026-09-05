@@ -5,7 +5,7 @@ Status: current provider adapter
 
 ## Authority
 
-Google Drive is the only implemented `cloud_media_storage` adapter in CMW 0.2.1.
+Google Drive is an implemented `cloud_media_storage` adapter in CMW 0.3.0.
 
 Global prerequisite/degradation behavior is owned by:
 
@@ -29,17 +29,13 @@ This file defines Google Drive-specific workspace behavior only. It must not red
 
 ## Product boundary
 
-Current implemented provider:
+Implemented provider:
 
 ```text
 google_drive
 ```
 
-Future reserved adapter:
-
-```text
-dropbox
-```
+Dropbox is the other implemented `cloud_media_storage` provider. Exactly one provider is active for a project at a time. Google Drive is the recommended/default choice when both providers are operational.
 
 GitHub, WordPress and local filesystem are not alternate media-storage providers and must never be proposed as automatic fallback choices.
 
@@ -77,7 +73,8 @@ Rules:
 
 - if visible/installable but absent, propose installation during onboarding;
 - if installed but disconnected, guide connection immediately;
-- if operational, configure/verify the workspace;
+- if operational, configure/verify the workspace when selected;
+- when Google Drive and Dropbox are both operational, present both choices and keep Google Drive as the recommended/default selection unless the user chooses Dropbox;
 - if unavailable or ineligible and no other implemented provider exists, enter the `cloud_media_storage` DEGRADED state;
 - never infer eligibility from Free/Plus/Pro/Enterprise labels alone;
 - never offer GitHub, WordPress or local filesystem as a fallback.
@@ -220,7 +217,7 @@ Drive storage alone never means a source was inspected or a proposal selected/fi
 
 ## Onboarding behavior
 
-After Google Drive is discovered/eligible/connected, the skill must:
+After Google Drive is discovered/eligible/connected and selected, the skill must:
 
 1. resolve/select the Drive workspace root;
 2. persist the non-secret root reference;

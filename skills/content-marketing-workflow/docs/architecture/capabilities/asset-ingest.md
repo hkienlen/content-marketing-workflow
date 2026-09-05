@@ -1,6 +1,6 @@
 # Internal capability: asset-ingest
 
-Date: 2026-09-04
+Date: 2026-09-05
 Status: current implementation contract
 
 ## Purpose
@@ -30,8 +30,8 @@ mode: mutating
 
 prerequisites:
   - GitHub repository access is verified
-  - configured external media provider access is verified
-  - Google Drive workspace is verified for current provider implementation
+  - selected cloud_media_storage provider is operational
+  - selected provider workspace is verified according to google-drive-workspace.md or dropbox-workspace.md
   - human selection of exact final candidate/source is explicit
   - selected candidate resolves to actual full-quality bytes/file
   - user-provided sources were verified/inspected through visual-source-resolve when applicable
@@ -46,7 +46,9 @@ mandatory_context:
   - docs/architecture/github-transparency.md
   - docs/architecture/capability-contract-template.md
   - docs/architecture/testing-policy.md
+  - docs/architecture/runtime-compatibility-matrix.md
   - docs/architecture/google-drive-workspace.md
+  - docs/architecture/dropbox-workspace.md
   - docs/architecture/media-delivery-architecture.md
   - docs/architecture/user-provided-images.md
   - docs/architecture/image-asset-ingestion.md
@@ -64,14 +66,14 @@ reads:
   - active content branch/PR state
 
 writes:
-  - normalized selected final asset in provider private final workspace
+  - normalized selected final asset in selected provider private final workspace
   - owning content media metadata/source-provenance relationship in GitHub
   - tracking state when used by active workflow
 
 persists:
   - human selection identity
-  - provider
-  - stable private-final asset_id
+  - provider (`google_drive` or `dropbox`)
+  - stable private-final asset_id/reference in that provider namespace
   - canonical filename
   - normalized dimensions/format/size/quality/SHA-256
   - user-source provenance snapshot/reference when applicable
@@ -81,7 +83,7 @@ persists:
 
 external_side_effects:
   - read selected asset/source from configured provider workspace
-  - write/reuse final binary in provider private final workspace
+  - write/reuse final binary in selected provider private final workspace
   - update GitHub durable content/state metadata
   - never overwrite user source original
 
@@ -103,13 +105,14 @@ validation:
   - rejected candidates never become verified finals
   - private final provider file is re-read/resolved and exact SHA-256 is verified
   - persisted GitHub final metadata/provenance is re-read and matches provider final/source relationship
+  - persisted provider name matches the actual selected project provider and provider identity namespace
 
 completion_conditions:
   - selected source/candidate resolved
   - normalization manifest produced or existing accepted final inspected
   - original user source remains preserved when applicable
-  - private final provider asset exists
-  - stable final asset_id + exact SHA-256 + canonical metadata + applicable source provenance persisted in GitHub
+  - private final provider asset exists in the selected provider
+  - stable provider + asset_id/reference + exact SHA-256 + canonical metadata + applicable source provenance persisted in GitHub
   - provider final and GitHub metadata reverified
   - owning content/task tracking synchronized when required
   - lifecycle state reaches verified_final
@@ -145,29 +148,31 @@ verified_final -> delivery_staged -> destination_verified
 
 ## Provider source and final identity
 
-Normal current provider is Google Drive.
+Normal providers are Google Drive and Dropbox. Use the provider selected in durable project state and never silently switch providers during ingest.
 
-Article workspace:
+Provider-neutral article workspace:
 
 ```text
-<drive-root>/<site-domain>/articles/<article-slug>/
+<provider-root>/<site-domain>/articles/<article-slug>/
 ├── source-user/
 ├── proposals/
 └── final/
 ```
 
-Social workspace:
+Provider-neutral social workspace:
 
 ```text
-<drive-root>/<site-domain>/social/<post-name>/
+<provider-root>/<site-domain>/social/<post-name>/
 ├── source-user/
 ├── proposals/
 └── final/
 ```
+
+Provider-specific mappings and delivery semantics are defined by `google-drive-workspace.md` and `dropbox-workspace.md`.
 
 Do not ingest a UI screenshot, thumbnail or reconstructed chat preview when full generated/user-source asset exists.
 
-If provider cannot supply selected full-quality bytes, preserve highest truthful state and report finalization blocked. Do not silently substitute another binary source.
+If provider cannot supply selected full-quality bytes, preserve highest truthful state and report finalization blocked. Do not silently substitute another binary source or another provider.
 
 ## User-source provenance
 
@@ -176,8 +181,8 @@ When selected/final candidate is based on a user-provided source, persist at lea
 ```yaml
 source:
   source_type: user_provided
-  source_provider: google_drive|chat_upload
-  source_asset_id: <provider source id when available>
+  source_provider: google_drive|dropbox|chat_upload
+  source_asset_id: <provider source id/reference when available>
   source_original_filename: <original filename>
   source_sha256: <original bytes when available>
   source_role: use_as_is|enhance|subject_reference|inspiration_reference|composition_input
@@ -190,8 +195,8 @@ The final asset record remains separate:
 
 ```yaml
 media:
-  provider: google_drive
-  asset_id: <private-final-file-id>
+  provider: google_drive|dropbox
+  asset_id: <private-final-provider-identity>
   filename: <canonical filename>
   sha256: <64 lowercase hex>
   mime_type: image/webp
@@ -199,6 +204,8 @@ media:
   height: 900
   asset_status: verified_final
 ```
+
+Provider is part of the identity namespace. A persisted asset reference from one provider must never be interpreted as an equivalent reference in the other provider.
 
 For `use_as_is`, normalization/export may create a derivative final. Preserve original source identity/provenance and never overwrite its bytes merely to match final format/dimensions.
 
@@ -257,10 +264,11 @@ If selected source/candidate cannot survive required output policy, review an ex
 Before mutating verified final:
 
 1. resolve existing durable media/source state;
-2. if same final `asset_id` + SHA-256 is already verified, no-op;
+2. if same provider + final `asset_id` + SHA-256 is already verified, no-op;
 3. if same source provenance is reused and final bytes are unchanged, reuse existing final when valid;
 4. if different final was explicitly selected as replacement, write/reuse new final and persist new identity/hash/provenance;
-5. otherwise stop instead of silently replacing validated final.
+5. if the selected project provider differs from the existing final provider, require explicit provider migration/rebinding rather than silent reuse;
+6. otherwise stop instead of silently replacing validated final.
 
 If persisted source or final provider object resolves to different bytes than its stored SHA-256, fail closed.
 
@@ -280,25 +288,28 @@ When WordPress/social requires anonymous HTTP bytes:
 
 ```text
 verified private final
--> copy to tmp-outbox
+-> copy to selected provider tmp-outbox
+-> create/use provider-supported public read-only delivery reference
 -> verify public bytes match persisted SHA-256
 -> perform exact destination operation using stable final identity
 -> verify destination result
--> remove temporary outbox copy when practical
+-> remove temporary outbox copy/link when practical
 ```
 
 Source media is not publication authorization.
 
 ## Testing
 
-Existing deterministic normalization tests remain, plus user-source workflow tests cover:
+Existing deterministic normalization tests remain, plus user-source/provider workflow tests cover:
 
+- both Google Drive and Dropbox provider identities;
 - source provenance retention;
 - source original non-overwrite invariant;
 - strict/high fidelity crop/treatment guards at owning workflow boundary;
 - source/final identity separation;
 - `use_as_is` finalization without fake generated alternatives;
-- provider identity/hash drift fail-closed behavior.
+- provider identity/hash drift fail-closed behavior;
+- provider switching requires explicit migration/rebinding.
 
 ## User-facing invariant
 
@@ -309,9 +320,9 @@ user photo supplied/located
 -> source verified + inspected
 -> user sees exact source or compliant alternatives/treatments
 -> user selects/approves final basis
--> system normalizes/verifies to separate private final
+-> system normalizes/verifies to separate private final in selected cloud provider
 -> source original remains intact
--> system persists source provenance + final identity/hash/metadata
+-> system persists provider-qualified source provenance + final identity/hash/metadata
 -> user reviews result
 ```
 

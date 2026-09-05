@@ -1,11 +1,11 @@
-# Google Drive asset workspace contract
+# Dropbox asset workspace contract
 
 Date: 2026-09-05
 Status: current provider adapter
 
 ## Authority
 
-Google Drive is an implemented `cloud_media_storage` adapter in CMW 0.3.0.
+Dropbox is an implemented `cloud_media_storage` adapter in CMW 0.3.0.
 
 Global prerequisite/degradation behavior is owned by:
 
@@ -25,25 +25,23 @@ User-provided source media is governed by:
 docs/architecture/user-provided-images.md
 ```
 
-This file defines Google Drive-specific workspace behavior only. It must not redefine global readiness or fallback policy.
+This file defines Dropbox-specific workspace behavior only. It must not redefine global readiness or fallback policy.
 
 ## Product boundary
 
 Implemented provider:
 
 ```text
-google_drive
+dropbox
 ```
 
-Dropbox is the other implemented `cloud_media_storage` provider. Exactly one provider is active for a project at a time. Google Drive is the recommended/default choice when both providers are operational.
+Google Drive is the other implemented `cloud_media_storage` provider. Exactly one provider is active for a project at a time.
 
 GitHub, WordPress and local filesystem are not alternate media-storage providers and must never be proposed as automatic fallback choices.
 
-Legacy `repository_file` media may remain readable only where an owning compatibility/migration contract explicitly permits it. It is not selectable as a new storage provider and must never make cloud-media readiness pass.
-
 ## Purpose
 
-Google Drive stores provider-backed binary media for:
+Dropbox stores provider-backed binary media for:
 
 - private user-provided source originals used by content workflows;
 - generated/treated review image proposals;
@@ -52,11 +50,11 @@ Google Drive stores provider-backed binary media for:
 
 GitHub remains the durable editorial/workflow source of truth and stores exact media identity, provenance, SHA-256 and metadata, not the normal media binary store.
 
-Concrete Drive folder names/IDs and site domains belong to active user/project data.
+Concrete Dropbox folder paths/IDs and site domains belong to active user/project data.
 
 ## Onboarding prerequisite discovery
 
-`/start` must enumerate implemented cloud providers and discover Google Drive even when it is not already installed, when the active runtime exposes plugin discovery/management.
+`/start` must enumerate implemented cloud providers and discover Dropbox even when it is not already installed, when the active runtime exposes plugin discovery/management.
 
 Distinguish:
 
@@ -73,7 +71,7 @@ Rules:
 
 - if visible/installable but absent, propose installation during onboarding;
 - if installed but disconnected, guide connection immediately;
-- if operational, configure/verify the workspace when selected;
+- if operational, configure/verify the workspace;
 - when Google Drive and Dropbox are both operational, present both choices and keep Google Drive as the recommended/default selection unless the user chooses Dropbox;
 - if unavailable or ineligible and no other implemented provider exists, enter the `cloud_media_storage` DEGRADED state;
 - never infer eligibility from Free/Plus/Pro/Enterprise labels alone;
@@ -81,10 +79,10 @@ Rules:
 
 ## Site-domain workspace
 
-Under the selected root, create/reuse:
+Under the selected Dropbox root, create/reuse:
 
 ```text
-<drive-root>/
+<dropbox-root>/
 └── <site-domain>/
     ├── articles/
     ├── social/
@@ -100,7 +98,7 @@ Never mix assets from several sites in one site-domain namespace.
 Each article uses:
 
 ```text
-<drive-root>/<site-domain>/articles/<article-slug>/
+<dropbox-root>/<site-domain>/articles/<article-slug>/
 ├── source-user/
 ├── proposals/
 └── final/
@@ -117,7 +115,7 @@ Each article uses:
 Each social post/concept uses:
 
 ```text
-<drive-root>/<site-domain>/social/<post-name>/
+<dropbox-root>/<site-domain>/social/<post-name>/
 ├── source-user/
 ├── proposals/
 └── final/
@@ -127,19 +125,19 @@ The immutable post ID remains durable metadata but is not the only human-facing 
 
 ## Source-image placement UX
 
-When the skill asks the user to place source images in Google Drive, it first creates/reuses/verifies the exact private `source-user/` folder and shows:
+When the skill asks the user to place source images in Dropbox, it first creates/reuses/verifies the exact private `source-user/` folder and shows:
 
 1. exact canonical human-readable path;
-2. resolved direct clickable Drive folder link.
+2. resolved direct clickable Dropbox folder link when the active integration exposes one.
 
-Never guess a Drive URL from a folder name. The non-secret folder ID/link may be persisted for resume.
+Never guess a Dropbox URL from a folder path. A non-secret provider folder reference/link may be persisted for resume.
 
 ## `tmp-outbox`
 
 Canonical site path:
 
 ```text
-<drive-root>/<site-domain>/tmp-outbox/
+<dropbox-root>/<site-domain>/tmp-outbox/
 ```
 
 Purpose:
@@ -153,15 +151,16 @@ Rules:
 - normal article/social/source-user/proposals/final folders remain private;
 - only exact verified final files required for an active external operation are copied to outbox;
 - outbox bytes must match expected SHA-256 before external mutation;
-- stable destination identity uses the private final `asset_id`, never the outbox copy ID;
-- delete temporary copies after verified destination success when practical;
+- stable destination identity uses the private final `asset_id`, never the outbox copy identity;
+- use a verified public read-only shared link for the exact staged object/folder as supported by the active Dropbox integration;
+- delete temporary copies and temporary links after verified destination success when practical;
 - never delete private retained finals or source originals during outbox cleanup.
 
-If `tmp-outbox` cannot be configured/verified, media-dependent WordPress/social publication remains unavailable according to the central compatibility matrix.
+If `tmp-outbox` cannot be configured/verified for public read-only delivery, media-dependent WordPress/social publication remains unavailable according to the central compatibility matrix.
 
-## What belongs in Drive
+## What belongs in Dropbox
 
-Drive may contain:
+Dropbox may contain:
 
 - user-provided source originals;
 - generated/treated proposals;
@@ -176,8 +175,8 @@ GitHub persists identity and provenance, for example:
 
 ```yaml
 source_type: user_provided
-source_provider: google_drive
-source_asset_id: <private source file id>
+source_provider: dropbox
+source_asset_id: <private source file id/path reference>
 source_original_filename: <original filename>
 source_sha256: <exact bytes when available>
 source_role: use_as_is|enhance|subject_reference|inspiration_reference|composition_input
@@ -188,8 +187,8 @@ ai_treatment: none|light_correction|natural_enhancement|marketing_enhancement|cr
 Final provider-backed media metadata:
 
 ```yaml
-provider: google_drive
-asset_id: <private-final-file-id>
+provider: dropbox
+asset_id: <private-final-file-id/path-reference>
 filename: <canonical filename>
 sha256: <exact bytes>
 mime_type: <image mime>
@@ -213,31 +212,31 @@ source_discovered
 -> destination_verified when delivered
 ```
 
-Drive storage alone never means a source was inspected or a proposal selected/final.
+Dropbox storage alone never means a source was inspected or a proposal selected/final.
 
 ## Onboarding behavior
 
-After Google Drive is discovered/eligible/connected and selected, the skill must:
+After Dropbox is discovered/eligible/connected and selected, the skill must:
 
-1. resolve/select the Drive workspace root;
+1. resolve/select the Dropbox workspace root;
 2. persist the non-secret root reference;
 3. resolve site domain;
 4. create/reuse site root, `articles/`, `social/`, `tmp-outbox/`;
-5. explain that only `tmp-outbox` is public-link reader;
-6. when connector cannot mutate sharing, instruct `Anyone with the link -> Viewer` for `tmp-outbox` only;
-7. retrieve/persist non-secret outbox ID/link;
-8. test anonymous read-only accessibility;
+5. explain that only staged `tmp-outbox` delivery material may receive public read-only links;
+6. create or guide creation of the required read-only shared link using the active Dropbox integration's supported surface;
+7. persist non-secret outbox/shared-link references only when useful for resume;
+8. test anonymous read-only accessibility before publication readiness is claimed;
 9. verify hierarchy/privacy boundary;
 10. lazily create content-level `source-user/`, `proposals/`, `final/` as workflows require.
 
-Normal setup must not require Google Cloud Console, service account, OAuth client creation or manually pasted Google credentials.
+Normal setup must not require developer-console OAuth application creation, manually pasted access tokens or Dropbox API credentials when an operational ChatGPT/Codex integration is available.
 
 ## Multiple sites
 
-The same Drive root may serve several sites, each with its own private article/social workspaces and outbox.
+The same Dropbox root may serve several sites, each with its own private article/social workspaces and outbox.
 
 ## Secrets and sharing
 
-Drive folder/file IDs and public read-only delivery URLs are non-secret metadata and may be persisted when required.
+Dropbox folder/file references and intentionally public read-only delivery URLs are non-secret metadata and may be persisted when required.
 
-Never persist OAuth/access tokens in GitHub. Never broaden sharing of the site root, article/social folders, source-user/proposals/final or future media library merely because `tmp-outbox` is public by link.
+Never persist OAuth/access tokens in GitHub. Never broaden sharing of the site root, article/social folders, source-user/proposals/final or future media library merely because temporary outbox delivery material is public by link.

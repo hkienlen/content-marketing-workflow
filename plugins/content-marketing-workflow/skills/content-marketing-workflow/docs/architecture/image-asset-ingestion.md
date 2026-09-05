@@ -1,23 +1,36 @@
 # Image asset ingestion architecture
 
-Date: 2026-09-04
-Status: current architecture for the pilot/future single skill
+Date: 2026-09-05
+Status: current architecture
 
 ## Decision
 
-The single Content / Marketing skill uses Google Drive as the mandatory current provider-backed workspace for:
+The single Content / Marketing skill uses the selected supported `cloud_media_storage` provider as the mandatory provider-backed workspace for:
 
 - private user-provided source originals when a workflow uses them;
 - generated/treated visual proposals;
 - retained selected/final binaries.
 
-GitHub is the durable source of truth for exact source provenance, final-media identity, SHA-256, metadata, lifecycle state and downstream evidence. The final binary itself does not need to be committed into GitHub in normal provider-backed mode.
+Implemented providers in CMW 0.3.0:
+
+```text
+google_drive
+dropbox
+```
+
+Exactly one provider is active per project. Google Drive is recommended/default when both are operational; Dropbox is a first-class supported alternative. Provider failure never silently authorizes a switch to the other provider.
+
+GitHub is the durable source of truth for exact source provenance, provider-qualified final-media identity, SHA-256, metadata, lifecycle state and downstream evidence. The final binary itself does not need to be committed into GitHub in normal provider-backed mode.
 
 The internal `visual-source-resolve` capability owns user-source policy/intake before drafting. The internal `asset-ingest` capability remains the boundary that turns one explicitly human-selected final candidate/source into a durable, verified final asset.
 
 Read together with:
 
 ```text
+docs/architecture/runtime-compatibility-matrix.md
+docs/architecture/google-drive-workspace.md
+docs/architecture/dropbox-workspace.md
+docs/architecture/media-delivery-architecture.md
 docs/architecture/user-provided-images.md
 docs/architecture/capabilities/visual-source-resolve.md
 docs/architecture/capabilities/asset-ingest.md
@@ -29,12 +42,12 @@ docs/architecture/capabilities/asset-ingest.md
 
 ```text
 proposal generated/treated
--> stored in private Google Drive proposals workspace
+-> stored in selected provider private proposals workspace
 -> human selection
 -> selected proposal retrieved as real bytes
 -> deterministic normalization
--> normalized final written/reused in private Drive final/
--> exact provider asset_id + SHA-256 + metadata persisted in GitHub
+-> normalized final written/reused in selected provider private final/
+-> exact provider + asset_id/reference + SHA-256 + metadata persisted in GitHub
 -> persisted state re-read/verified
 ```
 
@@ -42,13 +55,13 @@ proposal generated/treated
 
 ```text
 user source discovered/uploaded
--> original retained in private source-user/ when provider-backed retention is used
+-> original retained in selected provider private source-user/ when provider-backed retention is used
 -> source verified + inspected
 -> source role/fidelity/treatment/provenance persisted
 -> human final choice/review
 -> selected source or allowed derivative normalized without overwriting original
--> normalized final written/reused in private Drive final/
--> exact provider asset_id + SHA-256 + source provenance + metadata persisted in GitHub
+-> normalized final written/reused in selected provider private final/
+-> exact provider + asset_id/reference + SHA-256 + source provenance + metadata persisted in GitHub
 -> persisted state re-read/verified
 ```
 
@@ -56,18 +69,19 @@ When a destination later needs anonymous delivery:
 
 ```text
 private retained final
--> temporary copy in tmp-outbox
+-> temporary copy in selected provider tmp-outbox
+-> provider-supported anonymous read-only delivery reference
 -> public bytes verified against persisted SHA-256
 -> destination mutation
 -> destination readback
--> tmp-outbox cleanup when practical
+-> tmp-outbox copy/link cleanup when practical
 ```
 
 The end user must not manipulate Git, manually convert files or operate the outbox as part of the normal workflow.
 
 ## Source-of-truth boundary
 
-### Google Drive
+### Selected cloud-media provider
 
 Contains:
 
@@ -76,21 +90,23 @@ Contains:
 - retained selected/final binary media;
 - temporary `tmp-outbox` delivery copies.
 
-Canonical roots:
+Canonical provider-neutral roots:
 
 ```text
-<drive-root>/<site-domain>/articles/<article-slug>/source-user/
-<drive-root>/<site-domain>/articles/<article-slug>/proposals/
-<drive-root>/<site-domain>/articles/<article-slug>/final/
-<drive-root>/<site-domain>/social/<post-name>/source-user/
-<drive-root>/<site-domain>/social/<post-name>/proposals/
-<drive-root>/<site-domain>/social/<post-name>/final/
-<drive-root>/<site-domain>/tmp-outbox/
+<provider-root>/<site-domain>/articles/<article-slug>/source-user/
+<provider-root>/<site-domain>/articles/<article-slug>/proposals/
+<provider-root>/<site-domain>/articles/<article-slug>/final/
+<provider-root>/<site-domain>/social/<post-name>/source-user/
+<provider-root>/<site-domain>/social/<post-name>/proposals/
+<provider-root>/<site-domain>/social/<post-name>/final/
+<provider-root>/<site-domain>/tmp-outbox/
 ```
 
 `source-user/`, `proposals/` and `final/` remain private.
 
 Never overwrite a user source original during treatment, crop, normalization or finalization.
+
+Provider-specific mapping/sharing behavior is defined by `google-drive-workspace.md` and `dropbox-workspace.md`.
 
 ### GitHub
 
@@ -98,8 +114,8 @@ For a durable user source, store enough provenance to recover intent/truth const
 
 ```yaml
 source_type: user_provided
-source_provider: google_drive|chat_upload
-source_asset_id: <source provider identity when available>
+source_provider: google_drive|dropbox|chat_upload
+source_asset_id: <source provider identity/reference when available>
 source_original_filename: <original filename>
 source_sha256: <source bytes when available>
 source_role: use_as_is|enhance|subject_reference|inspiration_reference|composition_input
@@ -111,8 +127,8 @@ ai_treatment_directive: <resolved directive or null>
 For provider-backed finals:
 
 ```yaml
-provider: google_drive
-asset_id: <private final file id>
+provider: google_drive|dropbox
+asset_id: <private final provider identity/reference>
 filename: <canonical filename>
 sha256: <exact normalized bytes>
 mime_type: image/webp
@@ -122,9 +138,9 @@ height: 900
 
 plus owning ALT/title/caption/placement, validation state and source provenance/reference when applicable.
 
-Rejected/intermediate proposals must not be mistaken for final assets merely because they exist in Drive. Source originals must not be mistaken for generated proposals or disposable intermediates.
+Rejected/intermediate proposals must not be mistaken for final assets merely because they exist in cloud storage. Source originals must not be mistaken for generated proposals or disposable intermediates.
 
-Repository-backed binary assets remain supported through explicit `repository_file` mode.
+Repository-backed binary assets remain supported only through explicit compatibility `repository_file` mode where an owning migration contract still permits it. They are not selectable as normal cloud storage.
 
 ## Lifecycle state model
 
@@ -154,8 +170,8 @@ Meanings:
 - `source_inspected`: actual visual content was inspected before relying on visible facts;
 - `selected`: human explicitly chose the candidate/source as the final basis;
 - `normalized`: selected bytes passed validation/normalization and a deterministic manifest/hash exists;
-- `verified_final`: private retained final file exists and exact provider identity/hash/metadata/provenance is persisted and reverified;
-- `delivery_staged`: temporary public delivery copy exists and resolves to same expected bytes;
+- `verified_final`: private retained final exists and exact provider-qualified identity/hash/metadata/provenance is persisted and reverified;
+- `delivery_staged`: temporary public delivery copy/link exists and resolves to same expected bytes;
 - `destination_verified`: external destination accepted/reused expected media and returned state was verified.
 
 `delivery_staged` is transient and never part of stable final identity.
@@ -168,7 +184,7 @@ Owns:
 
 - visual policy inheritance resolution;
 - pre-draft user source requirement decision;
-- source-user folder create/reuse/link UX;
+- selected-provider source-user folder create/reuse/link UX;
 - actual source verification/inspection;
 - source role/fidelity/treatment/provenance persistence;
 - truthful `awaiting_user_images` / `source_ready` / fallback state.
@@ -236,7 +252,7 @@ Normal standalone post:
 ```text
 1080 x 1350 px
 4:5
-photo / scene humaine      -> high-quality JPEG
+photo / human scene        -> high-quality JPEG
 infographic / text / flat  -> PNG
 ```
 
@@ -270,27 +286,32 @@ A universal hard byte ceiling is rejected.
 
 ## Stable provider identity and source identity
 
-The retained final private file ID is stable final `asset_id`.
-
-For unchanged final bytes:
+Stable final identity is provider-qualified:
 
 ```text
-same asset_id + same sha256 -> same final asset
+provider + asset_id/reference + sha256
+```
+
+For unchanged final bytes in the same provider:
+
+```text
+same provider + same asset_id/reference + same sha256 -> same final asset
 ```
 
 A user source's `source_asset_id` is a distinct provenance identity and never substitutes for final `asset_id` unless the provider object itself is explicitly reused as final and that behavior is safe/verified. Normal provider-backed processing keeps source original and final derivative as distinct objects.
 
 If the same persisted source/final provider identity resolves to changed bytes, fail closed.
 
-A temporary outbox copy ID is transport identity only.
+A temporary outbox copy/link is transport identity only.
 
-## Replacement protection
+## Replacement and provider-switch protection
 
 Before replacing verified final:
 
-- same stable final identity + same SHA-256 -> verified no-op;
-- different selected final + explicit human replacement intent -> normalize/write new final and persist new identity/hash/provenance;
-- different final without explicit replacement intent -> stop.
+- same provider + stable final identity + same SHA-256 -> verified no-op;
+- different selected final + explicit human replacement intent -> normalize/write new final and persist new provider-qualified identity/hash/provenance;
+- different final without explicit replacement intent -> stop;
+- project provider differs from existing final provider -> require explicit provider migration/rebinding before reuse.
 
 Never mutate an already validated final or a user source original behind existing durable state.
 
@@ -302,34 +323,36 @@ Downstream WordPress/social workflows may request:
 
 ```text
 verified_final
--> copy to tmp-outbox
+-> copy to selected provider tmp-outbox
+-> create/use provider-supported anonymous read-only reference
 -> anonymous fetch
 -> SHA-256 verification
 -> external destination
 ```
 
-The outbox copy is disposable. Source originals and retained private finals are not.
+The outbox copy/link is disposable. Source originals and retained private finals are not.
 
-## Drive retention
+## Retention
 
 Rejected generated proposals may be retained during active review/debugging and later cleaned. User source originals used as durable provenance are not rejected proposal clutter and must not be deleted by generic proposal cleanup.
 
-Temporary outbox copies should be cleaned after verified delivery when practical.
+Temporary outbox copies/links should be cleaned after verified delivery when practical.
 
 ## Generic reuse
 
 Normalization is content-type neutral. Owning article/social capability supplies filename, dimensions, format and quality policy. Visual-source intake remains profession-neutral and supports user sources for products, craft work, portraits, places, portfolios or other real subjects.
 
-Provider interface remains open to current `google_drive` and future `dropbox` without changing article/social semantic contracts.
+Provider interface supports `google_drive` and `dropbox` without changing article/social semantic contracts.
 
 ## Validation status
 
-As of 2026-09-04:
+As of 2026-09-05:
 
 - deterministic WebP/JPEG/PNG normalization remains the existing tested basis;
-- Google Drive public-link transport through `tmp-outbox` remains validated end to end;
+- Google Drive public-link transport through `tmp-outbox` has prior end-to-end validation;
+- Dropbox is an implemented provider contract in CMW 0.3.0 and its active integration must be verified during onboarding before media readiness is claimed;
 - wrong-hash behavior remains fail-closed;
-- WordPress Bridge `media_upsert` creation/idempotent reuse remain validated;
+- WordPress Bridge `media_upsert` creation/idempotent reuse remain validated independently of provider stable identity;
 - provider-backed final media remains normal architecture;
-- user-provided source policy/provenance/pre-draft workflow is now a generic architecture requirement and must pass its dedicated resolver/static tests before the next productization freeze;
+- user-provided source policy/provenance/pre-draft workflow is a generic architecture requirement;
 - repository-backed binary mode remains compatibility only.

@@ -1,6 +1,6 @@
 # Generic WordPress workflow boundary
 
-Date: 2026-09-01
+Date: 2026-09-05
 Status: architecture decision
 
 ## Decision
@@ -23,7 +23,7 @@ SEO Workflow Bridge / compatible WordPress companion boundary
 that selected WordPress site
 ```
 
-For the current pilot, **SEO Workflow Bridge is the canonical companion implementation**.
+SEO Workflow Bridge is the canonical current companion implementation.
 
 ## No hostname inference
 
@@ -41,16 +41,11 @@ Connects/verifies exactly the selected WordPress site and bounded Bridge abiliti
 
 Creates/updates one Bridge-managed draft from the exact validated GitHub editorial source and exact verified final media identities/hashes.
 
-Final media may be:
+Normal provider-backed media comes from the selected implemented `cloud_media_storage` provider (`google_drive` or `dropbox`) through a verified temporary delivery path and must match its persisted SHA-256 before Bridge mutation.
 
-```text
-public_media_source
-repository_file
-```
+Legacy `repository_file` media remains compatibility/migration-only where an owning contract explicitly permits it; it is not a cloud-media fallback.
 
-Provider-backed media is downloaded through a verified temporary delivery path and must match its persisted SHA-256 before Bridge mutation.
-
-It does not publish or schedule.
+Preparation does not publish or schedule.
 
 ### `wordpress-publish-article`
 
@@ -73,11 +68,11 @@ The generic capability contracts must not hardcode:
 - one taxonomy/category;
 - one author login;
 - pilot preset IDs;
-- Google Drive as the only possible external media provider.
+- one cloud-media provider as the only possible implementation.
 
 Provider-specific presentation is handled by optional adapters/profiles defined in `docs/architecture/wordpress-adapter-architecture.md`.
 
-Media-provider behavior is defined by `docs/architecture/media-delivery-architecture.md`; current `google_drive` and future `dropbox` share the same generic media semantics.
+Media-provider behavior is defined by `docs/architecture/media-delivery-architecture.md`; implemented `google_drive` and `dropbox` adapters share the same generic media semantics while retaining distinct provider-qualified identities.
 
 ## Bridge authority and transport
 
@@ -100,25 +95,27 @@ The current GitHub Actions OIDC relay is a transport. It is not the business def
 GitHub remains the durable editorial/workflow source of truth for:
 
 - validated article source;
-- exact final-media provider identities/hashes/metadata;
+- exact provider-qualified final-media identities/hashes/metadata;
 - preparation manifests;
 - presentation profiles;
 - immutable publication candidates;
 - durable workflow evidence/configuration.
 
-Provider-backed private final binaries remain in the configured media provider workspace.
+Provider-backed private final binaries remain in the selected cloud-media workspace.
 
 WordPress is the publication target and contains derived managed media plus a derived managed draft/published representation.
 
 ## Stable media identity
 
-For provider-backed media, WordPress managed identity must derive from the stable private final asset identity, not a temporary `tmp-outbox` delivery copy.
+For provider-backed media, WordPress managed identity must derive from the stable private final provider + asset identity/reference + SHA-256, not a temporary `tmp-outbox` delivery copy/link.
 
-Changing/recreating the transport copy must not create a new managed attachment when the stable asset identity and SHA-256 are unchanged.
+Changing/recreating the transport copy must not create a new managed attachment when the stable provider-qualified asset identity and SHA-256 are unchanged.
+
+A project switch between Google Drive and Dropbox requires explicit media migration/rebinding; an old provider ID/reference must never be reinterpreted under the new provider namespace.
 
 ## Direct-import scripts
 
-Historical direct WP-CLI/Python/shell import/injection scripts may remain in a separate pilot/integration repository for traceability, diagnostics or explicitly chosen maintenance; they are not canonical generic product source.
+Historical direct WP-CLI/Python/shell import/injection scripts may remain in a separate integration repository for traceability, diagnostics or explicitly chosen maintenance; they are not canonical generic product source.
 
 They are not the canonical generic WordPress workflow and must not be selected automatically while SEO Workflow Bridge is available and configured.
 
@@ -126,6 +123,6 @@ Relay/orchestration helpers invoking SEO Workflow Bridge are not classified as l
 
 ## Site-specific operations
 
-The pilot may retain separate scripts/processes for cloning, maintenance mode, caches, indexability switches or server administration.
+A project may retain separate scripts/processes for cloning, maintenance mode, caches, indexability switches or server administration.
 
 These are not prerequisites or completion conditions of the generic `wordpress-connect`, `wordpress-prepare-article` or `wordpress-publish-article` contracts unless a future explicit architecture decision changes that boundary.

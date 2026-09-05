@@ -17,6 +17,25 @@
   "additionalProperties": false,
   "$defs": {
     "isoDateTime": {"type": ["string", "null"], "format": "date-time"},
+    "cloudMediaProvider": {
+      "enum": ["google_drive", "dropbox"]
+    },
+    "cloudMediaStorage": {
+      "type": "object",
+      "required": ["provider"],
+      "properties": {
+        "provider": {"$ref": "#/$defs/cloudMediaProvider"},
+        "root_ref": {"type": ["string", "null"]},
+        "site_ref": {"type": ["string", "null"]},
+        "articles_ref": {"type": ["string", "null"]},
+        "social_ref": {"type": ["string", "null"]},
+        "tmp_outbox_ref": {"type": ["string", "null"]},
+        "tmp_outbox_link": {"type": ["string", "null"]},
+        "verified_at": {"$ref": "#/$defs/isoDateTime"},
+        "details": {"type": "object", "additionalProperties": true}
+      },
+      "additionalProperties": true
+    },
     "visualSourceMode": {
       "enum": ["ai_first", "user_images_first", "strict_user_images", "hybrid_best_fit"]
     },
@@ -243,7 +262,13 @@
           "additionalProperties": true
         },
         "visual_preferences": {"$ref": "#/$defs/visualPreferences"},
-        "storage": {"type": "object", "additionalProperties": true},
+        "storage": {
+          "type": "object",
+          "properties": {
+            "cloud_media_storage": {"$ref": "#/$defs/cloudMediaStorage"}
+          },
+          "additionalProperties": true
+        },
         "runtime_compatibility": {"$ref": "#/$defs/runtimeCompatibility"},
         "wordpress": {
           "type": "object",

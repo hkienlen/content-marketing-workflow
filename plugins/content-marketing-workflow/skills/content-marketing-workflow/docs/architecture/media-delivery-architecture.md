@@ -13,17 +13,14 @@ docs/architecture/runtime-compatibility-matrix.md
 
 This document owns media identity, retention and delivery semantics. It must not redefine provider eligibility or degraded-mode policy.
 
-Current cloud-media implementation:
+Implemented cloud-media adapters:
 
 ```text
 google_drive
-```
-
-Future reserved adapter:
-
-```text
 dropbox
 ```
+
+Exactly one provider is active per project. Google Drive is the recommended/default selection when both providers are operational. Provider switching is explicit and must migrate/rebind durable provider identities rather than reinterpret existing IDs.
 
 GitHub, WordPress and local filesystem are not normal media-storage providers. Existing `repository_file` media is legacy compatibility/migration only and is never an automatic fallback.
 
@@ -79,7 +76,12 @@ Conceptually:
 <provider-root>/<site-domain>/tmp-outbox/
 ```
 
-The current Google Drive adapter maps `<provider-root>` to `<drive-root>` as defined in `google-drive-workspace.md`.
+Provider-specific mappings are defined in:
+
+```text
+docs/architecture/google-drive-workspace.md
+docs/architecture/dropbox-workspace.md
+```
 
 Privacy invariant:
 
@@ -96,7 +98,7 @@ Persist enough provenance in GitHub/content state to keep source truth and fidel
 
 ```yaml
 source_type: user_provided
-source_provider: google_drive|chat_upload
+source_provider: google_drive|dropbox|chat_upload
 source_asset_id: <provider source identity when available>
 source_original_filename: <original filename>
 source_sha256: <exact original bytes when available>
@@ -113,8 +115,8 @@ Provider identity/hash drift fails closed.
 Provider-backed final metadata:
 
 ```yaml
-provider: google_drive
-asset_id: <private retained final file id>
+provider: google_drive|dropbox
+asset_id: <private retained final provider identity>
 filename: <canonical filename>
 sha256: <exact normalized bytes>
 mime_type: <image mime>
@@ -123,7 +125,7 @@ height: <pixels>
 asset_status: verified_final
 ```
 
-Canonical identity is provider `asset_id` + SHA-256, not public URL/outbox copy ID.
+Canonical identity is provider + provider `asset_id` + SHA-256, not public URL/outbox copy ID. Provider identity is part of the durable identity namespace; a Google Drive ID and Dropbox reference must never be treated as interchangeable.
 
 ## Lifecycle
 
@@ -151,7 +153,7 @@ exact visual brief
 -> user generates/improves image externally
 -> user returns/uploads image
 -> inspect
--> persist in cloud provider
+-> persist in selected cloud provider
 -> proposal/review/finalization
 ```
 
@@ -161,7 +163,7 @@ If image generation is available but cloud storage is not, generated outputs may
 
 ## Chat uploads
 
-A chat upload can be source only when an actual usable attachment is available and inspected. When durable resume/provider use requires it, retain the original in private `source-user/` and persist original provenance/hash where possible.
+A chat upload can be source only when an actual usable attachment is available and inspected. When durable resume/provider use requires it, retain the original in private `source-user/` of the selected provider and persist original provenance/hash where possible.
 
 If provider retention fails, report incomplete state truthfully.
 
@@ -177,14 +179,17 @@ When a destination requires anonymous HTTP bytes:
 
 ```text
 verified private final
--> copy to tmp-outbox
+-> copy to selected provider tmp-outbox
+-> establish provider-supported anonymous read-only delivery reference
 -> verify anonymous bytes SHA-256 == persisted final SHA-256
 -> destination mutation
 -> verify destination response/readback
--> delete temporary outbox copy when practical
+-> delete temporary outbox copy/link when practical
 ```
 
 Only exact verified finals intended for the destination are staged.
+
+For Google Drive, delivery sharing follows `google-drive-workspace.md`. For Dropbox, delivery sharing follows `dropbox-workspace.md`. Provider-specific public-link mechanics must not leak into the stable final identity.
 
 ## Strict publication invariant
 
@@ -206,6 +211,19 @@ WordPress preparation uses exact provider-backed finals via temporary outbox del
 
 Social publication uses only exact `verified_final` media bound to approved text/ALT/platform/time/authorization. Current LinkedIn/Facebook publication additionally requires the WordPress-hosted SEO Workflow Bridge as declared by the compatibility matrix.
 
+## Provider switching and migration
+
+Switching the active project provider between Google Drive and Dropbox is never an implicit fallback.
+
+A provider migration must:
+
+1. preserve source originals and retained finals;
+2. copy/recreate exact bytes in the destination provider;
+3. verify SHA-256 after transfer;
+4. persist new provider + asset identity while retaining provenance of the prior identity when needed;
+5. update workspace/outbox references explicitly;
+6. never claim `verified_final` merely because an old provider ID exists after the project selection changed.
+
 ## Legacy repository-backed media
 
 `repository_file` may remain readable only for explicit backward compatibility/migration where an owning contract still supports it.
@@ -221,6 +239,10 @@ Rules:
 
 Validate at least:
 
+- both `google_drive` and `dropbox` are recognized as implemented providers;
+- exactly one active provider per project;
+- provider-qualified source/final identity;
+- explicit provider switching/migration semantics;
 - source original non-overwrite;
 - source/final/outbox identity separation;
 - source/final/outbox hash drift fail-closed;

@@ -1,6 +1,6 @@
 # Internal capability: social-create-post
 
-Date: 2026-09-04
+Date: 2026-09-05
 Status: current architecture contract
 
 ## Purpose
@@ -33,13 +33,16 @@ prerequisites:
   - social strategy/directives are readable
   - immutable ID registry is readable/writable
   - active user profile and visual_preferences are readable
-  - Google Drive social workspace is available before user-source/proposal media work
+  - selected cloud_media_storage provider is operational before user-source/proposal media work
 
 mandatory_context:
   - AGENTS.md
+  - docs/architecture/runtime-compatibility-matrix.md
   - docs/architecture/persistence-contract.md
   - docs/architecture/github-transparency.md
   - docs/architecture/user-provided-images.md
+  - docs/architecture/google-drive-workspace.md
+  - docs/architecture/dropbox-workspace.md
   - docs/architecture/social-workflow.md
   - docs/architecture/social-creation-queue.md
   - docs/architecture/social-series-review-gate.md
@@ -66,6 +69,7 @@ reads:
   - current social strategy/directives
   - effective visual policy and content-local override
   - verified user-provided source images/provenance when applicable
+  - selected cloud-media provider/workspace state
 
 writes:
   - series-plan.md when a new source article is opened for social reuse
@@ -76,14 +80,14 @@ writes:
   - content-local visual override/source provenance state
   - visual brief/proposal/source references according to downstream visual contract
   - combined-review state and review-round evidence
-  - final Google Doc identity when Drive-backed finalization applies
+  - provider-appropriate final text artifact identity when cloud finalization applies
 
 external_side_effects:
   - GitHub durable-state mutation
-  - create/reuse private Drive source-user/proposals/final workspace
+  - create/reuse private selected-provider source-user/proposals/final workspace
   - read/inspect real user source media when supplied
   - image generation/treatment through social-create-visual when applicable
-  - native Google Doc creation/update after combined approval
+  - provider-appropriate final text artifact creation/update after combined approval
   - no scheduling/publication implicitly
 
 human_approval:
@@ -106,7 +110,7 @@ completion_conditions:
   - generated/materially transformed visual workflow has exactly three distinct A/B/C proposals
   - exact use_as_is workflow presents exact source/final candidate without fake synthetic alternatives
   - targeted revisions preserve unaffected approved components
-  - final Google Doc invariant is satisfied when Drive-backed finalization applies
+  - provider-appropriate final cloud package invariant is satisfied
   - no scheduling/publication occurs implicitly
 ```
 
@@ -162,17 +166,17 @@ select/resume post
 
 Do not draft master text yet.
 
-Create/reuse and verify:
+Create/reuse and verify in the selected cloud provider:
 
 ```text
-<drive-root>/<site-domain>/social/<post-name>/source-user/
+<provider-root>/<site-domain>/social/<post-name>/source-user/
 ```
 
-Then show the user both:
+Then show the user:
 
 ```text
-exact canonical folder path
-+ verified direct clickable Google Drive folder link
+exact canonical provider folder path
++ verified direct clickable provider folder link when the active adapter exposes one
 ```
 
 A real chat image upload may satisfy intake when it is verified/inspected and retained/provenance-recorded as required.
@@ -204,7 +208,7 @@ draft complete publishable master text using only verified source facts
 
 ```text
 -> create exactly 3 distinct compliant proposals A/B/C
--> persist/verify A/B/C in Google Drive
+-> persist/verify A/B/C in selected cloud provider
 -> ONE combined review: full text + A/B/C + guidance
 ```
 
@@ -231,19 +235,26 @@ First normal review explicitly tells user they may:
 
 Detailed freeze/revision semantics: `social-post-review-loop.md`.
 
-## Final Drive package invariant
+## Final cloud package invariant
 
-When Drive backs final media, combined approval creates/reuses:
+After combined approval, create/reuse in the selected provider's private `final/` folder:
 
 ```text
 final/
 ├── selected normalized visual
-└── one native Google Doc whose body contains only exact approved publishable text
+└── one provider-appropriate copy/paste-ready final text artifact
+```
+
+Provider-specific text artifact:
+
+```text
+google_drive -> native Google Doc with exact approved publishable text only
+dropbox      -> UTF-8 plain-text .txt file with exact approved publishable text only
 ```
 
 The source original remains under `source-user/` and is never replaced by finalization.
 
-Persist `final_post_document` provider/document/folder/body_policy/status and reuse/update canonical document on revised approval rather than creating duplicates.
+Persist `final_post_document` provider/identity/folder/body_policy/format/status and reuse/update the canonical artifact on revised approval rather than creating duplicates. Details: `social-final-drive-package.md` (historical filename, provider-neutral contract from 0.3.0).
 
 ## Targeted correction invariant
 
@@ -281,7 +292,7 @@ Requirements:
 - assign/persist `series_function` when determinable;
 - same pre-draft visual-source resolution;
 - same master-text/visual/combined review rules;
-- same Drive final package, scheduling and publication gates.
+- same provider-neutral final package, scheduling and publication gates.
 
 Whole-series gate does not apply.
 
@@ -294,12 +305,12 @@ If topic materially duplicates queued article-derived concept, surface overlap a
 - queue/resume/rollover/series validation semantics;
 - first post continues automatically after series validation;
 - before master text, active visual preference is resolved and required/preferred user images may be requested/verified/inspected;
-- if Drive intake is needed, exact source-user path + direct link are given;
+- if provider intake is needed, exact source-user path + direct link are given when available;
 - content-local visual override does not rewrite project preference;
 - generated/materially transformed visual uses A/B/C;
 - exact use_as_is source does not require fake A/B/C;
 - combined review/freeze behavior remains mandatory;
-- final Drive package includes final visual + copy/paste-ready Google Doc;
+- final cloud package includes final visual + provider-appropriate copy/paste-ready final text artifact;
 - source intake/selection never authorizes scheduling/publication.
 
 `/help social create free` explains same visual sourcing rules plus standalone provenance/deduplication/no series gate.
@@ -310,7 +321,9 @@ Before creating anything inspect whether selected concept already has ID/post/ch
 
 Reuse valid state; never allocate second ID or duplicate source-user folder/provider copy merely because execution restarted.
 
-Material editorial reset keeps immutable post_id and marks old text/media superseded. Source originals remain preserved. Final Google Doc is canonical per post package and reused/updated.
+Material editorial reset keeps immutable post_id and marks old text/media superseded. Source originals remain preserved. Final text artifact is canonical per post package and reused/updated.
+
+A provider change requires explicit migration/rebinding; do not silently reuse provider identities from the previous provider.
 
 ## Separation from `/article create`
 

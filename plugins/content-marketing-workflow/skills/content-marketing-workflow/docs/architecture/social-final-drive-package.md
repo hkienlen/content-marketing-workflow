@@ -1,17 +1,17 @@
-# Social final Google Drive package contract
+# Social final cloud package contract
 
-Date: 2026-09-02
+Date: 2026-09-05
 Status: current architecture contract
 
 ## Purpose
 
-When Google Drive is used as the durable workspace for a social post's visual assets, the validated post text must also be preserved in Google Drive alongside the final visual.
+When a supported cloud-media provider is used as the durable workspace for a social post's visual assets, the validated post text must also be preserved alongside the final visual in the same private `final/` package.
 
-This rule makes the private `final/` folder a complete human-usable delivery package for manual publication.
+The historical filename of this contract is retained for compatibility, but the contract is provider-neutral from CMW 0.3.0 onward.
 
 ## Mandatory invariant
 
-For every social post that uses Google Drive for proposals/final media:
+For every social post using the selected cloud-media provider for proposals/final media:
 
 ```text
 human approves final post text
@@ -19,32 +19,49 @@ AND
 human selects/approves one visual
 -> normalize/verify selected visual
 -> store visual in the post's private final/ folder
--> create/update one native Google Doc containing ONLY the exact validated publishable post text
--> store that Google Doc in the SAME final/ folder
+-> create/update one provider-appropriate copy/paste-ready text artifact in the SAME final/ folder
 -> verify both objects are recoverable
--> persist their stable Drive identities in GitHub
+-> persist their stable provider identities/references in GitHub
 ```
 
-A post is not fully finalized for scheduling readiness until both the final visual and the final Google Doc exist and are verified when this Drive-backed rule applies.
+A post is not fully finalized for scheduling readiness until both the final visual and the provider-appropriate final text artifact exist and are verified.
 
-## Required Drive layout
+## Provider-specific final text artifact
+
+### Google Drive
+
+Create/update one native Google Doc containing only the exact validated publishable post text.
+
+### Dropbox
+
+Create/update one UTF-8 plain-text file:
 
 ```text
-<drive-root>/<site-domain>/social/<post_id>-<descriptive-slug>/
+<post_id>-<descriptive-slug>.txt
+```
+
+The file body contains only the exact validated publishable post text, preserving intended paragraph breaks. UTF-8 without workflow metadata is required so the user can open/select all/copy/paste directly.
+
+Do not silently convert the Dropbox text artifact into Markdown with headings/front matter or any other wrapper that changes the copy/paste-ready body.
+
+## Canonical provider-neutral layout
+
+```text
+<provider-root>/<site-domain>/social/<post_id>-<descriptive-slug>/
 ├── proposals/
 │   └── ... review rounds ...
 └── final/
     ├── <post_id>-<descriptive-slug>.<png|jpg>
-    └── <post_id> - <human-readable-title>   # native Google Doc
+    └── <provider-appropriate final text artifact>
 ```
 
 Both objects remain private.
 
-## Google Doc content: publishable text only
+## Final text content: publishable text only
 
-The Google Doc body must contain **only the exact final publishable post copy**, preserving intended paragraph breaks.
+The final text artifact body must contain **only the exact final publishable post copy**, preserving intended paragraph breaks.
 
-Forbidden inside the Google Doc body:
+Forbidden inside the body:
 
 - post ID;
 - post title or concept label unless that title is itself literally part of the publishable post text;
@@ -58,44 +75,42 @@ Forbidden inside the Google Doc body:
 - production metadata;
 - any other non-publishable information.
 
-The goal is operational: the user must be able to open the Google Doc, select all, copy, and paste directly into Facebook/LinkedIn without deleting anything first.
+The provider object/file name may remain descriptive for retrieval. The restriction applies to the body.
 
-The Drive filename/title may remain descriptive for retrieval. The restriction applies to the **document body**.
-
-Do not silently alter the validated publishable copy while creating/updating the Google Doc.
+Do not silently alter the validated publishable copy while creating/updating the final text artifact.
 
 ## Idempotency and revisions
 
-- create one canonical Google Doc per final post package;
-- persist its Drive `document_id`/URL in GitHub;
-- on resume, reuse/update that exact canonical document instead of creating duplicates;
-- if the user explicitly reopens and changes an approved post before publication, update the canonical Google Doc only after the revised text is approved again;
-- superseded historical text may remain in GitHub history, but the canonical `final/` Google Doc body must contain only the currently approved publishable post text.
+- create one canonical final text artifact per final post package;
+- persist its provider + stable provider identity/reference in GitHub;
+- on resume, reuse/update that exact canonical artifact instead of creating duplicates;
+- if the user explicitly reopens and changes an approved post before publication, update the canonical artifact only after the revised text is approved again;
+- superseded historical text may remain in GitHub history, but the canonical `final/` artifact body must contain only the currently approved publishable post text;
+- a provider change requires explicit migration/recreation and verification rather than reinterpreting the previous provider identity.
 
 ## Durable GitHub record
 
-When applicable, persist at least:
+Provider-neutral conceptual record:
 
 ```yaml
 final_post_document:
-  provider: google_drive
-  document_id: <native Google Doc file id>
-  title: <Drive title>
-  folder_id: <same final folder that contains the visual>
+  provider: google_drive|dropbox
+  document_id: <native Google Doc id or Dropbox file identity/reference>
+  title: <provider object/file title>
+  folder_id: <same final folder identity/reference that contains the visual>
   body_policy: publishable_text_only
+  format: google_doc|text_plain_utf8
   status: verified_final
 ```
 
-GitHub remains the workflow/state authority; the Google Doc is the copy/paste-ready human-readable final post stored with the media package.
+GitHub remains the workflow/state authority; the cloud artifact is the copy/paste-ready human-readable final post stored with the media package.
 
 ## Completion and blocking behavior
-
-For a Drive-backed social post:
 
 ```text
 visual verified_final
 !=
-complete final Drive package
+complete final cloud package
 ```
 
 Completion requires:
@@ -105,20 +120,22 @@ visual verified_final
 AND
 final text approved
 AND
-final Google Doc stored in same final/ folder
+provider-appropriate final text artifact stored in same final/ folder
 AND
-Google Doc body equals the exact approved publishable post text and contains no non-publishable metadata
+artifact body equals exact approved publishable post text and contains no non-publishable metadata
 AND
-Google Doc identity persisted/re-read
+provider identity/reference persisted/re-read
 ```
 
-If Google Doc creation, placement, or exact-text verification fails, report the post as finalization-incomplete rather than silently proceeding to scheduling readiness.
+If final text artifact creation, placement, or exact-text verification fails, report the post as finalization-incomplete rather than silently proceeding to scheduling readiness.
 
 ## Relationship to other contracts
 
 Read together with:
 
+- `docs/architecture/runtime-compatibility-matrix.md`
 - `docs/architecture/google-drive-workspace.md`
+- `docs/architecture/dropbox-workspace.md`
 - `docs/architecture/social-workflow.md`
 - `docs/architecture/social-execution-checklist.md`
 - `docs/architecture/social-post-review-loop.md`

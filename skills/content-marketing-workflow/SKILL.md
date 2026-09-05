@@ -31,13 +31,13 @@ For `/status`, always read the current project/profile state and `runtime-compat
 
 When running as an installed ChatGPT Skill, read `docs/architecture/chatgpt-skill-runtime.md` whenever the request concerns installation, `/start`, onboarding, project initialization, repository migration, connected-tool availability or the boundary between ChatGPT and Codex.
 
-A Skill provides workflow instructions and packaged resources; it does not itself grant access to GitHub, WordPress, Google Drive or social providers. Use only tools/connections actually available in the active conversation.
+A Skill provides workflow instructions and packaged resources; it does not itself grant access to GitHub, WordPress, Google Drive, Dropbox or social providers. Use only tools/connections actually available in the active conversation.
 
 Runtime/plugin eligibility must be discovered when tooling permits rather than inferred from a subscription label. A new user is not expected to pre-install integrations before `/start`: onboarding discovers supported providers, proposes installation when eligible and guides connection/verification.
 
 GitHub repository access is a hard prerequisite. If no usable repository can be accessed or resolved, CMW is `BLOCKED` and must not continue as a conversation-memory-only workflow.
 
-Cloud media storage is required for the complete media workflow. The current implemented provider is Google Drive; future providers such as Dropbox become choices only after an adapter is actually implemented. WordPress, GitHub and local filesystem are not fallback media-storage providers.
+Cloud media storage is required for the complete media workflow. The implemented providers are Google Drive and Dropbox. Onboarding must enumerate both and let the user select exactly one operational provider for the active project. Google Drive remains the recommended/default choice when both are available. WordPress, GitHub and local filesystem are not fallback media-storage providers.
 
 When a required tool is unavailable, follow `runtime-compatibility-matrix.md`: report the precise boundary and use only explicitly supported degraded/manual handoff behavior instead of pretending an external action succeeded.
 

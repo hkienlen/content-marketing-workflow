@@ -33,7 +33,7 @@ Cloud-media rule:
 no supported operational cloud-media provider -> DEGRADED
 ```
 
-The current implemented cloud-media provider is Google Drive. Dropbox is reserved for a future adapter and must not be presented as usable until implemented. GitHub, WordPress and local filesystem are not media-storage fallbacks.
+The implemented cloud-media providers are Google Drive and Dropbox. Exactly one provider is active per project; when both are operational, Google Drive is the recommended/default choice unless the user explicitly selects Dropbox. GitHub, WordPress and local filesystem are not media-storage fallbacks.
 
 When runtime plugin discovery is available, onboarding must search for each implemented cloud-media provider even when not installed, distinguish eligibility/installability/installation/connection state, propose installation when eligible, and guide connection/verification immediately. Never infer provider eligibility solely from a ChatGPT plan name.
 
@@ -68,6 +68,7 @@ mandatory_context:
   - docs/architecture/capability-contract-template.md
   - docs/architecture/testing-policy.md
   - docs/architecture/google-drive-workspace.md
+  - docs/architecture/dropbox-workspace.md
   - docs/architecture/media-delivery-architecture.md
   - user-data/profile.json when present
   - user-owned strategy/storage/connection authorities referenced by the active profile when present
@@ -314,46 +315,41 @@ TELEGRAM_BOT_TOKEN
 -> never generic skill files
 ```
 
-## Media provider and Google Drive
+## Media provider selection
 
-The generic media architecture is provider-neutral and currently supports Google Drive, with Dropbox reserved as a future adapter.
-
-Onboarding must present the implemented provider list before configuration. For this version:
+The generic media architecture is provider-neutral and supports:
 
 ```text
-Supported now: Google Drive
-Future/not selectable: Dropbox
+Google Drive (`google_drive`) - recommended/default when available
+Dropbox (`dropbox`) - supported alternative
 ```
 
-If Google Drive is discoverable and installable but not installed, propose installation during onboarding. If installed but not connected, guide connection immediately. If it is not visible/eligible for the current account/runtime, report that fact (or `eligibility_unknown` when it cannot be inspected) and enter the cloud-media DEGRADED state; do not propose GitHub, WordPress or local filesystem as alternatives.
+Onboarding must discover both providers when runtime tooling permits. If exactly one is operational, it may be selected after the user proceeds with that integration. If both are operational, present both choices and default to Google Drive unless the user chooses Dropbox. Persist exactly one active provider.
 
-For Google Drive, onboarding resolves and verifies:
+If a provider is discoverable and installable but not installed, propose installation during onboarding. If installed but not connected, guide connection immediately. If neither implemented provider is usable, report the exact state (or `eligibility_unknown` when it cannot be inspected) and enter the cloud-media DEGRADED state; do not propose GitHub, WordPress or local filesystem as alternatives.
+
+Provider-specific behavior is defined by:
 
 ```text
-<drive-root>/<site-domain>/articles/
-<drive-root>/<site-domain>/social/
-<drive-root>/<site-domain>/tmp-outbox/
+docs/architecture/google-drive-workspace.md
+docs/architecture/dropbox-workspace.md
+```
+
+Both adapters preserve the same logical site/content hierarchy:
+
+```text
+<provider-root>/<site-domain>/articles/
+<provider-root>/<site-domain>/social/
+<provider-root>/<site-domain>/tmp-outbox/
 ```
 
 Content workflows create/reuse private `source-user/`, `proposals/` and `final/` children as needed. `source-user/` is never made public and originals are never overwritten.
 
-### Required one-time `tmp-outbox` sharing step
+For Google Drive, when the connector cannot set public sharing itself, instruct the user to configure `tmp-outbox` as `Anyone with the link -> Viewer`, then verify anonymous read-only access.
 
-After `tmp-outbox` exists, when the connector cannot set public sharing itself, tell the user:
+For Dropbox, use or guide creation of the active integration's supported public read-only shared-link mechanism only for staged `tmp-outbox` delivery material, then verify anonymous read-only access. Do not broaden sharing of source/proposal/final workspaces.
 
-```text
-Google Drive
--> open <site-domain>/tmp-outbox
--> Share / Partager
--> General access / Accès général
--> Anyone with the link / Toute personne disposant du lien
--> Viewer / Lecteur
--> Save / Enregistrer
-```
-
-Then retrieve/confirm the folder ID/link, persist non-secret values, verify permission state where possible and perform a read-only anonymous accessibility test.
-
-The user does not need a Google Cloud project, service account, OAuth client, API credential or GitHub secret containing Google credentials for normal setup.
+Normal onboarding must not require the user to create provider developer-console OAuth applications or paste provider access tokens when an operational ChatGPT/Codex integration exists.
 
 ## Image-generation runtime fallback
 

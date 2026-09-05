@@ -4,6 +4,21 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-05
+
+- Added Dropbox as a first-class `cloud_media_storage` provider alongside Google Drive.
+- Defined explicit provider selection: exactly one cloud-media provider is active per project; Google Drive remains recommended/default when both providers are operational.
+- Added a Dropbox workspace contract covering private source/proposal/final storage, site isolation, `tmp-outbox`, public read-only delivery links, provenance and onboarding.
+- Updated `/start`, direct ChatGPT runtime and installation documentation so Google Drive and Dropbox are both discovered, install/connect guidance is provider-aware, and the selected provider is persisted.
+- Generalized media delivery, image ingestion, user-provided-image intake, `visual-source-resolve`, `asset-ingest`, article creation/checklists and social creation/checklists around provider-qualified identities.
+- Added explicit provider migration/rebinding semantics: Google Drive and Dropbox asset IDs/references are separate namespaces and switching provider never silently reinterprets old identities.
+- Extended the user-profile schema and persistence contracts with `cloud_media_storage.provider: google_drive|dropbox` plus provider-specific non-secret workspace references.
+- Generalized the social final package: Google Drive stores the exact approved publishable text in a native Google Doc, while Dropbox stores it as a UTF-8 plain-text `.txt` file beside the verified final visual.
+- Preserved provider-neutral publication gates: no verified final media means no media-dependent WordPress or social publication.
+- Kept GitHub, WordPress and local filesystem excluded as automatic media-storage fallbacks.
+- Added dedicated Dropbox regression tests, stale-contract detection and CI execution for the new provider model.
+- Bumped the Skill/Codex plugin version to 0.3.0 and synchronized the canonical Skill with the plugin mirror.
+
 ## [0.2.1] - 2026-09-05
 
 - Completed the 0.2.0 runtime-compatibility handoff across media, article, WordPress and social capability contracts.
@@ -74,4 +89,4 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 - Initial plugin productization.
 - One primary `content-marketing-workflow` skill with governed SEO, visual, WordPress and social capabilities.
 - Explicit user/project data and credential boundaries.
-- Bundled SEO Workflow Bridge companion.
+- Bundled SEO Workflow Bridge companion resource.
