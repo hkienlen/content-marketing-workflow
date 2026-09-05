@@ -75,13 +75,15 @@ Implemented providers for this version:
 
 ```text
 google_drive
-```
-
-Reserved future adapters:
-
-```text
 dropbox
 ```
+
+Provider-selection rules:
+
+- exactly one cloud-media provider is active per project at a time;
+- Google Drive is the recommended/default choice when both implemented providers are operational;
+- Dropbox is a first-class supported alternative, not a fallback selected silently after Google Drive failure;
+- switching providers is an explicit durable configuration change and must not strand or silently reinterpret existing provider-backed asset identities.
 
 Only implemented providers may be proposed as usable choices. WordPress, GitHub and local filesystem are not fallback media providers.
 
@@ -217,14 +219,15 @@ Telegram is downstream/optional and never part of publication success authority.
 2. block immediately if no usable GitHub repository path exists;
 3. enumerate every cloud-media provider implemented by the installed CMW version;
 4. discover each implemented provider's plugin visibility/eligibility/installation/connection state when runtime tooling permits;
-5. install/connect/verify one supported provider during onboarding when possible;
-6. if none is usable, persist/report cloud media as a resumable DEGRADED blocker and list affected features;
-7. detect image generation/editing capabilities and establish normal vs manual-handoff visual mode;
-8. when WordPress or social publication is enabled, verify WordPress + compatible SEO Workflow Bridge runtime;
-9. verify GitHub Actions/scheduler prerequisites for unattended scheduling;
-10. verify each enabled social adapter independently;
-11. inspect Telegram only as an optional notification feature;
-12. compute and persist/report overall readiness plus feature-level availability/blockers.
+5. when several providers are operational, present Google Drive and Dropbox as explicit choices, with Google Drive marked recommended/default, and persist exactly one selection;
+6. install/connect/verify the selected supported provider during onboarding when possible;
+7. if none is usable, persist/report cloud media as a resumable DEGRADED blocker and list affected features;
+8. detect image generation/editing capabilities and establish normal vs manual-handoff visual mode;
+9. when WordPress or social publication is enabled, verify WordPress + compatible SEO Workflow Bridge runtime;
+10. verify GitHub Actions/scheduler prerequisites for unattended scheduling;
+11. verify each enabled social adapter independently;
+12. inspect Telegram only as an optional notification feature;
+13. compute and persist/report overall readiness plus feature-level availability/blockers.
 
 ## Status/help projection
 
@@ -246,7 +249,7 @@ Telegram is downstream/optional and never part of publication success authority.
 
 Persist non-secret, future-relevant compatibility facts in user/project data when they affect future independent execution, for example:
 
-- selected cloud-media provider;
+- selected cloud-media provider (`google_drive` or `dropbox`);
 - provider workspace references;
 - latest verified provider availability state where meaningful;
 - WordPress/Bridge runtime identity/verification state;
