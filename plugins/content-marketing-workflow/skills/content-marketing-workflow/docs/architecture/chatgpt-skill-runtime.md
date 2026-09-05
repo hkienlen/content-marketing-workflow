@@ -60,13 +60,14 @@ and stop CMW initialization. Do not continue by treating conversation memory or 
 
 The complete media workflow requires an implemented online cloud-media provider.
 
-Current provider implementation:
+Implemented providers:
 
 ```text
-Google Drive
+Google Drive (`google_drive`)
+Dropbox (`dropbox`)
 ```
 
-Future adapters such as Dropbox are not selectable until implemented.
+Exactly one provider is active per project. When both are operational, Google Drive is recommended/default unless the user explicitly chooses Dropbox. Provider selection is durable project state; changing it later is an explicit migration/configuration action rather than an automatic fallback.
 
 GitHub, WordPress and local filesystem are not fallback media-storage providers.
 
@@ -97,16 +98,17 @@ When `/start` is invoked, or the user naturally asks to initialize/resume a proj
 2. detect whether durable project configuration already exists in the target project repository or other authoritative project state;
 3. verify GitHub first; if unusable, stop as `BLOCKED`;
 4. if a target repository is identified and GitHub/repository tools are available, inspect it before asking onboarding questions;
-5. enumerate every cloud-media provider implemented by this CMW version and discover its plugin eligibility/installation/connection state when the runtime supports discovery;
-6. install/connect/verify an eligible supported provider during onboarding when possible; otherwise record/report a resumable `DEGRADED` media blocker with exact impacted features;
-7. detect image-generation/editing availability for the current surface;
-8. when WordPress or social publication is enabled, verify the WordPress-hosted SEO Workflow Bridge runtime required by the current publication architecture;
-9. verify scheduling/social/notification prerequisites for the enabled scope;
-10. resume from verified existing configuration rather than restarting onboarding blindly;
-11. ask only for unresolved values required by the active capability contract;
-12. persist project-specific configuration only in the project repository/state location defined by the persistence contracts, never in this generic Skill package;
-13. keep credentials and raw provider secrets outside Git;
-14. finish with truthful `READY|DEGRADED|BLOCKED` compatibility and feature-level blockers.
+5. enumerate Google Drive and Dropbox and discover each provider's plugin eligibility/installation/connection state when the runtime supports discovery;
+6. when both are operational, present both explicitly and default to Google Drive unless the user chooses Dropbox; persist exactly one active provider;
+7. install/connect/verify the selected eligible provider during onboarding when possible; otherwise record/report a resumable `DEGRADED` media blocker with exact impacted features;
+8. detect image-generation/editing availability for the current surface;
+9. when WordPress or social publication is enabled, verify the WordPress-hosted SEO Workflow Bridge runtime required by the current publication architecture;
+10. verify scheduling/social/notification prerequisites for the enabled scope;
+11. resume from verified existing configuration rather than restarting onboarding blindly;
+12. ask only for unresolved values required by the active capability contract;
+13. persist project-specific configuration only in the project repository/state location defined by the persistence contracts, never in this generic Skill package;
+14. keep credentials and raw provider secrets outside Git;
+15. finish with truthful `READY|DEGRADED|BLOCKED` compatibility and feature-level blockers.
 
 ## Initializing a new project repository
 
@@ -131,8 +133,9 @@ When the user names an old repository and specifies content classes to reuse:
 4. exclude unrelated product development, generic skill/plugin source, CI/release tooling, credentials, tokens, obsolete integration state and historical implementation experiments unless the user explicitly requests them for reference;
 5. preserve provenance where the persistence contracts require it;
 6. do not treat historical approval/publication evidence as authorization for a new target environment;
-7. do not automatically re-adopt legacy repository-backed media as the new storage strategy; current cloud-media readiness requires an implemented provider;
-8. present the migration plan or bounded changes for review when a human review gate applies.
+7. do not automatically re-adopt legacy repository-backed media as the new storage strategy; current cloud-media readiness requires one implemented provider;
+8. when switching between Google Drive and Dropbox, explicitly migrate/rebind provider-backed asset identities and preserve exact hashes/provenance rather than reinterpreting existing IDs;
+9. present the migration plan or bounded changes for review when a human review gate applies.
 
 ## ChatGPT conversational workflow
 
