@@ -128,6 +128,48 @@
       },
       "additionalProperties": true
     },
+    "runtimeIntegrationState": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "enum": [
+            "not_visible_or_ineligible",
+            "visible_installable_not_installed",
+            "installed_not_connected",
+            "installed_connected_unverified",
+            "operational",
+            "eligibility_unknown",
+            "not_configured"
+          ]
+        },
+        "provider": {"type": ["string", "null"]},
+        "operational": {"type": ["boolean", "null"]},
+        "last_checked_at": {"$ref": "#/$defs/isoDateTime"},
+        "details": {"type": "object", "additionalProperties": true}
+      },
+      "additionalProperties": true
+    },
+    "runtimeCompatibility": {
+      "type": "object",
+      "properties": {
+        "overall_status": {"enum": ["READY", "DEGRADED", "BLOCKED", "UNKNOWN"]},
+        "checked_at": {"$ref": "#/$defs/isoDateTime"},
+        "cloud_media_storage": {"$ref": "#/$defs/runtimeIntegrationState"},
+        "wordpress_bridge_runtime": {"$ref": "#/$defs/runtimeIntegrationState"},
+        "github_actions_scheduler": {"$ref": "#/$defs/runtimeIntegrationState"},
+        "blockers": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "degraded_features": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": true
+    },
     "socialConnection": {
       "type": "object",
       "required": ["connection_id", "platform", "credential"],
@@ -202,6 +244,7 @@
         },
         "visual_preferences": {"$ref": "#/$defs/visualPreferences"},
         "storage": {"type": "object", "additionalProperties": true},
+        "runtime_compatibility": {"$ref": "#/$defs/runtimeCompatibility"},
         "wordpress": {
           "type": "object",
           "required": ["enabled", "bridge"],

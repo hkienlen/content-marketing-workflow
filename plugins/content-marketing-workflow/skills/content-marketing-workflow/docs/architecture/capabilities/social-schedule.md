@@ -1,21 +1,25 @@
 # Internal capability: social-schedule
 
-Date: 2026-09-04
+Date: 2026-09-05
 Status: current implementation contract
 
 ## Purpose
 
-`social-schedule` persists the intended publication calendar for approved social posts, preserves global editorial balance and prepares exact per-platform/per-post authorization for unattended publication according to the active user policy.
+`social-schedule` persists intended publication times for approved social posts, preserves global editorial balance and prepares exact per-platform/per-post authorization for unattended publication according to active user policy.
+
+Global prerequisite/degradation behavior is owned by:
+
+```text
+docs/architecture/runtime-compatibility-matrix.md
+```
 
 Scheduling metadata and technical publication authorization remain distinct states.
-
-Concrete timezone/platform publication preferences and connection-health/expiry values belong to the active **user profile**, not this skill contract.
 
 ## Capability contract
 
 ```yaml
 name: social-schedule
-purpose: Persist per-platform planned publication times and, when allowed by active user publication policy, materialize exact scheduled-publication authorization without publishing immediately.
+purpose: Persist per-platform planned publication times and, when prerequisites/policy allow, materialize exact scheduled-publication authorization without publishing immediately.
 availability: optional
 feature_gate: social.enabled
 mode: mutating
@@ -23,28 +27,42 @@ mode: mutating
 
 ## Common prerequisites
 
-Before scheduling:
+Before persisting a schedule:
 
 - active user/project profile resolved;
 - `social.enabled = true`;
 - immutable registered `post_id`;
 - approved text;
 - required final visual `verified_final`;
-- `visual_alt_text` when a visual exists;
+- `visual_alt_text` for the required visual;
 - target platforms/connections known;
 - global editorial-balance check complete.
 
-Before creating unattended-publication authorization, additionally require:
+Before marking unattended publication operational or creating exact authorization, additionally require:
 
-- compatible adapter/Bridge installed and connected;
+- `github_repository` operational;
+- `cloud_media_storage` operational;
+- required exact final image remains `verified_final`;
+- `wordpress_bridge_runtime` operational because current LinkedIn/Facebook relays use SEO Workflow Bridge hosted in WordPress;
+- `github_actions_scheduler` operational;
+- compatible platform adapter enabled/connected;
 - exact verified remote identity;
-- connection health is not known `expired_or_invalid`;
+- connection health not known expired/invalid;
 - exact timezone-aware `planned_at`;
-- exact text + SHA-256;
-- exact ALT + SHA-256;
-- exact final image SHA-256/MIME/size;
+- exact text/ALT/image hashes and image MIME/size;
 - verified temporary delivery copy in configured `tmp-outbox`;
-- publication consent satisfied under the active user/platform policy.
+- publication consent satisfied under active user/platform policy.
+
+If any publication prerequisite is absent, CMW may retain planning metadata if useful, but must not describe unattended scheduling as operational and must not create/reuse an authorization as though publication were executable.
+
+Strict media invariant:
+
+```text
+no required verified final media
+=> no social publication
+```
+
+There is no text-only degraded publication fallback.
 
 ## Durable timing preferences
 
@@ -54,18 +72,6 @@ Read user-specific defaults from:
 user-data/profile.json
 -> projects[active_project_id].publishing_preferences.timezone
 -> projects[active_project_id].publishing_preferences.social.<platform>.default_time
-```
-
-Generic model example only:
-
-```yaml
-publishing_preferences:
-  timezone: <IANA timezone>
-  social:
-    facebook:
-      default_time: "HH:MM"
-    linkedin:
-      default_time: "HH:MM"
 ```
 
 Resolution priority:
@@ -80,86 +86,70 @@ Changing a reusable preference does not silently move existing scheduled posts.
 
 ## Credential-validity horizon gate
 
-Before finalizing a schedule or exact authorization, read the platform connection health from the active user profile.
+Before finalizing executable schedule/authorization, read platform connection health.
 
-If a known `effective_expiry_at` exists and:
+If known `effective_expiry_at` exists and `planned_at >= effective_expiry_at`:
 
-```text
-planned_at >= effective_expiry_at
-```
+- persist chosen planning time if appropriate;
+- record renewal blocker;
+- surface that credentials do not cover the slot;
+- do not claim publication readiness.
 
-then:
-
-- persist the schedule if the user chose it;
-- mark the post under `health.scheduled_after_expiry` through `social-connection-health`;
-- surface that connection renewal is required before publication can be guaranteed;
-- do not pretend current credentials cover that date.
-
-A future credential renewal that preserves the exact remote identity clears this operational blocker without requiring reapproval of unchanged post content/schedule.
+Renewal preserving exact remote identity may clear this operational blocker without reapproval of unchanged content/schedule.
 
 ## Global editorial balance
 
-Before fixing a slot, inspect neighbouring scheduled/published content across series and free posts.
+Before fixing a slot, inspect neighbouring scheduled/published content across series/free posts.
 
 Default behavior:
 
-- avoid consecutive strong conversion/CTA posts when a reasonable alternative exists;
+- avoid consecutive strong conversion/CTA posts when reasonable alternative exists;
 - prefer identification/expertise/positioning between strong commercial posts;
 - never silently move a user-selected date;
-- persist rationale for a deliberate exception.
+- persist rationale for deliberate exception.
 
 ## Current scheduling model
 
-Neither LinkedIn nor Meta stores the future calendar for current adapters. GitHub Actions owns timing.
+Current LinkedIn/Facebook adapters do not store future calendar remotely. GitHub Actions owns timing and WordPress-hosted SEO Workflow Bridge performs final verification/adapter execution.
 
 ```text
-approved final post
+approved post + verified_final
 -> planned_at persisted
--> connection validity horizon evaluated
--> exact per-platform authorization materialized under active user policy
--> exact tmp-outbox delivery copy
--> platform scheduler every 10 minutes
--> dedicated OIDC relay
--> SEO Workflow Bridge
+-> compatibility + credential horizon checks
+-> exact per-platform authorization
+-> exact tmp-outbox copy
+-> GitHub Actions scheduler
+-> OIDC relay
+-> WordPress / SEO Workflow Bridge
 -> immediate remote publication when due
--> actual published_at / remote evidence persisted
+-> actual published_at / provider evidence persisted
 ```
 
-`planned_at` is the earliest allowed time. Scheduler latency may make actual publication later, never earlier.
+`planned_at` is earliest allowed time. Scheduler latency may make actual publication later, never earlier.
 
-## Facebook Page target
+## Missing-runtime behavior
 
-```yaml
-facebook:
-  status: scheduled
-  planned_at: <ISO 8601 + timezone>
-  target_type: facebook_page
-  connection_id: <active user-profile Facebook connection>
-```
+### WordPress/Bridge unavailable
 
-Before Facebook authorization require compatible Bridge, Page capability enabled, exact Page credential stored in WordPress, Page identity verified, scheduler/relay live validation complete and target connection resolving to the exact profile Page.
+Content planning/review may continue, but current automated LinkedIn/Facebook publication is unavailable. Do not substitute direct provider publication silently.
 
-Facebook authorization binds at minimum post ID, planned time, target type, Page ID, text/ALT/image hashes, image MIME/size, delivery identity, publication-intent hash and authorization ID/time.
+### GitHub Actions unavailable
 
-## Facebook standing scheduled-publication policy
+Planning metadata may remain, but unattended publication is not operational. Do not claim scheduled publication is active.
 
-The active user's Facebook `publication_policy.mode`, if configured, determines whether the exact authorization requires a one-off confirmation or may be materialized automatically after final content + schedule validation.
+### Cloud media unavailable
 
-A standing policy is a **user profile value**, not a generic skill default.
+No durable final/delivery copy can satisfy current publication contract. Do not fall back to GitHub/WordPress/local filesystem or text-only publication.
 
-Changing text, ALT, image, Page target or `planned_at` invalidates the exact authorization. A replacement may be materialized automatically only when the user's policy allows it and the revised state is final/approved again.
+## Platform independence
 
-Immediate `publish_now` remains separate.
+LinkedIn and Facebook Page adapters are gated independently. Missing one adapter does not block the other if all shared prerequisites are operational.
 
-## LinkedIn target
-
-LinkedIn uses the authenticated verified member-profile adapter. Authorization binds post ID, planned time, author URN, text/ALT/image/intent hashes, image MIME/size, delivery identity and authorization ID/time.
-
-LinkedIn publication-consent policy is independent from Facebook and belongs to user/project state when configured.
+Facebook personal/professional profile is not a fallback target.
 
 ## Exact authorization semantics
 
-`status: scheduled` alone is never the runtime mutation grant.
+`status: scheduled` alone is never runtime mutation authority.
 
 Required unattended state:
 
@@ -167,33 +157,34 @@ Required unattended state:
 authorized_for_scheduled_publication
 ```
 
-Authorization is platform-specific and post-specific.
+Authorization is platform-specific, post-specific, content/media/time/target-bound and invalidated by relevant drift.
 
 ## Media delivery
 
-The private retained final remains canonical.
+Private retained final remains canonical:
 
 ```text
 private final
 -> exact temporary public-read tmp-outbox copy
 -> persisted delivery ID + expected SHA/MIME/size
--> Bridge downloads/re-verifies immediately before platform upload
+-> Bridge downloads/re-verifies immediately before upload
 ```
 
-The outbox copy is transport only and should be cleaned after verified publication when practical.
+Outbox is transport only and should be cleaned after verified publication when practical.
 
 ## Completion conditions
 
-Scheduling is complete when exact `planned_at`, explicit timezone, target/connection, global balance result and final media identity are persisted.
+Planning is complete when exact `planned_at`, timezone, target/connection and editorial-balance result are persisted.
 
-Execution readiness additionally requires exact platform authorization + verified delivery state. Known connection expiry before the slot must be visible as an explicit renewal blocker rather than silently ignored.
+Unattended execution readiness additionally requires the full prerequisite graph, exact authorization and verified delivery state. Missing prerequisites/known expiry remain explicit blockers.
 
 ## References
 
+- `docs/architecture/runtime-compatibility-matrix.md`
 - `docs/architecture/user-profile-data-contract.md`
 - `docs/architecture/capabilities/social-connection-health.md`
 - `docs/architecture/capabilities/social-publish.md`
 - `docs/architecture/facebook-page-standing-publication-policy.md`
 - `docs/architecture/linkedin-scheduled-publication-bridge-0.8.0.md`
-- `docs/architecture/facebook-page-scheduled-publication-bridge-0.9.0.md`
+- `docs/architecture/facebook-page-scheduled-publication-bridge-0.11.0.md`
 - `docs/architecture/facebook-github-actions-scheduler.md`

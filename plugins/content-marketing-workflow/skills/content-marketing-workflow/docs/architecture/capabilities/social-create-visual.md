@@ -1,24 +1,25 @@
 # Internal capability: social-create-visual
 
-Date: 2026-09-04
+Date: 2026-09-05
 Status: current architecture contract
 
 ## Purpose
 
-`social-create-visual` produces/reviews the visual component for one accepted social post after the effective visual-source policy and any required user-source intake have been resolved.
+`social-create-visual` produces/reviews the visual component for one accepted social post after visual-source policy and required source intake are resolved.
 
-It supports both:
+Global prerequisite/degradation behavior is owned by:
 
-- AI-first or materially transformed visual workflows with exactly three A/B/C review proposals;
-- verified user-provided source workflows, including exact `use_as_is` and faithful enhancement/reference treatments.
+```text
+docs/architecture/runtime-compatibility-matrix.md
+```
 
-It must never silently replace a real strict/high-fidelity subject with synthetic appearance.
+This capability must not invent alternative storage/publication fallbacks.
 
 ## Capability contract
 
 ```yaml
 name: social-create-visual
-purpose: Produce a policy-compliant reviewable visual package for one accepted social post, using verified user sources when required and generating A/B/C only when alternatives/material transformation are appropriate.
+purpose: Produce a policy-compliant reviewable visual package for one accepted social post and persist it through the configured cloud-media provider.
 availability: optional
 feature_gate: social.enabled
 mode: mutating
@@ -26,192 +27,124 @@ mode: mutating
 prerequisites:
   - social.enabled is true
   - exact durable post/concept is resolved
-  - master text/visual brief are ready for current revision
+  - master text/visual brief are ready
   - effective visual policy was resolved by visual-source-resolve
   - required user source is verified/inspected when source-dependent
-  - private Drive social workspace is available
+  - cloud_media_storage is operational before any proposal/final is claimed durable
+  - runtime image generation/editing is available OR manual image handoff is used
 
 mandatory_context:
   - AGENTS.md
+  - docs/architecture/runtime-compatibility-matrix.md
   - docs/architecture/persistence-contract.md
-  - docs/architecture/github-transparency.md
   - docs/architecture/user-provided-images.md
-  - docs/architecture/google-drive-workspace.md
   - docs/architecture/media-delivery-architecture.md
   - docs/architecture/image-asset-ingestion.md
   - docs/architecture/capabilities/visual-source-resolve.md
   - docs/architecture/capabilities/asset-ingest.md
   - docs/architecture/social-post-review-loop.md
-  - docs/architecture/social-execution-checklist.md
-  - strategy/social-visual-guidelines.md
   - exact post/checklist/current visual brief
   - current effective visual policy/source provenance
 
 reads:
-  - exact current master text/concept/function
-  - visual brief and required placement/platform policy
-  - resolved source policy and local override
-  - verified user source bytes/visual inspection/provenance when applicable
-  - active visual review round and any frozen approved components
-  - Drive source-user/proposals/final state
+  - exact master text/concept/function
+  - visual brief/platform policy
+  - resolved source policy/local override
+  - verified user source when applicable
+  - current visual review state
+  - configured cloud-media source/proposals/final state
 
 writes:
   - visual review round state
-  - Drive proposal candidates for generated/materially transformed workflows
-  - exact source/final review reference for use_as_is workflows
-  - visual status/combined review references in durable post/checklist
-  - selected final metadata through delegated asset-ingest after explicit human selection
+  - provider-backed proposal candidates
+  - exact source/final review reference for use_as_is
+  - visual status/combined review references
+  - selected final metadata through delegated asset-ingest
 
 external_side_effects:
-  - read verified user source files from Drive/chat-retained source state
-  - generate or edit images through the assistant image-generation capability when policy/role requires it
-  - persist generated/treated proposal files in private Drive proposals workspace
-  - no public sharing
-  - no scheduling/publication
-
-human_approval:
-  - final exact visual selection/validation
-  - source role/fidelity/treatment clarification only when materially ambiguous and not already explicit
-  - targeted review/revision loop remains explicit
+  - read verified source files from configured cloud provider or usable chat upload
+  - generate/edit images through current runtime when available
+  - otherwise execute manual image handoff prompt workflow
+  - persist returned/generated proposals in configured cloud provider
+  - no public sharing, scheduling or publication
 
 validation:
-  - visual workflow mode matches effective visual_source + source_role + ai_treatment + source_fidelity
+  - runtime/provider availability matches central compatibility matrix
+  - no proposal/final is called durable when cloud_media_storage is unavailable
   - generated/materially transformed workflows retain exactly three genuinely distinct reviewable A/B/C proposals
-  - use_as_is + no material treatment does not fabricate synthetic alternatives
-  - every claimed user source is a real verified/inspected asset
+  - use_as_is does not fabricate synthetic alternatives
+  - every claimed user source is real verified/inspected media
   - source original is never overwritten
-  - strict/high fidelity preserves real subject appearance and forbids misleading generation
+  - strict/high fidelity preserves real subject appearance
   - proposals are persisted/recoverable before combined review
-  - approved/frozen components remain unchanged unless explicitly reopened or materially invalidated
   - selected final is normalized/verified separately from source original
   - no publication side effect occurs
 
 completion_conditions:
-  - one visual review package appropriate to source role is ready and persisted/recoverable
-  - generated/materially transformed mode -> exactly A/B/C proposal identities are durable
-  - exact use_as_is mode -> exact source/final candidate identity is durable without fake A/B/C
-  - visual package can be shown together with complete post text
-  - after explicit human selection/validation, asset-ingest creates/reuses a verified final and preserves source provenance
+  - review package is persisted/recoverable in configured cloud provider
+  - generated/materially transformed mode -> durable A/B/C identities exist
+  - exact use_as_is mode -> exact source/final candidate identity exists
+  - after human selection, asset-ingest creates/reuses verified_final
 ```
 
-## Input modes
+## AI-first/runtime generation
 
-### AI-first
+When runtime generation/editing is available, create exactly three distinct A/B/C candidates for generated/materially transformed workflows and persist them before review.
 
-Typical resolved policy:
+## Manual image handoff
 
-```yaml
-visual_source: ai_first
-```
+When generation/editing is required but unavailable in the current ChatGPT/Codex surface and cloud media is operational:
 
-Create exactly three distinct A/B/C candidates from the current brief and persist/verify them before review.
+1. freeze exact post revision + visual brief + visual policy;
+2. produce a complete copy/paste prompt for an image-capable ChatGPT conversation or compatible image AI;
+3. include objective, format/dimensions, style, composition, brand constraints, required/forbidden elements, source role/fidelity/treatment and text constraints;
+4. ask the user to return/upload the generated result;
+5. inspect returned image;
+6. persist it in provider-backed `proposals/`;
+7. continue normal review and `asset-ingest` finalization.
 
-### User source - enhance
+The prompt itself is not a visual proposal and never completes the capability.
 
-```yaml
-source_role: enhance
-source_fidelity: strict|high|moderate|flexible
-ai_treatment: light_correction|natural_enhancement|marketing_enhancement|creative_transformation
-```
+If cloud storage is unavailable, returned/generated images may be inspected transiently but cannot become durable proposals/finals and social publication remains blocked.
 
-Use verified source bytes as actual transformation input. Create A/B/C when materially distinct compliant treatment choices are useful.
+## User source modes
 
-For strict/high fidelity, preserve identity/appearance of required real subject and do not add/remove/change product features, face/body identity, work details or material characteristics merely for aesthetics.
-
-### User source - subject reference
-
-`source_role: subject_reference` means the real subject must be respected. Composition/background may vary only within fidelity/treatment rules. A/B/C can represent distinct compliant compositions when material transformation is desired.
-
-### User source - inspiration reference
-
-`source_role: inspiration_reference` means source provides mood/style inspiration rather than an exact subject claim. Generation may be more flexible, still subject to truthfulness and effective policy.
-
-### User source - composition input
-
-`source_role: composition_input` integrates the actual source into a broader composition. Generated composites belong in `proposals/`, selected derivative in `final/`; source original remains unchanged.
-
-### User source - use as is
-
-```yaml
-source_role: use_as_is
-ai_treatment: none
-```
-
-This mode is intentionally not A/B/C generation.
+Supported roles remain:
 
 ```text
-verified/inspected source original
--> determine allowed non-material normalization/crop/format constraints
--> prepare/reuse exact review candidate without changing source original
--> persist/recover exact candidate identity
--> combined text + exact visual review
--> explicit human visual validation
--> asset-ingest to separate final derivative/object if normalization is required
+use_as_is
+enhance
+subject_reference
+inspiration_reference
+composition_input
 ```
 
-If crop/format would materially alter a strict/high-fidelity source, surface the constraint rather than silently changing it.
+Strict/high fidelity never silently replaces a real subject with synthetic appearance. `use_as_is + ai_treatment:none` intentionally skips A/B/C generation.
 
-## Proposal quality rules
+## Provider layout
 
-When A/B/C applies, candidates must be genuinely distinct while serving same approved brief. Do not satisfy count by trivial crops/color shifts unless those are genuinely meaningful requested treatments.
-
-Before review, inspect outputs and regenerate candidates that are off-brief, misleading relative to verified user source, visually defective, duplicate/near-duplicate, platform-incompatible or inconsistent with durable brand/visual directives.
-
-Persist exactly final reviewable A/B/C, not every failed generation attempt.
-
-## Source facts vs generation
-
-A source image may inform text/visual design only after `visual-source-resolve` verified and inspected it.
-
-Do not infer unsupported product composition, dimensions, performance or business facts from a photo alone. Never use a different synthetic object as if it were user's exact product/work under strict/high fidelity.
-
-## Drive layout
+Conceptual provider-neutral path:
 
 ```text
-<drive-root>/<site-domain>/social/<post-name>/
+<provider-root>/<site-domain>/social/<post-name>/
 ├── source-user/
 ├── proposals/
 │   └── round-<NN>/
 └── final/
 ```
 
-`source-user/` contains private originals and is never overwritten or publicized. `proposals/` contains generated/treated alternatives. `final/` contains selected normalized final media.
+Current adapter maps this to Google Drive. GitHub, WordPress and local filesystem are not fallback media stores.
 
-A later destination may use `tmp-outbox`; transport copy is separate from source/proposal/final identity.
+## Combined review and revisions
 
-## Combined review
+Generated/materially transformed mode shows full post text + A/B/C. Exact use_as_is mode shows full post text + exact source/final candidate.
 
-Generated/materially transformed mode shows full post text plus Visual A/B/C.
-
-Exact `use_as_is` mode shows full post text plus exact source/final visual candidate.
-
-Guidance explains allowed actions relevant to mode, including text-only changes, visual-only changes, both, replacing source, changing treatment, or requesting new A/B/C round where applicable.
-
-## Targeted revisions
-
-Preserve frozen components:
-
-- approved text stays frozen for visual-only work;
-- approved/selected exact user source stays frozen unless user changes source/role or requested treatment materially requires reopening it;
-- criticizing A does not alter B/C;
-- changing only background under high-fidelity product instruction must not change product;
-- new A/B/C round uses same approved text/source policy unless explicitly reopened.
-
-Every material generated/treatment review round binds exact post revision + source provenance + proposal identities.
+Preserve frozen components during targeted revisions. A new generation round keeps the approved text/source policy unless explicitly reopened.
 
 ## Finalization
 
-After human selection/validation invoke `asset-ingest` with selected proposal or exact source/final candidate, target dimensions/format, source provenance/role/fidelity/treatment where applicable and replacement intent when replacing an existing verified final.
-
-Result preserves source original and persists final provider identity/SHA-256/format/dimensions/ALT plus source relationship.
+After human selection/validation invoke `asset-ingest`. Result preserves source original and persists final provider identity/SHA-256/format/dimensions/ALT plus source relationship.
 
 ## Resume/idempotency
 
-On restart:
-
-- reuse exact source-user folder and verified source records;
-- reuse existing active proposal round when complete/recoverable;
-- do not regenerate A/B/C merely because conversation restarted;
-- do not convert use_as_is into generated mode;
-- do not create duplicate final asset for same selected final identity/hash;
-- if source/final identity hash drifts, fail closed.
+Reuse exact provider folders/source records/review rounds when recoverable. Do not regenerate solely because conversation restarted. Source/final hash drift fails closed.
