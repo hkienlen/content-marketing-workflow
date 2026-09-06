@@ -1,31 +1,38 @@
 # Social post combined review loop
 
-Date: 2026-09-04
+Date: 2026-09-06
 Status: current architecture contract
 
 ## Purpose
 
 This contract defines the mandatory human-review loop for a social post produced by `/social create` or `/social create free`.
 
-It supports two valid visual review shapes after `visual-source-resolve` and `social-create-visual`:
+It supports two visual review shapes after `visual-source-resolve` and `social-create-visual`:
 
 ```text
 A) generated/materially transformed
-write post -> visual brief -> A/B/C -> combined review
+write post -> review-ready A/B/C -> combined review
 
 B) verified exact user source (`use_as_is`)
-write post -> exact source/final candidate -> combined review
+write post -> exact compliant source/final candidate -> combined review
 ```
 
 A visual package displayed without the post text and explicit guidance is incomplete.
 
-## Precondition: visual source already resolved
+## Precondition: visual source and brand readiness already resolved
 
-Before master-text drafting and this review loop, `visual-source-resolve` must have produced a truthful allowed state.
+Before combined review, `visual-source-resolve` must have produced a truthful allowed state and `social-create-visual` must have produced a **review-ready** visual package.
 
-If state remains `awaiting_user_images`, this review loop has not begun.
+For generated/materially transformed visuals, raw/base generator outputs are not automatically review candidates.
 
-Source verification/inspection is not final visual approval.
+When effective `logo_application=always`:
+
+- every selectable A/B/C must already contain the exact verified official logo by deterministic composition;
+- its branded output hash must be bound to the frozen `contract_revision`;
+- the clean base must have passed the no-generated-project-branding inspection;
+- `scripts/visual-review-gate.py` or equivalent evidence validation must pass before the combined review is called durable/selectable.
+
+An unbranded base or a visual containing generated/unverified project branding may be discussed as a concept draft, but it must not receive durable selection or combined approval.
 
 ## First review package
 
@@ -33,13 +40,13 @@ The first normal review contains in the same response:
 
 1. exact `post_id` and concept/function;
 2. complete publishable master text;
-3. visual package appropriate to effective source role;
+3. compliant visual package;
 4. concise visual role/difference notes when useful;
-5. explicit instructions telling user what can be validated/revised.
+5. explicit guidance telling the user what can be validated/revised.
 
 ### Generated/materially transformed package
 
-Must show:
+Must show exactly three persisted/recoverable **review-ready** identities:
 
 ```text
 Visual A
@@ -47,68 +54,38 @@ Visual B
 Visual C
 ```
 
-with exactly three persisted/recoverable identities.
+For `logo_application=always`, these are the officially branded derivatives, not their clean bases.
 
 ### Exact `use_as_is` package
 
-When verified user source is intended as exact visual with no material AI treatment, it **does not require** fake A/B/C generation and must not create synthetic alternatives merely to satisfy a historical proposal count.
-
-Show:
-
-```text
-exact source/final visual candidate
-source role: use_as_is
-relevant normalization/crop constraint if any
-```
-
-The source original remains preserved; any normalized final is a separate object/file.
+A verified exact user source with no material AI treatment does not require fake A/B/C generation. Apply any required official branding without overwriting the source original before calling the visual selectable/final-basis compliant.
 
 ## Mandatory user guidance
 
-For A/B/C mode, explicitly offer equivalents of:
+For A/B/C mode, offer equivalents of:
 
 ```text
 - validate text and choose A/B/C;
 - text-only changes;
 - visual-only changes to one/more proposals;
 - both text and visual changes;
-- new complete A/B/C round while keeping approved text;
-- when user source is involved, change source/treatment within fidelity rules.
+- new complete A/B/C round while keeping approved text.
 ```
 
-For `use_as_is`, explicitly offer equivalents of:
-
-```text
-- validate text + exact visual;
-- text-only changes while keeping visual;
-- change/replace source visual;
-- request allowed retouching/treatment;
-- request a generated alternative only if compatible with active fidelity policy or explicit local override.
-```
-
-Examples the workflow understands naturally:
-
-```text
-"Texte OK, je choisis B"
-"Le texte est trop long"
-"Texte OK, garde exactement cette photo"
-"Garde le produit tel quel, change seulement le fond"
-"Utilise plutôt la deuxième photo"
-"Texte OK, refais les trois images"
-```
+For `use_as_is`, offer validation/replacement/treatment options compatible with source fidelity.
 
 ## Component freeze rule
 
 Review decisions are component-scoped.
 
 - approved text freezes during visual-only iterations unless reopened;
-- selected/approved visual or exact user source freezes during text-only iterations unless materially invalidated;
+- a compliant selected visual freezes during text-only iterations unless materially invalidated;
 - criticizing only A does not alter B/C;
-- changing only background under strict/high subject fidelity never authorizes changing subject;
 - changing text does not regenerate visuals unless materially needed;
-- changing source reopens only dependent visual/final state, and text only if source facts materially affected copy;
-- user source original is never overwritten during review iterations;
+- source originals are never overwritten;
 - a new A/B/C round preserves approved text and source policy unless explicitly changed.
+
+A visual that is later discovered not to have been review-ready is **technically invalidated without invalidating unrelated approved text**.
 
 ## Durable review state
 
@@ -121,9 +98,9 @@ combined_review_status: awaiting_combined_review|revision_requested|text_approve
 review_round: <positive integer>
 ```
 
-Every review round binds exact durable post revision and exact visual source/proposal identity set.
+`proposals_generated` means review-ready proposals, not raw base drafts. `selected` means selection of a review-ready candidate identity/hash.
 
-For user-source workflows, bind source provenance identity/hash when available plus treatment/fidelity role. For A/B/C, bind exact proposal identities.
+Every review round binds exact durable post revision, frozen `contract_revision`, and exact visual identity set. When branding is required, bind official-logo/composition evidence too.
 
 ## Completion condition
 
@@ -132,24 +109,36 @@ A social post leaves combined review only when:
 ```text
 text_status = approved
 AND
-one exact visual/source final basis = human selected/validated
+one exact review-ready visual/source final basis = human selected/validated
 ```
 
-After selection, `asset-ingest` normalizes/verifies final according to media architecture while preserving any user source original/provenance.
+`fully_approved` must not be set merely because the user chose a visually appealing binary that still contains generated/unverified required branding.
 
-Combined approval is not scheduling authorization and never publication authorization.
+After selection, `asset-ingest` normalizes/verifies final according to media architecture. Combined approval is not scheduling or publication authorization.
+
+## Recovery of a late branding defect
+
+If a previously selected candidate is discovered to contain a generated/unverified logo:
+
+1. preserve `text_status=approved` when text is unaffected;
+2. preserve the user's conceptual preference as a recovery target;
+3. move visual approval back to pending/revision state rather than pretending the binary remains selectable/finalizable;
+4. use an exact clean base if one actually exists, otherwise perform the narrowest repair/regeneration without claiming exact pixel recovery;
+5. apply the official logo deterministically;
+6. present the repaired branded result for targeted confirmation because its bytes/hash changed;
+7. do not require a full A/B/C restart unless the repair changes the concept materially or the user requests it.
 
 ## Relationship to article workflow
 
-Interaction principle remains:
+Interaction principle:
 
 ```text
-resolve any required user source before drafting
--> produce all reviewable components that policy actually requires
+resolve source/brand prerequisites
+-> produce all policy-compliant reviewable components
 -> show them together
 -> ask for consolidated human review
 -> revise only requested/affected elements
 -> loop until approved
 ```
 
-The implementation must not split text and visual review into unnecessary start/stop interactions and must not create unnecessary synthetic variants for an exact real source.
+The implementation must not split text and visual review into unnecessary stop/start interactions, but must also never defer a known brand-integrity blocker until after human selection.
