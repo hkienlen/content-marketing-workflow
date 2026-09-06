@@ -48,6 +48,8 @@ ENUMS = {
     },
 }
 
+# Backward compatibility for profiles created before explicit visual settings.
+# Source behavior preserves the historical AI-first path while configured=false.
 LEGACY_COMPATIBILITY_POLICY = {
     "visual_source": "ai_first",
     "missing_user_images_behavior": "allow_ai_generation",
@@ -56,6 +58,9 @@ LEGACY_COMPATIBILITY_POLICY = {
     "ai_treatment_directive": None,
 }
 
+# Branding did not exist in older generic profiles. Preserve the historical
+# no-logo behavior rather than unexpectedly adding a mark, but report the
+# structured identity as unconfigured so onboarding can gather the user's choice.
 LEGACY_LOGO_APPLICATION = "never"
 
 
@@ -146,6 +151,8 @@ def _validate_local_override(layer: Mapping[str, Any]) -> tuple[dict[str, Any], 
 
 def _merge(base: Mapping[str, Any], override: Mapping[str, Any]) -> dict[str, Any]:
     merged = dict(base)
+    # null directive intentionally clears an inherited free-text directive;
+    # enum fields cannot be null after validation.
     merged.update(override)
     return merged
 
@@ -291,6 +298,7 @@ def resolve_visual_policy(
             policy = _merge(policy, local_policy)
             sources.append("content_local_override")
 
+    # Validate the final source/treatment policy even for compatibility fallback.
     policy = _validate_layer(policy, "resolved_policy", require_full=True)
     policy.setdefault("ai_treatment_directive", None)
 

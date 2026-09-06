@@ -1,6 +1,6 @@
 # User command system behaviors
 
-Date: 2026-09-05
+Date: 2026-09-06
 Status: architecture contract
 
 ## Purpose
@@ -21,6 +21,14 @@ Runtime availability annotations are governed centrally by:
 
 ```text
 docs/architecture/runtime-compatibility-matrix.md
+```
+
+Visual configuration/brand semantics are governed by:
+
+```text
+docs/architecture/visual-generation-contract.md
+docs/architecture/brand-assets-contract.md
+docs/architecture/capabilities/visual-configure.md
 ```
 
 ## `/help`
@@ -71,20 +79,37 @@ Detailed help reports at least:
 For visual-source-sensitive article/social creation help, it must explain that:
 
 - active `visual_preferences` are resolved before drafting;
+- active `visual_identity` and the content-kind logo policy are resolved independently for article/social visuals;
 - user-provided images may be requested/located/verified/inspected before drafting under `user_images_first`, `strict_user_images` or applicable `hybrid_best_fit` behavior;
-- when cloud-provider placement is required, user gets exact `source-user/` path + direct verified provider folder link;
-- Google Drive is the current implemented cloud-media provider; future providers are not offered until their adapter is implemented;
+- when cloud-provider placement is required, user gets exact `source-user/` path + direct verified provider folder link when the adapter exposes one;
+- Google Drive and Dropbox are implemented cloud-media providers, with exactly one active per project;
 - if image generation/editing is unavailable in the current runtime, CMW can produce a complete external-generation prompt and resume after the user returns the generated image, provided cloud-media storage is operational;
 - if cloud-media storage is unavailable, images cannot become durable `verified_final` media and media-dependent publication stays unavailable;
 - a content-local override changes only that article/post unless user explicitly updates durable strategy/preferences;
 - exact `use_as_is` imagery is not forced into synthetic A/B/C variants;
-- image/source intake or selection never authorizes publication.
+- user permanent visual directives override conflicting generic CMW creative defaults, while generic defaults fill unspecified dimensions;
+- exact official logos are composed from verified brand assets rather than recreated by an image generator;
+- image/source/logo intake or selection never authorizes publication.
+
+For `/visual` help, explain:
+
+```text
+/visual status      -> read-only current visual/brand configuration
+/visual configure   -> guided durable setup/resume
+/visual logo        -> official logo assets + independent article/social logo preferences
+/logo               -> alias for /visual logo
+/visual guidelines  -> permanent free-form global/article/social visual directives
+```
+
+Article and social logo behavior are two separate durable preferences. A valid configuration is `article: never` and `social: always`.
 
 For WordPress/social publication help, state the strict current invariant:
 
 ```text
 no required verified_final image -> no WordPress publication/preparation-for-publication and no social publication
 ```
+
+A final requiring `logo_application=always` is not `verified_final` until an official verified logo is present and integrity-checked. A `never` final must not contain the project logo.
 
 Also state that current LinkedIn/Facebook automated publication depends on a verified WordPress-hosted SEO Workflow Bridge runtime.
 
@@ -124,6 +149,13 @@ Then report, when resolvable:
   - social override when present;
   - fidelity/treatment/missing-source behavior;
   - whether preferences are explicitly configured or only legacy compatibility is active;
+- current **`visual_identity`** summary:
+  - whether visual identity/logo policy is explicitly configured or only legacy no-logo compatibility is active;
+  - article logo policy (`always|auto|never`) when configured;
+  - social logo policy (`always|auto|never`) when configured;
+  - available official logo variants (`primary`, `light`, `dark`) when registered;
+  - user visual-guidelines authority path/status when present;
+  - current `awaiting_brand_asset` blocker when an active/relevant `always` path lacks an official logo;
 - current content-local visual blockers such as `awaiting_user_images` when a specific active workflow is resolvable;
 - WordPress enablement/connection/publication-capability state;
 - social enablement/connections/credential health;
@@ -140,6 +172,7 @@ Stockage média cloud : indisponible
 État : DEGRADED
 Impact :
 - images générées/non générées impossibles à finaliser durablement
+- logos officiels impossibles à enregistrer/vérifier comme assets provider-backed
 - pas de préparation/publication WordPress nécessitant les médias
 - pas de publication sociale
 ```
@@ -160,6 +193,17 @@ Image generation unavailable with cloud storage operational:
 Génération d'images : indisponible dans ce runtime
 Mode : DEGRADED / handoff manuel
 CMW fournira le prompt complet et reprendra après téléversement de l'image créée ailleurs.
+```
+
+Required logo missing:
+
+```text
+Identité visuelle : configurée
+- logo articles : never
+- logo social : always
+- logo officiel : manquant
+- blocage : awaiting_brand_asset pour la finalisation des visuels sociaux
+- prochaine action : /visual logo
 ```
 
 ### Telegram status projection
@@ -199,9 +243,9 @@ When configuration is incomplete or inconsistent, point to:
 `/status` must not:
 
 - install/connect plugins;
-- alter `visual_preferences`;
-- create source-user folders merely to inspect status;
-- upload/generate/treat images;
+- alter `visual_preferences` or `visual_identity`;
+- create provider `brand/`, `source-user/` or other folders merely to inspect status;
+- upload/generate/treat images or logos;
 - schedule/publish;
 - renew credentials;
 - send Telegram messages;
@@ -209,15 +253,19 @@ When configuration is incomplete or inconsistent, point to:
 
 If a durable change, provider installation/connection or diagnostic send is requested after status, route to the proper onboarding/mutating/external-side-effect capability.
 
-## Changing visual preferences
+## Changing visual preferences and identity
 
-`/status` is read-only. Durable visual preference changes route to:
+`/status` and `/visual status` are read-only.
+
+Durable guided visual changes route to:
 
 ```text
-/strategy update <request>
+/visual configure
+/visual logo
+/visual guidelines
 ```
 
-or an equivalent natural-language request, which uses `strategy-update`/profile persistence rules.
+or equivalent natural-language requests. `/strategy update <request>` remains a valid generic durable-strategy route for source/visual/logo preferences when no provider-backed official logo intake/replacement is required.
 
 Examples:
 
@@ -225,9 +273,12 @@ Examples:
 "À partir de maintenant, privilégie mes propres photos pour les articles."
 "Pour les réseaux sociaux seulement, tu peux améliorer mes photos naturellement."
 "Je veux une fidélité stricte pour les photos de mes produits."
+"Ne mets jamais mon logo sur les images d'article."
+"Mets toujours mon logo sur les visuels des posts sociaux."
+"À partir de maintenant, évite les illustrations 3D."
 ```
 
-A one-off instruction such as `pour ce post seulement, génère l'image avec l'IA` is not a durable strategy update; it is persisted as content-local override by the owning workflow.
+A one-off instruction such as `pour ce post seulement, sans logo` or `pour ce post seulement, génère l'image avec l'IA` is not a durable strategy update; it is persisted as content-local override by the owning workflow.
 
 ## Visual status projection
 
@@ -241,14 +292,23 @@ Images : préférence configurée
 - fidélité : high
 - traitement : natural_enhancement
 - image manquante : ask_before_drafting
+
+Identité visuelle : configurée
+- logo articles : never
+- logo social : always
+- variantes : light, dark
+- directives : strategy/visual-guidelines.md
 ```
 
-When older profile lacks explicit visual preference:
+When older profile lacks explicit visual preference/identity:
 
 ```text
 Images : préférence non encore configurée explicitement
 - compatibilité actuelle : AI-first
-- prochaine action possible : /start ou /strategy update
+
+Identité visuelle : non encore configurée explicitement
+- compatibilité actuelle : aucun logo ajouté automatiquement
+- prochaine action possible : /visual configure
 ```
 
 Do not call compatibility fallback a confirmed user preference.
@@ -259,7 +319,13 @@ When an active item is blocked:
 Visuel du contenu actif : awaiting_user_images
 ```
 
-Status may show the already persisted exact source folder/path/link if it exists, but must not guess or create one during this read-only command.
+or:
+
+```text
+Branding du contenu actif : awaiting_brand_asset
+```
+
+Status may show already persisted exact source/brand folder/path/link references if they exist, but must not guess or create one during this read-only command.
 
 ## Feature gates and prerequisites
 
@@ -279,7 +345,7 @@ A feature gate means configured availability, not task-specific authorization. A
 
 Never expose raw credentials/tokens in help/status.
 
-Safe outputs include non-secret connection IDs/names, platform target identity, scopes, expiry metadata, health state, Drive folder IDs/links, Telegram bot username/chat-routing presence/verification timestamps, visual policy enums, source filenames/asset IDs/hashes when useful and not private-secret material.
+Safe outputs include non-secret connection IDs/names, platform target identity, scopes, expiry metadata, health state, cloud-provider folder IDs/links, Telegram bot username/chat-routing presence/verification timestamps, visual policy enums, visual identity/logo policy, official logo filenames/provider IDs/hashes when useful and not private-secret material, and source filenames/asset IDs/hashes when useful.
 
 ## Source of truth
 
@@ -294,5 +360,7 @@ If status cannot resolve exact active project/profile, report precise read-only 
 If GitHub repository access is unavailable, report `BLOCKED`; do not imply that CMW can safely continue from chat memory alone.
 
 If an active content item says `awaiting_user_images` but source folder is inaccessible, report discrepancy; do not silently switch to AI generation.
+
+If a finalization path says `logo_application=always` but no verified official logo exists, report `awaiting_brand_asset`; do not silently downgrade the policy or generate a replacement logo.
 
 If Telegram is enabled but its durable configuration is incomplete or contradictory, report that inconsistency and route the user to `/social notifications telegram`; do not claim the notification channel is healthy.
