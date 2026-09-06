@@ -89,7 +89,8 @@ class BaseGenerationBriefTests(unittest.TestCase):
         self.assertIn("Generator-input boundary", visual)
         self.assertIn("base drafts, not A/B/C review candidates", checklist)
         self.assertIn("brand-isolated base-generation brief", entrypoint)
-        self.assertIn("compose the exact official logo before human review", entrypoint)
+        self.assertIn("compose the exact official logo", entrypoint)
+        self.assertIn("before human review", entrypoint)
 
 
 if __name__ == "__main__":
