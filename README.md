@@ -6,7 +6,7 @@
 
 **Content Marketing Workflow** is the canonical source repository for the reusable Content Marketing Workflow Skill and its optional Codex plugin distribution.
 
-Current version: `0.3.0`
+Current version: `0.4.0`
 
 ## Distribution model
 
@@ -42,7 +42,7 @@ skills/content-marketing-workflow/docs/architecture/runtime-compatibility-matrix
 Current product rules:
 
 - **GitHub repository access is mandatory.** Without a usable repository CMW is `BLOCKED`; conversation memory is not a substitute.
-- **Online cloud-media storage is required for the complete media workflow.** Google Drive and Dropbox are implemented providers in 0.3.0; exactly one is active per project, with Google Drive recommended/default when both are operational.
+- **Online cloud-media storage is required for the complete media workflow.** Google Drive and Dropbox are implemented providers; exactly one is active per project, with Google Drive recommended/default when both are operational.
 - GitHub, WordPress and local filesystem are not automatic media-storage fallbacks.
 - New users do not need to pre-install Google Drive or Dropbox before `/start`; when runtime plugin discovery is available CMW discovers eligibility/installability/connection state and guides setup.
 - When the runtime cannot generate/edit images but cloud storage is available, CMW produces a complete external-generation prompt and resumes after the user returns/uploads the image.
@@ -51,7 +51,39 @@ Current product rules:
 - GitHub Actions is required for current unattended scheduled publication.
 - Telegram remains optional and never changes publication truth.
 
-The 0.3.0 release adds Dropbox as a first-class `cloud_media_storage` adapter while preserving provider-neutral media identity, publication gates and runtime-degradation behavior.
+## Visual identity and branding
+
+Version 0.4.0 adds durable project-level visual identity and brand rules while keeping the generic Skill free of user-specific assets.
+
+Users can configure:
+
+```text
+/visual status
+/visual configure
+/visual logo
+/visual guidelines
+/logo
+```
+
+Article and social logo use are independent preferences:
+
+```yaml
+visual_identity:
+  logo_policy:
+    article: always|auto|never
+    social: always|auto|never
+```
+
+A valid configuration is therefore:
+
+```yaml
+article: never
+social: always
+```
+
+Official logo assets are retained privately through the selected cloud-media provider, ideally with light/dark variants when available. When branding is required, finalization must use the exact verified official logo asset; generated approximations are not accepted as official branding.
+
+Permanent global/article/social visual directives may be stored in a user-owned project authority such as `strategy/visual-guidelines.md`. Explicit user creative directives override conflicting generic CMW creative defaults, while generic defaults fill only unspecified dimensions. One-off content instructions remain local to that article/post/image unless the user asks to make them permanent.
 
 ## Direct installation in ChatGPT
 
@@ -68,7 +100,7 @@ Installing CMW does not itself grant GitHub, WordPress, cloud-storage or social-
 
 ## ChatGPT conversational execution
 
-When required connected tools are available, CMW can run directly in ChatGPT without forcing Codex. Typical usage includes onboarding, repository/project inspection, article/social creation, visual creation/manual handoff, WordPress/social preparation/publication through explicit gates, and status/help projection.
+When required connected tools are available, CMW can run directly in ChatGPT without forcing Codex. Typical usage includes onboarding, repository/project inspection, article/social creation, visual creation/manual handoff, visual/logo configuration, WordPress/social preparation/publication through explicit gates, and status/help projection.
 
 The Skill must never claim an external write succeeded when the active runtime lacks the required tool/connection.
 
