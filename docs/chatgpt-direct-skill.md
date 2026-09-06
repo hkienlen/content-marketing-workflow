@@ -59,7 +59,7 @@ If GitHub integration exists but is not connected/configured, onboarding guides 
 
 Online cloud media storage is required for the complete media workflow.
 
-Providers implemented in 0.3.0:
+Providers implemented since 0.3.0:
 
 ```text
 Google Drive (`google_drive`): supported, recommended/default
@@ -74,6 +74,51 @@ If neither Google Drive nor Dropbox is usable, CMW enters `DEGRADED` mode. GitHu
 
 Switching an existing project from one provider to the other is explicit migration work: provider-backed asset references are not interchangeable and exact hashes/provenance must be preserved.
 
+### Visual identity, logo and permanent visual guidelines
+
+Version 0.4.0 adds guided durable visual identity configuration.
+
+When visuals are in scope, `/start` or `/visual configure` can ask for:
+
+1. visual source/fidelity/treatment preferences;
+2. an official logo, accepting one logo and preferably light/dark variants when available;
+3. logo use for article images;
+4. logo use for social-post images;
+5. permanent global/article/social visual directives.
+
+Article and social logo behavior are separate user preferences and must never be inferred from each other. For example, this is a valid permanent configuration:
+
+```yaml
+visual_identity:
+  logo_policy:
+    article: never
+    social: always
+```
+
+Supported logo application values are:
+
+```text
+always
+case by case (`auto`)
+never
+```
+
+The user can inspect or change durable visual configuration with:
+
+```text
+/visual status
+/visual configure
+/visual logo
+/visual guidelines
+/logo
+```
+
+`/logo` is an alias for `/visual logo`.
+
+Official logo files are retained privately in the selected cloud-media provider's brand workspace. CMW should use the exact verified official logo bytes during final composition; it must not ask an image generator to redraw or approximate a missing official logo merely to complete a visual.
+
+Permanent natural-language visual directives may be stored in the user's project authority referenced by the profile, normally `strategy/visual-guidelines.md`. User creative directives override conflicting generic CMW creative defaults. A request explicitly limited to one article/post/image remains content-local and does not silently change the permanent project preference.
+
 ### Image generation/editing
 
 CMW detects whether the active ChatGPT/Codex surface can generate/edit images.
@@ -85,6 +130,8 @@ If image generation is unavailable but cloud storage works, CMW uses a manual ha
 3. user returns/uploads the result;
 4. CMW inspects and persists it to the selected cloud provider;
 5. normal review/finalization resumes.
+
+When logo application is required or allowed, the generation brief may reserve suitable brand space, but the official logo itself is composed afterward from the verified brand asset rather than recreated by the generator.
 
 If cloud storage is unavailable, generated/returned images cannot become durable `verified_final` media and cannot unlock publication.
 
@@ -110,9 +157,11 @@ required verified final media missing
 => no social publication
 ```
 
+A required logo is part of final-media correctness: `logo_application=always` cannot become `verified_final` without an exact verified official logo asset.
+
 ## First project onboarding
 
-The Skill contains no project-specific site names, repositories, identities, credentials or publication authorizations.
+The Skill contains no project-specific site names, repositories, identities, credentials, logos, visual directives or publication authorizations.
 
 On first use `/start`:
 
@@ -120,13 +169,16 @@ On first use `/start`:
 2. discovers Google Drive and Dropbox;
 3. selects and verifies exactly one cloud-media provider;
 4. detects image-generation/editing capability;
-5. verifies WordPress/Bridge if WordPress or social publication is enabled;
-6. verifies GitHub Actions/scheduler for unattended scheduling;
-7. verifies enabled social adapters independently;
-8. treats Telegram as optional notification capability;
-9. reports exact feature availability/degradations.
+5. progressively resolves visual preferences and visual identity when visuals are in scope;
+6. verifies WordPress/Bridge if WordPress or social publication is enabled;
+7. verifies GitHub Actions/scheduler for unattended scheduling;
+8. verifies enabled social adapters independently;
+9. treats Telegram as optional notification capability;
+10. reports exact feature availability/degradations.
 
 When an older project repository is a migration source, migration is selective. Generic Skill source, product tests, release machinery, credentials and unrelated historical implementation material stay out of the project repository.
+
+Older profiles without `visual_identity` remain compatible. CMW reports visual identity as not yet explicitly configured rather than silently introducing a logo policy.
 
 ## ChatGPT versus Codex
 
