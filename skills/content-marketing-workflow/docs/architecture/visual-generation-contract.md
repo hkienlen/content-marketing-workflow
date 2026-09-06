@@ -50,6 +50,27 @@ contract_revision: sha256:<64 lowercase hex>
 
 Every durably persisted proposal/review round and every `verified_final` must have a `contract_revision`; that revision is deterministic. Use `scripts/visual-contract-freeze.py` or an equivalent canonical implementation. Material contract changes create a new revision; unchanged A/B/C in one round share the same revision.
 
+## Generator-input boundary
+
+The complete effective visual contract is an orchestration/finalization authority. **It is not a generator prompt.**
+
+For generated work, derive the smallest safe **base-generation brief** needed by the image model. When project branding will be applied later, the generator input must not expose or inherit:
+
+- official logo bytes, filename, provider ID, asset ID or SHA-256;
+- `logo_application` or logo-variant identity as a positive generation instruction;
+- user/project wording such as “put our logo bottom-right”;
+- deterministic-composition instructions that belong to the compositor stage.
+
+Instead, translate brand-placement preferences into neutral `reserved_composition_space` guidance and add an explicit negative constraint excluding project logos, brand signatures, pseudo-logos and watermarks.
+
+CMW bundles:
+
+```text
+scripts/base-generation-brief.py
+```
+
+Use it or an equivalent fail-closed derivation before sending a branded-social base to image generation. The helper intentionally carries the frozen `contract_revision` as traceability but does not copy logo identity/provider/hash data into generator input.
+
 ## Drafts are not automatically review candidates
 
 Generated/materially transformed workflows distinguish:
@@ -118,7 +139,7 @@ Text is optional. When used, keep it short/readable, preserve exact wording, avo
 
 Logo behavior is resolved from `visual_identity.logo_policy` independently for article/social plus any local override.
 
-The generative model may reserve space, but official branding must not be recreated by generation. For `logo_application=always`, generation prompts should explicitly exclude project logo/brand signature from the base; contaminated bases are rejected/repaired before official deterministic composition.
+The generative model may reserve space, but official branding must not be recreated by generation. For `logo_application=always`, generation uses a brand-isolated base-generation brief; contaminated pure-AI bases are rejected/regenerated before official deterministic composition.
 
 ## Proposal workflow
 
@@ -127,7 +148,8 @@ For generated/materially transformed visuals:
 ```text
 resolve effective visual contract
 -> freeze mandatory contract_revision
--> prepare exact briefs
+-> prepare exact creative briefs
+-> derive brand-isolated base-generation briefs when branding will be composed later
 -> generate internal/base drafts as needed
 -> inspect/reject off-brief, duplicate, malformed or integrity-incompatible drafts
 -> satisfy channel-specific pre-review gates
@@ -139,11 +161,14 @@ resolve effective visual contract
 For social `logo_application=always`, the channel-specific pre-review gate is:
 
 ```text
-clean base with no generated project branding
+brand-isolated base-generation brief
+-> clean base with no generated project branding
 -> deterministic exact official-logo composition
 -> visual-review-gate validation
 -> review candidate
 ```
+
+For a newly generated disposable pure-AI base, accidental pseudo-branding is normally handled by **reject/regenerate**, not a multi-step generative logo-removal edit. Targeted repair is reserved for cases where preserving source pixels has real value, such as user-owned/source-dependent media or recovery of an already selected concept.
 
 Use `scripts/visual-review-gate.py` or an equivalent deterministic validator before claiming a durable/selectable review package is ready.
 
@@ -158,6 +183,8 @@ When a previously selected visual later fails a pre-review invariant (for exampl
 ## Free user directives
 
 Arbitrary permanent or local visual instructions are supported, including styles, people/no-people, environments, objects/metaphors, palette restrictions, realism, text density, placement, prohibited clichés, readability and campaign exceptions. Persist permanent directives in project visual guidelines; keep one-off directives local.
+
+A branding directive may shape the final composition, but only its **creative non-brand consequence** (for example “keep the lower-right area clear”) crosses into the base-generation brief. The image model is not given the actual project-logo instruction.
 
 ## Finalization and historical binding
 
@@ -177,5 +204,6 @@ Changing project guidelines or replacing a logo does not silently mutate histori
 - `docs/architecture/social-post-review-loop.md`
 - `docs/architecture/article-execution-checklist.md`
 - `docs/architecture/social-execution-checklist.md`
+- `scripts/base-generation-brief.py`
 - `scripts/visual-contract-freeze.py`
 - `scripts/visual-review-gate.py`
