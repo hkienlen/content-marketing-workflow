@@ -98,10 +98,36 @@ applied_user_directives:
 logo_application: always|auto|never
 logo_asset_identity: <when applicable>
 generic_defaults_applied: []
-contract_revision: <durable identifier/hash/commit when available>
+contract_revision: sha256:<64 lowercase hex>
 ```
 
 The effective contract is tied to the exact content/review revision so later preference changes do not silently reinterpret an already approved visual.
+
+### Mandatory deterministic contract revision
+
+Every **durably persisted proposal/review round and every `verified_final` visual** must have a `contract_revision`.
+
+The revision is the SHA-256 of the complete effective contract payload, excluding the `contract_revision` field itself, serialized as canonical UTF-8 JSON with sorted keys and compact separators.
+
+Use the bundled helper:
+
+```text
+scripts/visual-contract-freeze.py
+```
+
+Normal flow:
+
+```text
+resolve complete effective visual contract
+-> freeze contract with visual-contract-freeze.py
+-> persist frozen contract/revision with the review round
+-> generate/compose/review against that exact revision
+-> verify the same revision before verified_final
+```
+
+A material effective-contract change (source policy, project/channel/local directive, logo application, logo asset identity, or generic default actually applied) creates a **new** revision. Unchanged A/B/C candidates in the same review round share the same revision.
+
+If the helper is unavailable, an executor may compute the same canonical SHA-256 by an equivalent deterministic implementation. It must not omit the revision or substitute a conversational label, timestamp or guessed version. If a durable revision cannot be produced/verified, the workflow may draft or explore transiently but must not claim a durable review package or `verified_final`.
 
 ## Generic article creative defaults
 
@@ -190,6 +216,7 @@ For generated/materially transformed visuals:
 
 ```text
 resolve effective visual contract
+-> freeze mandatory contract_revision
 -> prepare exact brief(s)
 -> generate internally as needed
 -> inspect/reject off-brief, generic, duplicated or malformed outputs
@@ -210,7 +237,8 @@ Human review may approve/reject/revise text and visuals independently.
 - criticizing one candidate does not alter the others;
 - changing only a background under strict/high source fidelity must preserve the real subject as required;
 - a new generation round preserves unaffected approved source/text/logo policy unless explicitly reopened;
-- a permanent directive change affects future/new revisions, not already final media automatically.
+- a permanent directive change affects future/new revisions, not already final media automatically;
+- if an effective-contract input changes, freeze a new `contract_revision` before persisting the next durable review round.
 
 ## Free user directives
 
@@ -236,6 +264,8 @@ When a directive is one-off, persist it only with the owning content item.
 
 A selected final records enough effective-contract evidence to reproduce/explain the decision, including the logo application outcome and logo asset identity when present.
 
+Every durable final records and re-verifies its exact `contract_revision`; `when available` is not sufficient for `verified_final`.
+
 Changing project visual guidelines or replacing a logo does not silently mutate historical `verified_final` assets or scheduled/publication authorizations bound to exact media hashes.
 
 ## References
@@ -248,3 +278,4 @@ Changing project visual guidelines or replacing a logo does not silently mutate 
 - `docs/architecture/capabilities/asset-ingest.md`
 - `docs/architecture/article-execution-checklist.md`
 - `docs/architecture/social-execution-checklist.md`
+- `scripts/visual-contract-freeze.py`

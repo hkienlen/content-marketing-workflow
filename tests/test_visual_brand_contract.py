@@ -7,19 +7,21 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills" / "content-marketing-workflow"
 SCHEMA_PATH = SKILL / "docs" / "architecture" / "schemas" / "user-profile.schema.json"
 RESOLVER_PATH = SKILL / "scripts" / "visual-policy-resolve.py"
+CONTRACT_FREEZE_PATH = SKILL / "scripts" / "visual-contract-freeze.py"
+LOGO_COMPOSE_PATH = SKILL / "scripts" / "logo-compose.py"
 CATALOGUE_PATH = SKILL / "docs" / "architecture" / "user-command-catalog.yaml"
 
 
-def load_resolver():
-    spec = importlib.util.spec_from_file_location("visual_policy_resolve", RESOLVER_PATH)
+def load_module(path: Path, name: str):
+    spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
-        raise RuntimeError("cannot load visual-policy-resolve.py")
+        raise RuntimeError(f"cannot load {path.name}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-def base_profile(*, visual_identity=True, with_logo=True):
+def base_profile(*, visual_identity=True, with_logo=True, active_provider=None):
     project = {
         "visual_preferences": {
             "default": {
@@ -31,6 +33,12 @@ def base_profile(*, visual_identity=True, with_logo=True):
             }
         }
     }
+    if active_provider is not None:
+        project["storage"] = {
+            "cloud_media_storage": {
+                "provider": active_provider,
+            }
+        }
     if visual_identity:
         identity = {
             "guidelines_path": "strategy/visual-guidelines.md",
@@ -62,7 +70,10 @@ def base_profile(*, visual_identity=True, with_logo=True):
 class VisualBrandContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.resolver = load_resolver()
+        cls.resolver = load_module(RESOLVER_PATH, "visual_policy_resolve")
+        cls.contract_freeze = load_module(
+            CONTRACT_FREEZE_PATH, "visual_contract_freeze"
+        )
 
     def test_schema_has_independent_article_social_logo_policy(self):
         schema = json.loads(SCHEMA_PATH.read_text())
@@ -104,6 +115,30 @@ class VisualBrandContractTests(unittest.TestCase):
         self.assertEqual(decision["state"], "ai_generation_allowed")
         self.assertTrue(decision["drafting_allowed"])
 
+    def test_logo_asset_from_inactive_provider_requires_rebinding(self):
+        social = self.resolver.resolve_visual_policy(
+            base_profile(active_provider="dropbox"),
+            "social",
+        )
+
+        self.assertEqual(social["brand"]["active_media_provider"], "dropbox")
+        self.assertFalse(social["brand"]["logo_asset_available"])
+        self.assertTrue(social["brand"]["provider_rebinding_required"])
+        self.assertEqual(social["brand"]["logo_status"], "awaiting_brand_asset")
+        self.assertIn("dark", social["brand"]["mismatched_logo_assets"])
+        self.assertEqual(social["brand"]["compatible_logo_assets"], {})
+
+    def test_logo_asset_on_active_provider_is_ready(self):
+        social = self.resolver.resolve_visual_policy(
+            base_profile(active_provider="google_drive"),
+            "social",
+        )
+
+        self.assertTrue(social["brand"]["logo_asset_available"])
+        self.assertFalse(social["brand"]["provider_rebinding_required"])
+        self.assertIn("dark", social["brand"]["compatible_logo_assets"])
+        self.assertEqual(social["brand"]["logo_status"], "ready")
+
     def test_content_local_logo_override_does_not_change_project_policy(self):
         profile = base_profile()
         local = self.resolver.resolve_visual_policy(
@@ -139,6 +174,38 @@ class VisualBrandContractTests(unittest.TestCase):
         self.assertEqual(result["brand"]["logo_application"], "never")
         self.assertEqual(result["brand"]["logo_policy_source"], "legacy_unconfigured_no_logo")
 
+    def test_effective_visual_contract_revision_is_deterministic_and_verified(self):
+        contract = {
+            "content_kind": "social",
+            "source_policy": {"visual_source": "ai_first"},
+            "visual_guidelines_path": "strategy/visual-guidelines.md",
+            "applied_user_directives": {
+                "project_global": ["Avoid generic 3D illustration."],
+                "channel": ["Keep image text short."],
+                "content_local": [],
+            },
+            "logo_application": "always",
+            "logo_asset_identity": {
+                "provider": "google_drive",
+                "asset_id": "logo-dark",
+                "sha256": "0" * 64,
+            },
+            "generic_defaults_applied": ["1080x1350", "mobile readability"],
+        }
+
+        frozen_a = self.contract_freeze.freeze_contract(contract)
+        frozen_b = self.contract_freeze.freeze_contract(dict(reversed(list(contract.items()))))
+
+        self.assertRegex(frozen_a["contract_revision"], r"^sha256:[a-f0-9]{64}$")
+        self.assertEqual(frozen_a["contract_revision"], frozen_b["contract_revision"])
+        verified = self.contract_freeze.verify_contract(frozen_a)
+        self.assertEqual(verified["contract_revision"], frozen_a["contract_revision"])
+
+        tampered = dict(frozen_a)
+        tampered["logo_application"] = "never"
+        with self.assertRaises(self.contract_freeze.VisualContractError):
+            self.contract_freeze.verify_contract(tampered)
+
     def test_visual_command_family_is_public(self):
         catalogue = CATALOGUE_PATH.read_text()
         for command in (
@@ -158,13 +225,24 @@ class VisualBrandContractTests(unittest.TestCase):
 
         self.assertIn("content-local user directives", visual)
         self.assertIn("generic CMW creative defaults", visual)
+        self.assertIn("visual-contract-freeze.py", visual)
+        self.assertIn("must have a `contract_revision`", visual)
         self.assertIn("article: never", brand)
         self.assertIn("social: always", brand)
         self.assertIn("recreate the logo approximately", brand)
+        self.assertIn("logo-compose.py", brand)
         self.assertIn("logo_policy.article", article)
         self.assertIn("Never use `logo_policy.social` as a fallback", article)
         self.assertIn("logo_policy.social", social)
         self.assertIn("Never use `logo_policy.article` as a fallback", social)
+
+    def test_logo_composition_helper_is_fail_closed_and_exact_asset_bound(self):
+        source = LOGO_COMPOSE_PATH.read_text()
+        self.assertIn("--expected-logo-sha256", source)
+        self.assertIn("official logo SHA-256 mismatch", source)
+        self.assertIn("output must not overwrite the official logo", source)
+        self.assertIn("alpha_composite", source)
+        self.assertIn("Image.Resampling.LANCZOS", source)
 
     def test_provider_contracts_include_private_brand_workspace(self):
         for name in ("google-drive-workspace.md", "dropbox-workspace.md"):
