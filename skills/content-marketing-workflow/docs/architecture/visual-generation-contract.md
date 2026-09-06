@@ -48,7 +48,7 @@ generic_defaults_applied: []
 contract_revision: sha256:<64 lowercase hex>
 ```
 
-Every durably persisted proposal/review round and every `verified_final` must have a deterministic `contract_revision`. Use `scripts/visual-contract-freeze.py` or an equivalent canonical implementation. Material contract changes create a new revision; unchanged A/B/C in one round share the same revision.
+Every durably persisted proposal/review round and every `verified_final` must have a `contract_revision`; that revision is deterministic. Use `scripts/visual-contract-freeze.py` or an equivalent canonical implementation. Material contract changes create a new revision; unchanged A/B/C in one round share the same revision.
 
 ## Drafts are not automatically review candidates
 
