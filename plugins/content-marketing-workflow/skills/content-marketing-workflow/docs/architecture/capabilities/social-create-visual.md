@@ -93,7 +93,7 @@ validation:
   - logo_application=always requires exact official-logo composition before a candidate becomes reviewable/selectable
   - logo_application=never requires project logo absence
   - logo_application=auto may include only an official verified logo, never a generated approximation
-  - generated/unverified project-logo marks in a base draft cause rejection/regeneration/repair before review packaging
+  - generated/unverified project branding in a base draft causes rejection/regeneration/repair before review packaging
   - official logo proportions/colors/integrity are preserved
   - review candidate identity is bound to exact contract_revision and exact branded output hash
   - selected final is normalized/verified separately from source original
@@ -223,7 +223,7 @@ If a previously selected visual is later discovered to contain a generated/unver
 3. if an exact clean pre-logo base exists, compose the official logo on that base;
 4. if no exact clean base exists, do not claim that the same image can be recovered exactly; perform the narrowest feasible repair/regeneration while preserving the selected concept/composition as closely as possible;
 5. because pixels changed, present the repaired officially-branded candidate for targeted human confirmation before restoring durable visual approval;
-6. do not require a full new A/B/C round unless the user requests it or the repair materially changes the concept.
+6. do not require a full A/B/C restart unless the user requests it or the repair materially changes the concept.
 
 This recovery path prevents a late branding defect from discarding already approved text or the user's selected creative direction while still preserving truthfulness.
 
