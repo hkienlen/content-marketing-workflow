@@ -4,6 +4,16 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-09-06
+
+- Added a strict generator-input boundary: the image model receives a brand-isolated base-generation brief instead of the full effective visual contract or official-logo identity/provider/hash metadata.
+- Added `scripts/base-generation-brief.py` to derive/validate generator-safe creative briefs, reject leaked brand-composition fields and keep final logo placement as neutral reserved composition space only.
+- Made the generated-social `always` order explicit at the Skill entrypoint: freeze contract -> derive base brief -> generate/inspect clean bases -> deterministically compose the exact official logo -> validate review readiness -> present A/B/C.
+- Made reject/regenerate the default for a newly generated disposable pure-AI base containing a pseudo-logo or generated project branding; logo-removal editing is now reserved for source-dependent or recovery cases where preserving pixels materially matters.
+- Tightened the social execution checklist so raw generator outputs are base drafts, not A/B/C review candidates, until official branding and the review-ready gate have passed.
+- Added regression tests that verify official-logo asset IDs/providers/hashes do not leak into generator briefs and that positive logo-placement instructions are rejected from creative generator prompts.
+- Bumped the Skill/Codex plugin version to 0.4.3 and synchronized the canonical Skill with the plugin mirror.
+
 ## [0.4.2] - 2026-09-06
 
 - Added a review-ready branding gate so generated/materially transformed social A/B/C under `logo_application=always` cannot become selectable until the exact verified official logo is deterministically composed on clean base visuals.

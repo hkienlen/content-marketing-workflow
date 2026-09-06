@@ -112,6 +112,28 @@ Before producing candidates, combine CMW social defaults with user project-globa
 
 The user-owned rich authority is normally `visual_identity.guidelines_path -> strategy/visual-guidelines.md`.
 
+## Generator-input boundary
+
+The **effective visual contract is not the image-generator prompt**.
+
+When a generated base will later receive deterministic project branding, derive a separate **base-generation brief**. The image model must not receive the full effective visual contract, official-logo asset identity, provider IDs, hashes, logo filenames, or instructions such as “put the logo bottom-right”. Brand-placement preferences are converted into neutral reserved composition space, not generator branding instructions.
+
+CMW bundles:
+
+```text
+scripts/base-generation-brief.py
+```
+
+Use it or an equivalent fail-closed derivation. A base-generation brief contains only:
+
+- exact content kind and frozen `contract_revision` reference;
+- candidate identity;
+- creative scene/composition prompt with project-brand instructions removed;
+- explicit negative constraint excluding project branding, pseudo-logos, signatures and watermarks;
+- optional neutral reserved composition-space guidance.
+
+The generator must never be given the official logo asset bytes or identifying metadata merely because the final policy is `always`.
+
 ## Social logo policy
 
 Resolve **only**:
@@ -134,9 +156,11 @@ logo_policy:
 
 - use an official verified logo asset;
 - choose the verified light/dark variant according to actual contrast when available;
-- generate/select a **clean base** with no project logo, pseudo-logo, signature or generated approximation baked into the pixels;
-- explicitly tell image generation not to render the project logo/brand signature; reserving logo space is allowed;
-- visually inspect each retained base before composition; if project branding or a plausible generated approximation appears, reject/regenerate it or repair it before it can become reviewable;
+- derive a brand-isolated base-generation brief before invoking an image model;
+- generate/select a **clean base** with no project logo, pseudo-logo, signature, watermark or generated approximation baked into the pixels;
+- visually inspect each retained base before composition;
+- for a disposable pure-AI base with no unique source-fidelity requirement, if project branding or a plausible generated approximation appears, **reject and regenerate the base by default** rather than starting a logo-removal edit cycle;
+- reserve targeted repair for source-dependent, user-owned, or recovery cases where preserving the existing pixels has real value;
 - compose the exact logo deterministically from verified bytes;
 - run `scripts/visual-review-gate.py` or equivalent validation before claiming the durable A/B/C package is review-ready;
 - show the real branded output to the user for selection;
@@ -162,8 +186,9 @@ Normal `always` flow:
 
 ```text
 freeze effective contract_revision
--> generate internal clean-base drafts with explicit no-project-logo instruction
--> inspect bases and reject accidental/generated branding
+-> derive brand-isolated base-generation briefs A/B/C
+-> generate internal clean-base drafts with explicit no-project-branding constraint
+-> inspect bases and reject/regenerate contaminated pure-AI bases by default
 -> retain three strong clean bases
 -> deterministically compose exact official logo on each base
 -> validate hashes/evidence with visual-review-gate.py
@@ -200,9 +225,9 @@ Adapters may map layout differently, but must preserve recoverable base/review i
 When generation/editing is unavailable in the current surface but cloud media is operational:
 
 1. freeze post revision, visual brief and effective contract;
-2. produce a complete external-generation prompt;
-3. when logo may be required, explicitly request **no project logo or brand signature in the generated base**, while reserving safe composition space if useful;
-4. inspect the returned base; reject/repair accidental generated branding;
+2. derive a brand-isolated external base-generation brief rather than exposing the full brand contract;
+3. request no project logo, brand signature, watermark or substitute mark while reserving neutral composition space if useful;
+4. inspect the returned base; for disposable pure-AI output, reject/regenerate contamination by default;
 5. persist clean base evidence;
 6. deterministically compose the exact official logo when required;
 7. validate the review package;
@@ -229,7 +254,7 @@ If a previously selected visual is later discovered to contain a generated/unver
 5. because pixels changed, present the repaired officially-branded candidate for targeted human confirmation before restoring durable visual approval;
 6. do not require a full A/B/C restart unless the user requests it or the repair materially changes the concept.
 
-This recovery path prevents a late branding defect from discarding already approved text or the user's selected creative direction while still preserving truthfulness.
+This recovery path is for already-selected/historically valuable pixels. It does not make logo-removal editing the normal path for a newly generated disposable base.
 
 ## Finalization
 

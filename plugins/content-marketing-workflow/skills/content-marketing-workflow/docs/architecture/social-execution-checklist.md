@@ -88,10 +88,17 @@ When visual required:
 - visual mode matches source role/fidelity/treatment;
 - generic CMW social creative defaults fill only unspecified dimensions and do not override user directives;
 - candidate diversity is real unless deliberate short-series coherence is documented;
-- generated/materially transformed workflow creates exactly three genuinely distinct A/B/C when generation/editing is available or after documented manual handoff;
-- manual/external generation prompt includes user directives and may reserve brand space but never asks a model to recreate an official logo;
-- A/B/C stored/recoverable in selected provider before review;
-- effective social logo application is applied to review intent/candidates correctly;
+- for generated work, derive a **brand-isolated base-generation brief** before invoking the image model; do not pass the complete effective contract, official-logo identity, provider IDs/hashes or logo-placement instruction to the generator;
+- translate final logo-placement preferences only into neutral reserved composition space for base generation;
+- generated outputs are **base drafts, not A/B/C review candidates** until every pre-review invariant is satisfied;
+- base-generation brief explicitly excludes project logos, pseudo-logos, brand signatures and watermarks;
+- for a disposable pure-AI base, accidental/generated project branding causes reject/regenerate by default rather than a normal logo-removal edit cycle;
+- targeted repair is reserved for source-dependent/user-owned/recovery cases where preserving existing pixels materially matters;
+- retain three genuinely distinct clean bases when generated/materially transformed alternatives are required;
+- with `logo_application=always`, deterministically compose the exact official logo on each retained clean base before assigning durable A/B/C review identities;
+- validate branded A/B/C with `visual-review-gate.py` or equivalent before presentation;
+- manual/external generation uses the same brand-isolated base brief and may reserve composition space but never asks a model to recreate an official logo;
+- exactly three branded review-ready A/B/C are stored/recoverable in selected provider before review when generated/materially transformed alternatives are required;
 - `always` uses exact official verified logo bytes, not AI recreation;
 - `never` keeps project logo absent;
 - `auto` may include only an official verified logo;
@@ -110,7 +117,7 @@ First normal review presents in one response:
 - complete publishable master text;
 - A/B/C when alternatives were generated/materially transformed;
 - or exact user source/final candidate when `use_as_is` applies;
-- the actual official-logo composition when effective `always` policy requires branded final and technical composition is available;
+- the actual official-logo composition when effective `always` policy requires branded final;
 - explicit guidance telling user what may be approved/revised, including changing source/treatment/local visual rule where relevant.
 
 Track at least:
@@ -233,7 +240,7 @@ article logo policy != social logo policy
 user directive persisted != applied to active review round
 source inspected != post drafted
 post drafted != presented != text approved
-visual generated != stored != presented != selected != verified_final
+visual base generated != review-ready A/B/C != stored != presented != selected != verified_final
 use_as_is source != generated proposal
 combined review shown != fully approved
 verified_final visual != complete final cloud package

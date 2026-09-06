@@ -22,6 +22,8 @@ jobs:
         run: python3 tests/test_visual_brand_contract.py
       - name: Validate review-ready visual branding gate
         run: python3 tests/test_visual_review_gate.py
+      - name: Validate brand-isolated base generation briefs
+        run: python3 tests/test_base_generation_brief.py
       - name: Validate Dropbox provider contracts
         run: python3 tests/test_dropbox_contract.py
       - name: Build exact plugin artifact

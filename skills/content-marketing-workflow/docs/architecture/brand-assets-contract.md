@@ -99,13 +99,21 @@ A generated pseudo-logo that resembles the brand is not official branding and mu
 
 When the effective policy requires official branding, the base visual used for deterministic composition must be clean of the project's logo and of generated/unverified substitutes intended to stand for that logo.
 
-Generation briefs should explicitly request **no project logo, no project brand signature and no approximation of them** while optionally reserving composition space.
+The image model receives a **brand-isolated base-generation brief**, not the full effective visual contract or official-logo identity. Brand placement such as “bottom-right” is translated to neutral reserved composition space. Generation instructions explicitly exclude project logos, brand signatures, pseudo-logos and watermarks.
 
-Before a generated base is retained for branding, inspect it. If it contains an accidental/generated project logo or plausible substitute:
+CMW bundles:
 
-- reject/regenerate it; or
-- perform the narrowest safe repair when appropriate;
-- do not call the contaminated base a selectable review candidate.
+```text
+scripts/base-generation-brief.py
+```
+
+For a newly generated disposable pure-AI base with no unique source-fidelity requirement, if accidental/generated branding appears:
+
+- **reject and regenerate the base by default**;
+- do not start a normal workflow of “remove generated logo, then add official logo”;
+- do not preserve a contaminated binary merely because the surrounding scene is acceptable.
+
+Targeted logo-removal/repair is **not the normal path for a disposable pure-AI base**. It is reserved for cases where keeping the existing pixels matters materially, such as user-owned/source-dependent media, strict-fidelity source work, or recovery of an already human-selected historical visual.
 
 This is an integrity gate, not a creative preference.
 
@@ -136,7 +144,8 @@ For generated/materially transformed work, **human review is a brand-integrity g
 When `logo_application=always`:
 
 ```text
-clean base
+brand-isolated base-generation brief
+-> clean base
 -> exact deterministic official-logo composition
 -> hash/evidence validation
 -> durable review candidate
@@ -168,8 +177,9 @@ Normal generated `always` workflow:
 
 ```text
 resolve/freeze effective visual contract
+-> derive brand-isolated base-generation brief
 -> generate internal bases with no project branding
--> inspect/reject contaminated bases
+-> inspect/reject and regenerate contaminated pure-AI bases by default
 -> retain strong clean bases
 -> compose exact official logo on each
 -> validate review readiness
@@ -219,7 +229,7 @@ If a selected/review-approved visual is later found to contain generated/unverif
 5. because changed pixels create a new visual identity/hash, present the repaired officially branded result for targeted human confirmation;
 6. do not force a full new A/B/C round unless the user requests it or the repair materially changes the creative concept.
 
-This recovery is non-retroactive for already verified/published historical finals unless the user explicitly reopens them.
+This recovery exception does not redefine newly generated pure-AI bases: those are rejected/regenerated when contaminated.
 
 ## Replacement/versioning
 
@@ -252,5 +262,6 @@ Before `verified_final`, verify:
 - `docs/architecture/capabilities/asset-ingest.md`
 - `docs/architecture/google-drive-workspace.md`
 - `docs/architecture/dropbox-workspace.md`
+- `scripts/base-generation-brief.py`
 - `scripts/logo-compose.py`
 - `scripts/visual-review-gate.py`
