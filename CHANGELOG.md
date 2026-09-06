@@ -4,6 +4,16 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-09-06
+
+- Added a review-ready branding gate so generated/materially transformed social A/B/C under `logo_application=always` cannot become selectable until the exact verified official logo is deterministically composed on clean base visuals.
+- Added `scripts/visual-review-gate.py` to validate the frozen `contract_revision`, clean-base inspection evidence, official-logo SHA-256, composition manifest and branded review-output SHA-256 before durable human selection.
+- Explicitly prohibited generated/project-logo approximations from surviving as selectable review candidates; raw generator outputs are now internal/base drafts until pre-review integrity gates pass.
+- Tightened the combined-review state model so `selected` / `fully_approved` cannot be reached from a visually appealing but technically non-compliant branded binary.
+- Added a targeted recovery path for already-selected visuals containing generated/unverified logos: preserve approved text and creative preference, repair only the affected visual, and request targeted re-confirmation when pixels/hash change.
+- Added regression tests for missing composition evidence, contaminated bases, wrong logo SHA, raw-output misuse and incorrect A/B/C cardinality.
+- Bumped the Skill/Codex plugin version to 0.4.2 and synchronized the canonical Skill with the plugin mirror.
+
 ## [0.4.1] - 2026-09-06
 
 - Added `scripts/logo-compose.py`, a deterministic SHA-bound official-logo compositor that preserves logo proportions, never overwrites source assets and emits exact composition/output evidence.
@@ -53,7 +63,7 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 - Added durable non-secret `runtime_compatibility` state to the user-profile schema for cloud media, WordPress Bridge and scheduler health while keeping image-generation availability runtime-ephemeral.
 - Expanded direct ChatGPT installation/onboarding documentation so new users are guided through dependency discovery instead of needing to know which plugins to install beforehand.
 - Strengthened regression tests to assert the central compatibility model across media/article/WordPress/social contracts.
-- Bumped the Skill/Codex plugin version to 0.2.1 and synchronized the canonical Skill with the plugin mirror.
+- Bumped the Skill/Codex plugin version to 0.2.1 and synchronized the direct Skill/Codex-plugin behavior model.
 
 ## [0.2.0] - 2026-09-05
 
@@ -95,7 +105,7 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 - Changed the plugin `interface.developerName` to `Hervé Kienlen`.
 - Documented ChatGPT Web workspace import from the same private/public GitHub marketplace used by Codex.
 - Formalized that no separate Apps SDK/MCP wrapper is required merely to distribute this skill-only plugin on ChatGPT Web.
-- Added a repository-maintainer guide for ChatGPT Web marketplace import and synchronization.
+- Added repository-maintainer guide for ChatGPT Web marketplace import and synchronization.
 - Added the canonical Codex repo/team marketplace manifest at `.agents/plugins/marketplace.json`.
 - Moved installable plugin source under `plugins/content-marketing-workflow/` to match the official marketplace layout and avoid repository-root plugin path issues.
 - Added repository tests that bind marketplace discovery, plugin source, package manifest and release ZIP to the same canonical plugin.
