@@ -4,6 +4,15 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-06
+
+- Added `scripts/logo-compose.py`, a deterministic SHA-bound official-logo compositor that preserves logo proportions, never overwrites source assets and emits exact composition/output evidence.
+- Made effective visual `contract_revision` mandatory for every durable proposal/review round and every `verified_final`, with `scripts/visual-contract-freeze.py` providing canonical SHA-256 freeze/verify behavior.
+- Hardened `visual-policy-resolve.py` so a logo from an inactive Google Drive/Dropbox namespace no longer satisfies `always`; provider switching now exposes an explicit rebinding requirement.
+- Extended visual/brand regression coverage for provider mismatch/rebinding, deterministic contract revision drift detection and the exact-logo composition helper contract.
+- Clarified finalization contracts so historical finals remain bound to exact visual-contract revisions and exact official logo/provider identities.
+- Bumped the Skill/Codex plugin version to 0.4.1 and synchronized the canonical Skill with the plugin mirror.
+
 ## [0.4.0] - 2026-09-06
 
 - Added a generic visual-generation contract that separates immutable workflow/integrity guarantees from user/project creative directives and generic CMW creative defaults.
@@ -44,7 +53,7 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 - Added durable non-secret `runtime_compatibility` state to the user-profile schema for cloud media, WordPress Bridge and scheduler health while keeping image-generation availability runtime-ephemeral.
 - Expanded direct ChatGPT installation/onboarding documentation so new users are guided through dependency discovery instead of needing to know which plugins to install beforehand.
 - Strengthened regression tests to assert the central compatibility model across media/article/WordPress/social contracts.
-- Bumped the Skill/Codex plugin version to 0.2.1 and synchronized the canonical Skill with the plugin mirror.
+- Bumped the Skill/Codex plugin version to 0.2.1 and synchronized the direct Skill/Codex-plugin behavior model.
 
 ## [0.2.0] - 2026-09-05
 
