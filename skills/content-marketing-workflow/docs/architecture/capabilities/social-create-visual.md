@@ -7,25 +7,29 @@ Status: current architecture contract
 
 `social-create-visual` produces/reviews the visual component for one accepted social post after visual-source policy, user visual directives, branding policy and required source intake are resolved.
 
-Global prerequisite/degradation behavior is owned by:
+Global prerequisite/degradation behavior is owned by `docs/architecture/runtime-compatibility-matrix.md`. Generic creative defaults and user-directive precedence are owned by `docs/architecture/visual-generation-contract.md`. Brand/logo integrity is owned by `docs/architecture/brand-assets-contract.md`.
+
+This capability must not invent alternative storage/publication fallbacks, synthesize a missing official logo, or let a generated approximation of the project logo enter a selectable human-review package.
+
+## Core invariant: review-ready means finalizable-by-design
+
+For generated/materially transformed social visuals, distinguish two artifact classes:
 
 ```text
-docs/architecture/runtime-compatibility-matrix.md
+base draft
+= internal/generated visual before official branding
+= may be inspected/discussed transiently
+= never an A/B/C selectable review candidate when logo_application=always
+
+review candidate
+= persisted/recoverable visual shown for durable human selection
+= bound to the frozen contract_revision
+= already satisfies every visual invariant that can be satisfied before selection
 ```
 
-Generic creative defaults and user-directive precedence are owned by:
+When effective `logo_application=always`, **every A/B/C review candidate must already contain the exact verified official logo applied by deterministic composition**. There is no `when technically possible` exception for a durable/selectable review package.
 
-```text
-docs/architecture/visual-generation-contract.md
-```
-
-Brand/logo integrity and application are owned by:
-
-```text
-docs/architecture/brand-assets-contract.md
-```
-
-This capability must not invent alternative storage/publication fallbacks or synthesize a missing official logo.
+If official-logo composition cannot be completed, base generation may continue for exploration, but the workflow must not persist/present the outputs as selectable A/B/C, must not record a durable visual selection, and must not set combined review to fully approved.
 
 ## Capability contract
 
@@ -41,7 +45,7 @@ prerequisites:
   - exact durable post/concept is resolved
   - master text/visual brief are ready
   - effective source policy and structured brand handoff were resolved by visual-source-resolve
-  - complete effective visual contract is resolved from generic defaults + user global/social directives + content-local directives
+  - complete effective visual contract is resolved and frozen
   - required user source is verified/inspected when source-dependent
   - selected cloud_media_storage provider is operational before any proposal/final is claimed durable
   - runtime image generation/editing is available OR manual image handoff is used
@@ -71,92 +75,42 @@ reads:
   - resolved social logo application (`visual_identity.logo_policy.social` plus local override)
   - verified official logo asset references when branding may apply
   - user global/social rich visual directives
-  - verified user source when applicable
-  - current visual review state
-  - selected cloud-media source/proposals/final state
+  - current visual review state and provider-backed artifacts
 
 writes:
   - visual review round state
   - effective visual-contract snapshot/revision evidence
-  - provider-backed proposal candidates
-  - exact source/final review reference for use_as_is
-  - brand composition metadata/logo asset identity when applied
-  - visual status/combined review references
+  - clean base-draft evidence when retained
+  - provider-backed review candidates
+  - deterministic logo-composition evidence when applied
   - selected final metadata through delegated asset-ingest
 
-external_side_effects:
-  - read verified source files from selected cloud provider or usable chat upload
-  - read verified official logo asset from private provider brand workspace when applicable
-  - generate/edit base images through current runtime when available
-  - deterministically compose exact official logo when effective social logo policy requires/allows it
-  - otherwise execute manual image handoff prompt workflow
-  - persist returned/generated proposals in selected cloud provider
-  - no public sharing, scheduling or publication
-
 validation:
-  - runtime/provider availability matches central compatibility matrix
   - no proposal/final is called durable when cloud_media_storage is unavailable
-  - generic creative defaults are applied only where user directives do not override them
-  - content-local user directives override social/global creative directives as defined by visual-generation-contract
-  - generated/materially transformed workflows retain exactly three genuinely distinct reviewable A/B/C proposals
-  - social candidates are materially varied or intentionally coherent as a short sub-series rather than falsely near-duplicate
-  - use_as_is does not fabricate synthetic alternatives
-  - every claimed user source is real verified/inspected media
-  - source original is never overwritten
-  - strict/high fidelity preserves real subject appearance
+  - generated/materially transformed workflows retain exactly three genuinely distinct reviewable A/B/C candidates
   - `visual_identity.logo_policy.article` never controls a social visual
   - effective social logo application is resolved from `logo_policy.social` plus content-local override only
-  - logo_application=always requires an exact official verified logo before final can reach verified_final
-  - logo_application=never requires project logo absence in final
+  - logo_application=always requires exact official-logo composition before a candidate becomes reviewable/selectable
+  - logo_application=never requires project logo absence
   - logo_application=auto may include only an official verified logo, never a generated approximation
+  - generated/unverified project-logo marks in a base draft cause rejection/regeneration/repair before review packaging
   - official logo proportions/colors/integrity are preserved
-  - proposals are persisted/recoverable before combined review
+  - review candidate identity is bound to exact contract_revision and exact branded output hash
   - selected final is normalized/verified separately from source original
-  - provider identity matches the selected project provider
   - no publication side effect occurs
 
 completion_conditions:
   - review package is persisted/recoverable in selected cloud provider
-  - generated/materially transformed mode -> durable A/B/C identities exist
-  - exact use_as_is mode -> exact source/final candidate identity exists
+  - generated/materially transformed mode -> exactly three review-ready A/B/C identities exist
   - effective social visual/logo contract is recoverable for the active review round
   - after human selection, asset-ingest creates/reuses verified_final only when brand policy is satisfied
 ```
 
 ## Effective visual contract before generation
 
-Before producing candidates, combine:
+Before producing candidates, combine CMW social defaults with user project-global, social-specific and content-local directives, while workflow/integrity invariants remain authoritative.
 
-```text
-CMW social creative defaults
-<- user project-global visual directives
-<- user social-specific visual directives
-<- content-local post directives
-```
-
-with workflow/integrity invariants remaining authoritative.
-
-The user-owned authority is normally referenced by:
-
-```text
-visual_identity.guidelines_path -> strategy/visual-guidelines.md
-```
-
-Do not silently convert one successful historical social visual style into a permanent rule unless the user adopted it durably.
-
-## Generic social defaults
-
-When the user has not specified otherwise, follow `visual-generation-contract.md`, including:
-
-- visual as hook rather than full post summary;
-- mobile-first readability;
-- 4:5 / 1080 x 1350 master target when appropriate for enabled channels;
-- short visible hook when useful, not automatic paragraphs;
-- JPEG for photographic scenes, PNG for infographic/flat/text-heavy designs when appropriate;
-- credible people/environments/objects and avoidance of generic corporate stock aesthetics;
-- real diversity across campaigns and exactly three genuinely distinct A/B/C candidates for generated/materially transformed work.
-
-These are creative defaults. A user's social-specific direction overrides them where it conflicts.
+The user-owned rich authority is normally `visual_identity.guidelines_path -> strategy/visual-guidelines.md`.
 
 ## Social logo policy
 
@@ -166,11 +120,9 @@ Resolve **only**:
 projects.<active>.visual_identity.logo_policy.social
 ```
 
-then an explicit content-local post override.
+then an explicit content-local post override. Never use `logo_policy.article` as a fallback.
 
-Never use `logo_policy.article` as a fallback.
-
-For example, the project may legitimately have:
+A valid project can have:
 
 ```yaml
 logo_policy:
@@ -178,109 +130,109 @@ logo_policy:
   social: always
 ```
 
-and every social final should then be branded while article finals remain unbranded.
-
 ### `always`
 
 - use an official verified logo asset;
-- prefer light/dark variant according to actual contrast when available;
-- compose the exact logo deterministically rather than asking the generative model to recreate it;
-- branded review candidates should show the real logo when review depends on final composition;
-- no unbranded final can become `verified_final`.
+- choose the verified light/dark variant according to actual contrast when available;
+- generate/select a **clean base** with no project logo, pseudo-logo, signature or generated approximation baked into the pixels;
+- explicitly tell image generation not to render the project logo/brand signature; reserving logo space is allowed;
+- visually inspect each retained base before composition; if project branding or a plausible generated approximation appears, reject/regenerate it or repair it before it can become reviewable;
+- compose the exact logo deterministically from verified bytes;
+- run `scripts/visual-review-gate.py` or equivalent validation before claiming the durable A/B/C package is review-ready;
+- show the real branded output to the user for selection;
+- bind the user's selection to that branded review-asset identity/hash, not to the clean base or a generative preview.
 
-If no usable official logo is available, preserve `awaiting_brand_asset`; base generation may continue but finalization blocks.
+If no usable official logo or deterministic composition path is available, preserve the blocker. Drafting/base exploration may continue, but no durable/selectable visual review package exists yet.
 
 ### `never`
 
 - do not apply the project logo;
-- verify absence before `verified_final`;
-- a historical logo on a previous post does not override the current preference.
+- reject a generated base that accidentally contains the project's logo or a generated approximation intended to stand for it;
+- verify absence before `verified_final`.
 
 ### `auto`
 
-- include/omit according to current composition and user guidelines;
-- any included logo must be an official verified asset;
-- lack of a logo asset does not force synthetic recreation.
+- decide include/omit according to current composition and user guidelines;
+- any included project logo must be official and verified;
+- never treat generated branding as an acceptable `auto` choice.
 
-## AI-first/runtime generation
+## Generated/materially transformed workflow
 
-When runtime generation/editing is available, create exactly three distinct A/B/C candidates for generated/materially transformed workflows and persist them before review.
-
-The base-generation prompt/brief includes applicable user directives and may reserve safe logo space, but it must not ask the image model to invent an official logo.
-
-## Manual image handoff
-
-When generation/editing is required but unavailable in the current ChatGPT/Codex surface and cloud media is operational:
-
-1. freeze exact post revision + visual brief + effective visual/source/brand policy;
-2. produce a complete copy/paste prompt for an image-capable ChatGPT conversation or compatible image AI;
-3. include objective, format/dimensions, style, composition, user global/social/local directives, source role/fidelity/treatment, required/forbidden elements and text constraints;
-4. if branding is required/possible, instruct the external generator to reserve composition space but not recreate the official logo;
-5. ask the user to return/upload the generated result;
-6. inspect returned image;
-7. persist it in selected provider `proposals/`;
-8. apply exact official logo composition locally/through an appropriate image-edit/composition capability when required;
-9. continue normal review and `asset-ingest` finalization.
-
-The prompt itself is not a visual proposal and never completes the capability.
-
-If cloud storage is unavailable, returned/generated images may be inspected transiently but cannot become durable proposals/finals and social publication remains blocked.
-
-## User source modes
-
-Supported roles remain:
+Normal `always` flow:
 
 ```text
-use_as_is
-enhance
-subject_reference
-inspiration_reference
-composition_input
+freeze effective contract_revision
+-> generate internal clean-base drafts with explicit no-project-logo instruction
+-> inspect bases and reject accidental/generated branding
+-> retain three strong clean bases
+-> deterministically compose exact official logo on each base
+-> validate hashes/evidence with visual-review-gate.py
+-> persist exactly three branded review candidates A/B/C
+-> present combined human review
+-> bind selection to exact branded candidate hash
+-> asset-ingest / verified_final
 ```
 
-Strict/high fidelity never silently replaces a real subject with synthetic appearance. `use_as_is + ai_treatment:none` intentionally skips A/B/C generation.
+A raw generator output is not automatically a review proposal. The executor may create or persist internal drafts as implementation detail, but only gate-passing branded derivatives count as A/B/C when `logo_application=always`.
 
-Brand composition never overwrites the original user source. The branded social final is a separate derivative/final object.
-
-## Provider layout
-
-Conceptual provider-neutral content path:
+Provider-neutral layout may retain both layers, for example:
 
 ```text
 <provider-root>/<site-domain>/social/<post-name>/
-├── source-user/
-├── proposals/
-│   └── round-<NN>/
-└── final/
+└── proposals/
+    └── round-<NN>/
+        ├── A/
+        │   ├── base/<clean-base>
+        │   ├── review/<officially-branded-candidate>
+        │   └── logo-composition.json
+        ├── B/
+        └── C/
 ```
 
-Official project logos are separately retained under the private brand workspace defined by `brand-assets-contract.md`.
+Adapters may map layout differently, but must preserve recoverable base/review identities and composition evidence.
 
-Implemented adapters are Google Drive and Dropbox. Use the selected project provider and its provider-specific workspace contract. GitHub, WordPress and local filesystem are not fallback media stores.
+## Manual image handoff
 
-## Combined review and revisions
+When generation/editing is unavailable in the current surface but cloud media is operational:
 
-Generated/materially transformed mode shows full post text + A/B/C. Exact use_as_is mode shows full post text + exact source/final candidate.
+1. freeze post revision, visual brief and effective contract;
+2. produce a complete external-generation prompt;
+3. when logo may be required, explicitly request **no project logo or brand signature in the generated base**, while reserving safe composition space if useful;
+4. inspect the returned base; reject/repair accidental generated branding;
+5. persist clean base evidence;
+6. deterministically compose the exact official logo when required;
+7. validate the review package;
+8. only then present/select the review candidate.
 
-When effective social logo policy is `always`, reviewable candidates should reflect the actual official-logo composition when technically possible so the user is selecting the intended final visual, not an incomplete approximation.
+The external prompt or unbranded/raw returned image is not itself a durable selectable proposal under `always`.
 
-Preserve frozen components during targeted revisions. A new generation round keeps the approved text/source/user directives/logo policy unless explicitly reopened.
+## Combined review and selection
+
+Generated/materially transformed mode shows full post text + exactly three review-ready A/B/C visuals.
+
+For `logo_application=always`, the candidate shown and selected by the user is the actual official-logo composition. The visual state must not claim `selected`, `visual_approved_text_pending`, `fully_approved`, or an equivalent durable visual approval when the displayed candidate failed the review-ready brand gate.
+
+Text approval remains independently preservable during a branding repair.
+
+## Recovery of an already selected non-compliant candidate
+
+If a previously selected visual is later discovered to contain a generated/unverified logo baked into its pixels:
+
+1. preserve the user's **conceptual preference** and any approved text;
+2. revoke only the technical/durable visual-selection claim; do not call the non-compliant binary `verified_final`;
+3. if an exact clean pre-logo base exists, compose the official logo on that base;
+4. if no exact clean base exists, do not claim that the same image can be recovered exactly; perform the narrowest feasible repair/regeneration while preserving the selected concept/composition as closely as possible;
+5. because pixels changed, present the repaired officially-branded candidate for targeted human confirmation before restoring durable visual approval;
+6. do not require a full new A/B/C round unless the user requests it or the repair materially changes the concept.
+
+This recovery path prevents a late branding defect from discarding already approved text or the user's selected creative direction while still preserving truthfulness.
 
 ## Finalization
 
-After human selection/validation invoke `asset-ingest`.
+After a compliant human selection, invoke `asset-ingest`.
 
-Before `verified_final`:
-
-- normalize to current social dimensions/format policy;
-- verify source fidelity/provenance;
-- verify effective social logo rule;
-- if logo present, verify exact official logo asset identity/version and integrity;
-- persist effective-contract evidence so later project preference changes do not reinterpret this final;
-- persist provider-qualified final identity/SHA-256/format/dimensions/ALT plus source/brand relationship.
+Before `verified_final` verify normalization, source fidelity/provenance, effective social logo rule, exact official logo identity/version, exact final bytes/hash and the same effective-contract revision.
 
 ## Resume/idempotency
 
-Reuse exact selected-provider folders/source records/review rounds when recoverable. Re-resolve current project visual configuration only for new/reopened work; an existing approved review/final remains bound to its recorded effective contract/revision.
-
-Do not regenerate solely because conversation restarted. Source/final/logo hash drift fails closed. A provider change requires explicit migration/rebinding rather than silent reuse.
+Reuse exact selected-provider folders/source records/review rounds when recoverable. A compliant approved review/final remains bound to its recorded contract revision and branded asset hash. Do not regenerate solely because the conversation restarted. Source/final/logo hash drift fails closed. A provider change requires explicit migration/rebinding rather than silent reuse.
