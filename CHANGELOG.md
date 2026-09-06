@@ -4,6 +4,20 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-06
+
+- Added a generic visual-generation contract that separates immutable workflow/integrity guarantees from user/project creative directives and generic CMW creative defaults.
+- Added durable `visual_identity` project configuration with provider-backed official logo assets, a user-owned visual-guidelines authority and independent `logo_policy.article` / `logo_policy.social` preferences.
+- Added `always`, `auto` and `never` logo application modes for articles and social posts independently, including the supported case `article: never` with `social: always`.
+- Added `/visual status`, `/visual configure`, `/visual logo`, `/visual guidelines` and `/logo` for guided visual identity, logo and permanent guideline management, with equivalent natural-language routing.
+- Extended `/start` and strategy updates so users can provide one official logo or light/dark variants, choose separate article/social logo behavior and persist arbitrary global/article/social visual directives.
+- Added a private provider-backed `brand/logos/` workspace for Google Drive and Dropbox plus verified logo identity/hash metadata in the user profile.
+- Required exact official logo bytes for deterministic branding/finalization; CMW must not ask image generation to recreate or approximate a missing official logo.
+- Extended article and social workflows, checklists, visual-source resolution and asset ingestion so branding and user visual directives are resolved before final-media verification.
+- Preserved one-off content-local visual/logo overrides without silently changing durable project preferences, and kept existing verified finals frozen unless explicitly reopened.
+- Added regression tests for independent article/social logo policy, legacy-profile compatibility, content-local overrides, command exposure, provider brand workspaces and brand-integrity rules.
+- Bumped the Skill/Codex plugin version to 0.4.0 and synchronized the canonical Skill with the plugin mirror.
+
 ## [0.3.0] - 2026-09-05
 
 - Added Dropbox as a first-class `cloud_media_storage` provider alongside Google Drive.

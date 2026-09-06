@@ -1,6 +1,6 @@
 # Internal capability: start
 
-Date: 2026-09-05
+Date: 2026-09-06
 Status: current capability contract
 
 ## Purpose
@@ -64,6 +64,9 @@ mandatory_context:
   - docs/architecture/persistence-contract.md
   - docs/architecture/user-profile-data-contract.md
   - docs/architecture/user-provided-images.md
+  - docs/architecture/visual-generation-contract.md
+  - docs/architecture/brand-assets-contract.md
+  - docs/architecture/capabilities/visual-configure.md
   - docs/architecture/schemas/user-profile.schema.json
   - docs/architecture/capability-contract-template.md
   - docs/architecture/testing-policy.md
@@ -79,8 +82,10 @@ optional_context:
   - existing WordPress configuration/state
   - existing social configuration/state
   - existing notification configuration/state
-  - representative existing articles/posts useful for editorial learning
+  - representative existing articles/posts useful for editorial/visual learning
   - existing project images/brand assets useful only as evidence/proposals until intentionally adopted
+  - existing strategy/visual-guidelines.md
+  - existing provider-backed brand/logo assets
 
 reads:
   - current generic architecture/models
@@ -90,6 +95,8 @@ reads:
   - configured external-media workspace state
   - runtime/plugin eligibility/availability state when inspectable
   - existing visual_preferences when present
+  - existing visual_identity/logo policy/logo assets when present
+  - existing user-owned visual-guidelines authority when present
   - optional WordPress/social/notification capability state
 
 writes:
@@ -97,6 +104,9 @@ writes:
   - richer user-owned business/strategy documents referenced by the profile
   - external-media workspace references/configuration in user data
   - structured visual_preferences when the user confirms them
+  - structured visual_identity including independent article/social logo policy when the user confirms it
+  - user-owned strategy/visual-guidelines.md when durable rich directives are supplied
+  - private provider brand/logo assets and brand_ref when official logo intake is performed
   - tmp-outbox non-secret configuration and verified accessibility state
   - optional capability flags and notification preferences selected by the user
   - verified onboarding/progress state and durable blockers in user/project data
@@ -108,7 +118,9 @@ persists:
   - composable offers and audiences as the site's authoritative model supports them
   - editorial/SEO initialization decisions
   - visual_preferences default + optional article/social overrides
-  - external-media workspace root/site/article/social/tmp-outbox references
+  - visual_identity guidelines pointer + official logo registry + separate article/social logo application choices
+  - permanent free visual directives in the user-owned visual-guidelines authority
+  - external-media workspace root/site/brand/article/social/tmp-outbox references
   - selected media provider
   - optional WordPress/social enablement choices
   - user publication preferences such as timezone/platform hours when explicitly chosen
@@ -121,15 +133,17 @@ external_side_effects:
   - discover supported provider plugins when runtime tooling exposes plugin management
   - propose installation/connection of an implemented provider during onboarding when eligible
   - create/reuse required external-media workspace folders
+  - create/reuse private brand/logo workspace and retain supplied official logo assets when configured
   - test anonymous read access to tmp-outbox after the user configures its share setting
   - delegate to wordpress-connect only when WordPress is enabled/relevant and the user proceeds with that integration
   - guide/verify optional Telegram notification setup when explicitly enabled
   - no public content publication
 
 human_approval:
-  - ask only for durable business/editorial/visual values that cannot be safely inferred or verified
+  - ask only for durable business/editorial/visual/brand values that cannot be safely inferred or verified
   - do not overwrite contradictory previously confirmed durable data without explicit resolution
-  - summarize the proposed durable visual preference in plain language before first persistence/material replacement
+  - summarize the proposed durable visual preference and visual identity behavior in plain language before first persistence/material replacement
+  - ask/resolve article and social logo application as two independent preferences; never infer one from the other
   - enabling optional external integrations/notifications is a durable user choice
   - when the connected provider cannot set folder public-link sharing itself, instruct the user through the one simple share-setting action instead of requiring cloud-console credentials
   - any temporary WordPress write test keeps the separate wordpress-connect approval gate
@@ -143,12 +157,16 @@ validation:
   - cloud-media and runtime capability states are reported truthfully and never inferred from subscription label alone
   - every durable answer is persisted immediately in the correct user/project authority
   - visual_preferences, when present, use only the structured schema enums and do not contain pilot-specific defaults
-  - content-local visual instructions are not promoted to project preference without explicit user intent
+  - visual_identity, when present, keeps logo_policy.article and logo_policy.social explicit and independent
+  - official logo references resolve to real verified provider-backed assets before being called configured
+  - no logo is synthesized/recreated to satisfy missing official brand media
+  - user-owned rich directives are stored outside generic Skill contracts
+  - content-local visual/logo instructions are not promoted to project preference without explicit user intent
   - no concrete pilot/user value is saved by modifying a generic skill contract
   - no secret or credential is committed
   - external-media workspace hierarchy is verified before media workflows are marked ready
   - tmp-outbox is the only public-link workspace and anonymous read access is verified
-  - article/social/source-user/proposal/final workspaces remain private
+  - brand/source-user/proposal/final workspaces remain private
   - optional capability/notification state matches actual configuration
   - no profession-specific assumption is introduced into generic onboarding
 
@@ -156,6 +174,9 @@ completion_conditions:
   - required core user/project/site/business facts are durably recoverable
   - active profile is valid and points to richer authorities when applicable
   - visual preference is explicitly configured, or its missing state is explicitly recorded/resumable rather than silently inferred from one-off content
+  - visual identity/logo preferences are explicitly configured, or their missing state is explicitly recorded/resumable rather than silently inferred
+  - article/social logo choices remain independently recoverable when configured
+  - if an effective `always` logo policy lacks a verified official logo, the brand blocker is explicit/resumable rather than falsely complete
   - GitHub is verified or onboarding is truthfully BLOCKED
   - cloud-media readiness is verified or explicit DEGRADED blockers/affected features are reported
   - media provider and delivery-folder configuration are recoverable and verified when media readiness is claimed
@@ -171,6 +192,7 @@ completion_conditions:
 next_actions:
   - seo-plan-article
   - strategy-update when durable strategy/preferences change
+  - visual-configure when durable visual/brand configuration is incomplete or user wants to change it
   - wordpress-connect when WordPress is enabled and not verified
   - social capabilities when social is enabled and source content is ready
   - telegram-publication-notifications when Telegram publication reports are requested
@@ -205,11 +227,11 @@ Concrete active instance:
 user-data/profile.json
 ```
 
-The profile is the canonical registry for concrete user/project identity, infrastructure, platform connections, publication preferences, **visual_preferences**, optional notification preferences/routing metadata and non-secret credential-lifecycle metadata. Rich strategy/content documents remain separate user-owned authorities referenced by or compatible with the profile.
+The profile is the canonical registry for concrete user/project identity, infrastructure, platform connections, publication preferences, **visual_preferences**, **visual_identity**, optional notification preferences/routing metadata and non-secret credential-lifecycle metadata. Rich strategy/content documents remain separate user-owned authorities referenced by or compatible with the profile.
 
 Do not copy concrete profile values into generic capability/help/skill files.
 
-Existing older project files such as `strategy/storage-workspace.md`, `wordpress/config/connections/**`, `wordpress/presentation/profiles/**`, `social/**` and `articles/**` remain user/project data and are excluded from the distributable skill package.
+Existing older project files such as `strategy/**`, `wordpress/config/**`, `wordpress/presentation/profiles/**`, `social/**` and `articles/**` remain user/project data and are excluded from the distributable skill package.
 
 ## Information gathering
 
@@ -229,6 +251,9 @@ Useful durable categories include:
 - initial SEO priorities;
 - asset/brand requirements;
 - visual sourcing/fidelity/treatment preference;
+- official logo availability/variants;
+- independent article/social logo application preference;
+- free global/article/social visual directives;
 - media-provider/workspace configuration;
 - optional WordPress capability choice;
 - optional social capability choice and account identities;
@@ -248,7 +273,7 @@ Resolve these durable decisions:
 2. **Strict-real subjects** - are products/work/portfolio/places/people required to stay faithful rather than be synthetically replaced?
 3. **Treatment** - none, light correction, natural enhancement, marketing enhancement or creative transformation?
 4. **Fidelity** - strict, high, moderate or flexible?
-5. **Article vs social** - should either channel override the project default?
+5. **Article vs social** - should either channel override the project default source/treatment policy?
 6. **Missing source** - ask before drafting, permit AI fallback, or continue without visuals?
 7. **Local override** - explicitly explain that any article/post can override the project preference without changing it permanently.
 
@@ -268,7 +293,7 @@ visual_preferences:
 
 Before persisting a newly gathered preference, summarize it in ordinary language so the user understands the future behavior. Then persist/re-read it.
 
-### Existing profiles created before the feature
+### Existing profiles created before visual_preferences
 
 If `visual_preferences` is absent in an otherwise valid older profile:
 
@@ -276,6 +301,55 @@ If `visual_preferences` is absent in an otherwise valid older profile:
 - report the visual preference as not yet explicitly configured;
 - offer/resume this guided checkpoint at `/start` or when a creation workflow first needs the choice;
 - a deterministic compatibility resolver may preserve the historical AI-first path where needed, but `configured=false` remains truthful until the user explicitly chooses a policy.
+
+## Guided visual identity / logo onboarding
+
+Visual identity is a separate checkpoint from source/fidelity/treatment.
+
+When `visual_identity` is missing, incomplete, or the user asks to configure/change branding, delegate the same semantics as `/visual configure` and resolve progressively:
+
+1. **Official logo availability** - does the user have a logo to use on managed visuals?
+2. **Logo files** - ask for the official file; if possible ask for both light and dark variants, while accepting one valid official logo.
+3. **Article logo application** - ask separately whether article images should use the logo: always, case-by-case, or never.
+4. **Social logo application** - ask separately whether social-post images should use the logo: always, case-by-case, or never.
+5. **Generic defaults vs personal visual direction** - explain that CMW has generic article/social creative defaults and ask whether the user has additional permanent directives.
+6. **Free directives** - capture arbitrary global/article/social instructions and persist them in the user-owned `strategy/visual-guidelines.md` authority.
+7. **Summary** - state the future behavior plainly before first persistence/material replacement.
+
+Canonical structured result:
+
+```yaml
+visual_identity:
+  guidelines_path: strategy/visual-guidelines.md # when rich directives exist
+  logo_policy:
+    article: always|auto|never
+    social: always|auto|never
+  logo_assets:
+    primary: ... # optional
+    light: ...   # optional
+    dark: ...    # optional
+```
+
+The following is valid and must remain representable without workarounds:
+
+```yaml
+logo_policy:
+  article: never
+  social: always
+```
+
+Never infer the article answer from social or social from article.
+
+If the user selects `always` for a channel but no verified official logo is available, persist the user's policy if confirmed and retain an explicit `awaiting_brand_asset`-style blocker for brand-compliant finalization. Never generate an approximate logo.
+
+### Existing profiles created before visual_identity
+
+If `visual_identity` is absent:
+
+- preserve the historical no-logo behavior as a compatibility path only;
+- report visual identity/logo policy as not explicitly configured;
+- gather article and social logo choices separately at `/start`, `/visual configure`, `/visual logo`, or first relevant visual workflow;
+- do not write `article: never` / `social: never` merely to make migration look complete unless the user actually confirms those preferences.
 
 ## Business model rule
 
@@ -338,16 +412,17 @@ docs/architecture/dropbox-workspace.md
 Both adapters preserve the same logical site/content hierarchy:
 
 ```text
+<provider-root>/<site-domain>/brand/       # private, when brand assets are configured
 <provider-root>/<site-domain>/articles/
 <provider-root>/<site-domain>/social/
 <provider-root>/<site-domain>/tmp-outbox/
 ```
 
-Content workflows create/reuse private `source-user/`, `proposals/` and `final/` children as needed. `source-user/` is never made public and originals are never overwritten.
+Content workflows create/reuse private `source-user/`, `proposals/` and `final/` children as needed. `source-user/` is never made public and originals are never overwritten. Brand/logo originals are similarly private and immutable as workflow sources.
 
 For Google Drive, when the connector cannot set public sharing itself, instruct the user to configure `tmp-outbox` as `Anyone with the link -> Viewer`, then verify anonymous read-only access.
 
-For Dropbox, use or guide creation of the active integration's supported public read-only shared-link mechanism only for staged `tmp-outbox` delivery material, then verify anonymous read-only access. Do not broaden sharing of source/proposal/final workspaces.
+For Dropbox, use or guide creation of the active integration's supported public read-only shared-link mechanism only for staged `tmp-outbox` delivery material, then verify anonymous read-only access. Do not broaden sharing of brand/source/proposal/final workspaces.
 
 Normal onboarding must not require the user to create provider developer-console OAuth applications or paste provider access tokens when an operational ChatGPT/Codex integration exists.
 
@@ -357,11 +432,12 @@ Image generation/editing capability is runtime state, not a permanent user prefe
 
 When the active environment cannot generate/edit an image required by the owning visual workflow but cloud-media storage is operational:
 
-1. preserve the exact article/post revision and visual policy;
+1. preserve the exact article/post revision and effective visual contract;
 2. generate a complete copy/paste prompt for an image-capable ChatGPT conversation or another compatible image AI;
-3. include dimensions/format, approved brief, source/fidelity/treatment requirements, branding and prohibited elements;
-4. ask the user to return/upload the generated result;
-5. inspect the returned asset and continue through provider retention, proposal review where applicable, `asset-ingest` and `verified_final` creation.
+3. include dimensions/format, approved brief, source/fidelity/treatment requirements, user visual directives, branding policy and prohibited elements;
+4. if a logo is required, instruct the external generation step to reserve suitable composition space but do **not** ask it to recreate the official logo; exact brand composition remains a later deterministic step using verified logo bytes;
+5. ask the user to return/upload the generated result;
+6. inspect the returned asset and continue through provider retention, proposal review where applicable, brand composition, `asset-ingest` and `verified_final` creation.
 
 Never claim the visual workflow complete from the prompt alone.
 
@@ -369,10 +445,12 @@ If cloud storage is also unavailable, the image may not become a durable final a
 
 ## Existing website/editorial learning
 
-Observed content/image patterns are proposals until intentionally adopted as durable user/project rules. Do not silently convert every legacy inconsistency into a new strategy or visual preference.
+Observed content/image patterns are proposals until intentionally adopted as durable user/project rules. Do not silently convert every legacy inconsistency into a new strategy, visual preference or logo policy.
+
+A visible legacy logo pattern is not enough to infer `always`; ask/resolve the user's preference unless it is already durable and authoritative.
 
 ## Completion semantics
 
 Onboarding is complete for the enabled scope only when required user/project facts/configuration are persisted and required infrastructure checkpoints are verified.
 
-A missing GitHub hard prerequisite makes onboarding BLOCKED. An inaccessible supported media workspace, unavailable image-generation runtime requiring manual handoff, failed anonymous tmp-outbox delivery, unverified WordPress/Bridge connection, unhealthy social credential or enabled-but-unverified notification channel remains explicit and resumable rather than silently complete.
+A missing GitHub hard prerequisite makes onboarding BLOCKED. An inaccessible supported media workspace, unavailable image-generation runtime requiring manual handoff, failed anonymous tmp-outbox delivery, required-but-missing official logo for an `always` finalization path, unverified WordPress/Bridge connection, unhealthy social credential or enabled-but-unverified notification channel remains explicit and resumable rather than silently complete.

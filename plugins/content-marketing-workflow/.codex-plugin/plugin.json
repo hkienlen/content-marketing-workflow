@@ -1,6 +1,6 @@
 {
   "name": "content-marketing-workflow",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Plan, create, review, prepare, schedule and publish content across SEO, WordPress and supported social channels through one governed workflow.",
   "author": {
     "name": "Content Marketing Workflow"
@@ -27,6 +27,7 @@
     "defaultPrompt": [
       "Plan and create my next SEO article.",
       "Create the next social post from my content queue.",
+      "Configure my visual identity and logo preferences.",
       "Show my content workflow status."
     ],
     "composerIcon": "./assets/icon.png",

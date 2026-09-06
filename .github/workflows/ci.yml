@@ -18,6 +18,8 @@ jobs:
           python-version: '3.12'
       - name: Validate canonical repository
         run: python3 tests/test_repository.py
+      - name: Validate visual and brand contracts
+        run: python3 tests/test_visual_brand_contract.py
       - name: Validate Dropbox provider contracts
         run: python3 tests/test_dropbox_contract.py
       - name: Build exact plugin artifact

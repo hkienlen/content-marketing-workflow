@@ -84,6 +84,96 @@ commands:
     response_contract: capability-result
     help_source: docs/architecture/capabilities/strategy-update.md
 
+  - id: visual.status
+    command: /visual status
+    family: visual
+    capability: visual-configure
+    operation: status
+    summary: Show the current visual-source, visual-guideline and logo configuration, including separate article/social logo policies.
+    availability: core
+    feature_gate: null
+    mode: read_only
+    side_effects: none
+    arguments: []
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/visual-configure.md
+
+  - id: visual.configure
+    command: /visual configure
+    family: visual
+    capability: visual-configure
+    operation: configure
+    summary: Start or resume guided visual configuration for source policy, brand assets, article/social logo preferences and permanent visual directives.
+    availability: core
+    feature_gate: null
+    mode: mutating
+    side_effects: durable_project_visual_state_and_optional_private_brand_assets
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Optional visual configuration request; missing durable choices are resolved progressively from current project state.
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/visual-configure.md
+
+  - id: visual.logo
+    command: /visual logo
+    family: visual
+    capability: visual-configure
+    operation: logo
+    summary: Inspect, add or replace official logo assets and configure independent article/social logo application preferences.
+    availability: core
+    feature_gate: null
+    mode: mutating
+    side_effects: durable_project_visual_state_and_optional_private_brand_assets
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Optional logo asset or article/social logo-policy request. With no request, current logo configuration may be shown.
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/visual-configure.md
+
+  - id: visual.logo-alias
+    command: /logo
+    family: visual
+    capability: visual-configure
+    operation: logo
+    summary: Convenience alias for /visual logo.
+    availability: core
+    feature_gate: null
+    mode: mutating
+    side_effects: durable_project_visual_state_and_optional_private_brand_assets
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Optional logo asset or article/social logo-policy request.
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/visual-configure.md
+
+  - id: visual.guidelines
+    command: /visual guidelines
+    family: visual
+    capability: visual-configure
+    operation: guidelines
+    summary: Inspect or persist permanent free-form global/article/social visual directives in the user-owned visual-guidelines authority.
+    availability: core
+    feature_gate: null
+    mode: mutating
+    side_effects: durable_project_visual_strategy_when_changed
+    arguments:
+      - name: request
+        kind: trailing_text
+        required: false
+        identity: null
+        description: Optional permanent visual directive or request to inspect current guidelines.
+    response_contract: capability-result
+    help_source: docs/architecture/capabilities/visual-configure.md
+
   - id: article.list
     command: /article list
     family: article
@@ -259,7 +349,7 @@ commands:
     command: /social visual
     family: social
     capability: social-create-visual
-    summary: Create or review the post visual according to the effective visual policy, using A/B/C for generated or materially transformed work and exact-source review for use_as_is.
+    summary: Create or review the post visual according to the effective visual policy, user directives and independent social logo policy.
     availability: optional
     feature_gate: social.enabled
     mode: mutating
@@ -429,6 +519,6 @@ commands:
 
 internal_only_capabilities:
   - capability: visual-source-resolve
-    reason: Shared policy/source-intake capability invoked by article/social creation workflows before drafting when the effective visual policy requires source resolution; not a separate user command.
+    reason: Shared structured source/brand policy and source-intake capability invoked by article/social creation workflows; not a separate user command.
   - capability: asset-ingest
     reason: Supporting media-normalization/finalization capability invoked automatically by higher-level article/social workflows.

@@ -48,6 +48,7 @@ A capability is an internal workflow contract. A `/...` command is a stable alia
 
 - `start.md`
 - `strategy-update.md`
+- `visual-configure.md` - guided/read-only visual setup for source policy, official logos, independent article/social logo preferences and durable free-form visual directives.
 
 ### SEO/content
 
@@ -58,54 +59,51 @@ A capability is an internal workflow contract. A `/...` command is a stable alia
 
 `/article create` remains exclusively backed by `seo-create-article`.
 
-### Media
+### Media and brand
 
-- `visual-source-resolve.md` - resolves project -> content-kind -> local visual policy, source intake/verification and truthful drafting readiness;
-- `asset-ingest.md` - final-asset normalization/verification preserving source originals/provenance.
+- `visual-source-resolve.md` - resolves project -> content-kind -> local source/treatment policy plus structured article/social brand handoff, source intake/verification and truthful drafting/finalization readiness;
+- `asset-ingest.md` - final-asset normalization/verification preserving source/logo originals, provenance and effective brand-contract evidence.
 
-Normative media/source models:
+Normative media/source/creative/brand models:
 
 ```text
 docs/architecture/runtime-compatibility-matrix.md
 docs/architecture/user-provided-images.md
+docs/architecture/visual-generation-contract.md
+docs/architecture/brand-assets-contract.md
 docs/architecture/media-delivery-architecture.md
 docs/architecture/google-drive-workspace.md
 docs/architecture/dropbox-workspace.md
 ```
 
-Provider-neutral conceptual workspaces are `source-user/`, `proposals/`, `final/`, and temporary `tmp-outbox/`. Google Drive and Dropbox map those concepts through provider-specific adapters while durable asset identity remains provider-qualified.
+Provider-neutral conceptual content workspaces are `source-user/`, `proposals/`, `final/`, and temporary `tmp-outbox/`. Reusable official project brand assets live separately under a private `brand/` workspace. Google Drive and Dropbox map those concepts through provider-specific adapters while durable asset identity remains provider-qualified.
 
-There is no separate public `/visual source` command. Durable defaults are set through onboarding/natural language or `/strategy update`; `/status` exposes them read-only; local overrides are handled by owning content workflow.
+## Public visual configuration
 
-### WordPress optional
+The visual command family is:
 
-- `wordpress-connect.md`
-- `wordpress-prepare-article.md`
-- `wordpress-publish-article.md`
+```text
+/visual status
+/visual configure
+/visual logo
+/visual guidelines
+/logo
+```
 
-WordPress authoring integration is optional, but current WordPress publication and current automated social publication require a verified WordPress-hosted SEO Workflow Bridge runtime.
+`/logo` aliases `/visual logo`.
 
-### Social optional (`social.enabled`)
+`/visual status` is read-only. Other visual configuration operations persist only user/project state and verified private brand assets. They never put one user's brand or directives into generic Skill contracts.
 
-- `social-extract-posts.md`
-- `social-create-post.md`
-- `social-inspect.md`
-- `social-create-visual.md`
-- `social-check-before-publish.md`
-- `social-connection-health.md`
-- `social-schedule.md`
-- `social-publish.md`
-- `social-publication-verification.md`
-- `telegram-publication-notifications.md`
+Equivalent natural-language requests route to the same durable model. `/strategy update` remains valid for durable strategy requests, while provider-backed official logo intake/replacement is delegated to `visual-configure`.
 
-LinkedIn and Facebook Page adapters are independently gated. Facebook personal/professional profile is not an API publication fallback.
+There is no separate public `/visual source` command; source preferences are part of `/visual configure`, `/start`, natural-language durable updates or the structured visual profile.
 
 ## Current visual-source invariant
 
 Before article/social drafting:
 
 ```text
-project default -> article/social override -> per-content local override
+project default -> article/social source override -> per-content local source override
 ```
 
 Supported modes:
@@ -122,6 +120,59 @@ When required source is absent under `ask_before_drafting`, state is `awaiting_u
 Source originals are never overwritten. Strict/high fidelity cannot silently become synthetic subject replacement. Exact `use_as_is` is not forced into A/B/C; generated/materially transformed work retains A/B/C review.
 
 When generation/editing is unavailable in the current runtime but cloud media is operational, use the central manual image handoff rather than reporting false generation success.
+
+## Current visual creative invariant
+
+Before generation/material editing, resolve the complete effective visual contract in this creative-precedence order beneath non-overridable workflow/integrity/safety rules:
+
+```text
+content-local user directive
+> article/social-specific user directive
+> project-global user directive
+> generic CMW creative defaults
+> executor interpretation
+```
+
+User creative directives therefore override conflicting generic CMW creative defaults. Generic defaults fill only dimensions the user did not specify.
+
+Rich durable user directives live in the user-owned authority referenced by `visual_identity.guidelines_path`, normally `strategy/visual-guidelines.md`; they are never packaged into the generic Skill.
+
+Generic article/social defaults are defined in `visual-generation-contract.md` and generalize reusable practices such as real visual diversity, avoidance of generic AI/stock clichés, mobile-aware social layout and exactly three strong review candidates for generated/materially transformed visual groups.
+
+## Current logo/brand invariant
+
+Article and social logo application are **independent durable preferences**:
+
+```yaml
+visual_identity:
+  logo_policy:
+    article: always|auto|never
+    social: always|auto|never
+```
+
+A normal valid project configuration is:
+
+```yaml
+logo_policy:
+  article: never
+  social: always
+```
+
+The article workflow reads only the article field (plus article-local override). The social workflow reads only the social field (plus post-local override). Never infer one from the other.
+
+Official logo variants (`primary`, `light`, `dark`) are verified private provider-backed brand assets. A single official logo is valid; light/dark variants are recommended when available.
+
+Logo application rules:
+
+```text
+always -> exact official verified logo required before verified_final
+auto   -> logo may be included/omitted; any included logo must be official verified asset
+never  -> project logo must be absent from final
+```
+
+Never ask a generative image model to recreate a missing official logo. It may reserve composition space, but exact branding is applied from verified logo bytes and checked again before `verified_final`.
+
+Older profiles with no `visual_identity` preserve historical no-logo behavior only as an unconfigured compatibility state; `/start` or `/visual configure` gathers article/social choices separately instead of silently converting absence into confirmed preferences.
 
 ## Social final-package invariant
 
@@ -158,8 +209,10 @@ scheduler success
 
 Notification delivery failure never changes authoritative publication state or authorizes duplicate publication.
 
+Changing visual guidelines, logo policy or logo asset does not silently rewrite an existing `verified_final` visual or publication authorization bound to its exact media hash. New/reopened work resolves the current contract; historical finals remain bound to their recorded effective contract.
+
 ## Provider abstraction and genericity
 
-Provider adapters handle binary/media transport. Business capabilities depend on provider-qualified source/final asset identity + SHA-256 and explicit source roles/fidelity/treatment rather than provider-specific business rules.
+Provider adapters handle binary/media transport. Business capabilities depend on provider-qualified source/final/brand asset identity + SHA-256 and explicit source roles/fidelity/treatment rather than provider-specific business rules.
 
-Pilot-specific site/platform/business/visual preferences remain in user/project data; generic capability contracts remain profession-neutral and reusable.
+Pilot-specific site/platform/business/visual/logo preferences remain in user/project data; generic capability contracts remain profession-neutral and reusable.

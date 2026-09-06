@@ -19,13 +19,14 @@ The workflow semantics are the same in both modes. Distribution mode never chang
 1. Read `docs/architecture/single-skill-scope.md` for the behavioral scope and internal-capability model.
 2. Read `docs/architecture/user-command-catalog.yaml` and `docs/architecture/user-command-runtime-contract.md` for explicit command routing.
 3. Read `docs/architecture/runtime-compatibility-matrix.md` whenever the request concerns onboarding, runtime/plugin availability, prerequisites, degraded mode, media storage, image-generation availability, WordPress/social publication readiness, scheduling or status/help availability annotations.
-4. Route equivalent natural-language requests to the same capability/behavior as the explicit command catalogue.
-5. Load only the task-relevant capability contracts and supporting authorities. Do not mechanically load every packaged file.
-6. Preserve durable state, human review gates, exact publication authorization, idempotency and verification semantics defined by the packaged contracts.
+4. For any request that creates, edits, finalizes or configures article/social visuals, read `docs/architecture/visual-generation-contract.md` and, when branding/logo is relevant, `docs/architecture/brand-assets-contract.md`.
+5. Route equivalent natural-language requests to the same capability/behavior as the explicit command catalogue. Durable logo/visual-guideline requests route to `visual-configure`/`strategy-update`; one-off content requests remain content-local.
+6. Load only the task-relevant capability contracts and supporting authorities. Do not mechanically load every packaged file.
+7. Preserve durable state, human review gates, exact publication authorization, idempotency and verification semantics defined by the packaged contracts.
 
 For `/help` specifically, always read the current `user-command-catalog.yaml` and `runtime-compatibility-matrix.md` before answering. `/help` is exhaustive, not a shortlist: render every public catalogue command with its canonical syntax, grouped by family, and annotate current availability/feature-gate/prerequisite state. Never invent, rename, abbreviate or omit a public command merely to make the answer shorter.
 
-For `/status`, always read the current project/profile state and `runtime-compatibility-matrix.md` before answering. Report overall `READY|DEGRADED|BLOCKED` compatibility plus feature-specific prerequisite blockers when they can be resolved. When Telegram notifications are configured or enabled, include their non-secret configuration/health summary as defined by the status contract. `/status` itself remains read-only and must not send a Telegram test message; expose the explicit Telegram test command as the next action when a test is useful.
+For `/status`, always read the current project/profile state and `runtime-compatibility-matrix.md` before answering. Report overall `READY|DEGRADED|BLOCKED` compatibility plus feature-specific prerequisite blockers when they can be resolved. Include non-secret visual configuration summary when available: whether `visual_preferences`/`visual_identity` are configured, article logo policy, social logo policy, available logo variants and any `awaiting_brand_asset` blocker. When Telegram notifications are configured or enabled, include their non-secret configuration/health summary as defined by the status contract. `/status` itself remains read-only and must not send a Telegram test message; expose the explicit Telegram test command as the next action when a test is useful.
 
 ## Direct ChatGPT runtime
 
@@ -47,9 +48,31 @@ When a required tool is unavailable, follow `runtime-compatibility-matrix.md`: r
 
 Onboarding performs prerequisite discovery immediately. It verifies GitHub first; enumerates every implemented cloud-media provider; discovers provider plugin eligibility/installation/connection state when possible; configures/verifies a supported provider during onboarding when available; detects image-generation/editing capability; and verifies WordPress/SEO Workflow Bridge, scheduler, social adapters and optional Telegram according to the enabled scope.
 
-When image generation/editing required by the visual policy is unavailable but cloud storage is operational, use the documented manual image handoff: produce a complete external-generation prompt, ask the user to create/improve the image in an image-capable conversation/service, receive the resulting image back, then inspect/persist/normalize/verify and resume. This fallback never bypasses final-media review or publication gates.
+Visual onboarding is durable and progressive. It resolves source/fidelity/treatment under `visual_preferences`, then visual identity under `visual_identity`. When logo use is configured, **article and social are separate preferences**: never infer one from the other. It is valid for a project to use no logo on article images while always applying a logo to social-post images.
+
+When a logo exists, ask for the official source file and, when available, light/dark variants. Retain official assets privately through the active cloud-media provider according to `brand-assets-contract.md`. Never ask an image generator to recreate a missing official logo merely to complete onboarding.
+
+When the user supplies arbitrary permanent visual directions, persist them in the user-owned project authority referenced by `visual_identity.guidelines_path` (normally `strategy/visual-guidelines.md`). User creative directives override conflicting generic CMW creative defaults; generic defaults fill only unspecified dimensions. One-off article/post/image directives remain content-local.
+
+When image generation/editing required by the visual policy is unavailable but cloud storage is operational, use the documented manual image handoff: produce a complete external-generation prompt, ask the user to create/improve the base image in an image-capable conversation/service, receive the resulting image back, then inspect/persist/normalize/verify and resume. If branding is required, reserve suitable composition space in the external brief but apply the exact official logo later from verified asset bytes rather than recreating it in generation.
 
 When the user identifies an existing project repository or a repository to migrate from, inspect connected repository state before asking the user to repeat information that can be resolved from that state. Import only the project content and configuration classes the user explicitly requests; never copy generic product source, credentials or unrelated historical implementation material merely because it exists in the source repository.
+
+## Visual configuration commands
+
+The public visual configuration family is governed by `docs/architecture/capabilities/visual-configure.md`:
+
+```text
+/visual status
+/visual configure
+/visual logo
+/visual guidelines
+/logo
+```
+
+`/logo` is a convenience alias for `/visual logo`.
+
+These commands operate on user/project data, not generic Skill files. `/visual status` is read-only. Configuration/logo/guideline mutations require the same durable write/re-read verification as equivalent natural-language requests.
 
 ## Product boundary
 
@@ -61,6 +84,8 @@ Follow `docs/architecture/persistence-contract.md`, `docs/architecture/user-prof
 
 User/project values are runtime data, not generic defaults. Never expose, copy into generic resources or persist raw credentials in Git.
 
+Concrete logos, brand assets, article/social logo choices and free user visual directives are user/project data. Never package them as generic defaults.
+
 ## Help and status
 
 `/help`, `/help <command>` and `/status` are governed by the packaged command/help/runtime contracts plus `runtime-compatibility-matrix.md`. Inspection operations remain read-only unless a specific capability contract explicitly defines a bounded machine-maintained state update.
@@ -71,15 +96,30 @@ WordPress, LinkedIn and Facebook publication are optional capabilities and never
 
 Preserve the strict current media publication rule: without every required exact `verified_final` image, do not prepare/publish the WordPress article for publication and do not publish the social post. Do not silently degrade to image-less WordPress publication or text-only social publication.
 
+A logo policy is part of final-media correctness. When effective `logo_application=always`, an unbranded or AI-approximated logo image is not `verified_final`. When effective `logo_application=never`, a final containing the project logo is not compliant. `auto` may include only an official verified logo asset.
+
 The current LinkedIn/Facebook publication architecture depends on a verified WordPress-hosted `SEO Workflow Bridge`. Without that runtime, article/social authoring may continue where otherwise permitted, but current automated social publication is unavailable.
 
 `SEO Workflow Bridge` is a WordPress companion resource packaged with this skill; it is not a second OpenAI skill.
 
-## Visual sources
+## Visual sources and visual contract
 
 When the effective policy requires or prioritizes user-provided images, run the packaged `visual-source-resolve` behavior before drafting as required. Never invent a strict/high-fidelity real subject in place of unavailable user source media, and never treat source media as publication authorization.
 
-Generated images are not durable merely because they appeared in chat. They become publication-eligible only after retention in the configured supported cloud-media provider and successful final asset normalization/hash/verification.
+For every article/social visual generation or material edit:
+
+1. resolve structured source policy;
+2. resolve independent content-kind logo policy (`article` or `social`, never the other channel as fallback);
+3. load user global/channel directives from the referenced visual-guidelines authority when present;
+4. apply explicit content-local directives at higher creative priority;
+5. apply generic CMW creative defaults only to remaining unspecified dimensions;
+6. generate/review candidates;
+7. apply exact official logo composition when required/allowed;
+8. verify effective source/brand contract before `verified_final`.
+
+Generated images are not durable merely because they appeared in chat. They become publication-eligible only after retention in the configured supported cloud-media provider and successful final asset normalization/hash/brand verification.
+
+Changing a durable visual guideline/logo preference/logo asset affects future or explicitly reopened visual work. It does not silently rewrite existing `verified_final` media or publication authorization bound to exact media hashes.
 
 ## Completion
 

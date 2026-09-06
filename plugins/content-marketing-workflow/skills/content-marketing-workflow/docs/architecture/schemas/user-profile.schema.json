@@ -27,6 +27,7 @@
         "provider": {"$ref": "#/$defs/cloudMediaProvider"},
         "root_ref": {"type": ["string", "null"]},
         "site_ref": {"type": ["string", "null"]},
+        "brand_ref": {"type": ["string", "null"]},
         "articles_ref": {"type": ["string", "null"]},
         "social_ref": {"type": ["string", "null"]},
         "tmp_outbox_ref": {"type": ["string", "null"]},
@@ -79,6 +80,55 @@
         "default": {"$ref": "#/$defs/visualPolicy"},
         "article": {"$ref": "#/$defs/visualPolicyOverride"},
         "social": {"$ref": "#/$defs/visualPolicyOverride"},
+        "configured_at": {"$ref": "#/$defs/isoDateTime"},
+        "updated_at": {"$ref": "#/$defs/isoDateTime"}
+      },
+      "additionalProperties": false
+    },
+    "logoApplicationMode": {
+      "enum": ["always", "auto", "never"]
+    },
+    "logoPolicy": {
+      "type": "object",
+      "required": ["article", "social"],
+      "properties": {
+        "article": {"$ref": "#/$defs/logoApplicationMode"},
+        "social": {"$ref": "#/$defs/logoApplicationMode"}
+      },
+      "additionalProperties": false
+    },
+    "brandAsset": {
+      "type": "object",
+      "required": ["provider", "asset_id", "filename", "sha256", "mime_type"],
+      "properties": {
+        "provider": {"$ref": "#/$defs/cloudMediaProvider"},
+        "asset_id": {"type": "string", "minLength": 1},
+        "filename": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "mime_type": {"type": "string", "pattern": "^image/"},
+        "width": {"type": ["integer", "null"], "minimum": 1},
+        "height": {"type": ["integer", "null"], "minimum": 1},
+        "verified_at": {"$ref": "#/$defs/isoDateTime"},
+        "details": {"type": "object", "additionalProperties": true}
+      },
+      "additionalProperties": true
+    },
+    "visualIdentity": {
+      "type": "object",
+      "required": ["logo_policy"],
+      "properties": {
+        "guidelines_path": {"type": ["string", "null"], "minLength": 1},
+        "logo_policy": {"$ref": "#/$defs/logoPolicy"},
+        "logo_assets": {
+          "type": "object",
+          "properties": {
+            "primary": {"$ref": "#/$defs/brandAsset"},
+            "light": {"$ref": "#/$defs/brandAsset"},
+            "dark": {"$ref": "#/$defs/brandAsset"}
+          },
+          "minProperties": 1,
+          "additionalProperties": false
+        },
         "configured_at": {"$ref": "#/$defs/isoDateTime"},
         "updated_at": {"$ref": "#/$defs/isoDateTime"}
       },
@@ -262,6 +312,7 @@
           "additionalProperties": true
         },
         "visual_preferences": {"$ref": "#/$defs/visualPreferences"},
+        "visual_identity": {"$ref": "#/$defs/visualIdentity"},
         "storage": {
           "type": "object",
           "properties": {
