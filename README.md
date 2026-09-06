@@ -6,7 +6,7 @@
 
 **Content Marketing Workflow** is the canonical source repository for the reusable Content Marketing Workflow Skill and its optional Codex plugin distribution.
 
-Current version: `0.4.0`
+Current version: `0.4.1`
 
 ## Distribution model
 
@@ -53,7 +53,7 @@ Current product rules:
 
 ## Visual identity and branding
 
-Version 0.4.0 adds durable project-level visual identity and brand rules while keeping the generic Skill free of user-specific assets.
+Version 0.4.0 added durable project-level visual identity and brand rules while keeping the generic Skill free of user-specific assets. Version 0.4.1 hardens that implementation with deterministic official-logo composition, mandatory hashed effective-visual-contract revisions and provider-aware logo rebinding checks.
 
 Users can configure:
 
@@ -81,9 +81,11 @@ article: never
 social: always
 ```
 
-Official logo assets are retained privately through the selected cloud-media provider, ideally with light/dark variants when available. When branding is required, finalization must use the exact verified official logo asset; generated approximations are not accepted as official branding.
+Official logo assets are retained privately through the selected cloud-media provider, ideally with light/dark variants when available. When branding is required, finalization must use the exact verified official logo asset; generated approximations are not accepted as official branding. The bundled `scripts/logo-compose.py` helper can perform exact SHA-bound deterministic composition when the runtime can execute it.
 
 Permanent global/article/social visual directives may be stored in a user-owned project authority such as `strategy/visual-guidelines.md`. Explicit user creative directives override conflicting generic CMW creative defaults, while generic defaults fill only unspecified dimensions. One-off content instructions remain local to that article/post/image unless the user asks to make them permanent.
+
+Every durable visual review/final is bound to a deterministic `contract_revision` generated from the complete effective visual contract, preventing later preference/logo changes from silently reinterpreting an already approved asset.
 
 ## Direct installation in ChatGPT
 
