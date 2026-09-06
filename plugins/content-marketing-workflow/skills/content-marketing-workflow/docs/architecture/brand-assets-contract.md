@@ -114,6 +114,21 @@ Adapters may map this differently as long as stable provider identity is preserv
 
 Brand assets are not `tmp-outbox` delivery material and are not made public merely because they are used in public content.
 
+## Provider namespace compatibility
+
+A logo asset reference belongs to the provider namespace recorded in that asset.
+
+When the project has an active `cloud_media_storage.provider`, only logo assets verified in that same provider namespace are considered immediately usable for finalization.
+
+If the profile still points to Google Drive logo assets after switching the project to Dropbox, or vice versa:
+
+- do not reinterpret the old asset ID under the new provider;
+- return/persist a provider-rebinding blocker;
+- migrate/rebind the official logo explicitly with exact hash verification;
+- do not mark `logo_application=always` ready merely because some logo metadata exists.
+
+The deterministic resolver exposes this distinction through compatible/mismatched logo assets and `provider_rebinding_required`.
+
 ## Integrity of official brand assets
 
 An official logo is a composition asset, not a generative suggestion.
@@ -128,6 +143,43 @@ Never:
 - overwrite the user-provided original.
 
 Prefer exact composition from the verified logo bytes after or alongside base-image generation.
+
+## Deterministic composition implementation
+
+CMW bundles a credential-free deterministic compositor:
+
+```text
+scripts/logo-compose.py
+```
+
+When the runtime can execute the bundled helper, use it for official-logo composition. The helper:
+
+- requires the expected official logo SHA-256 from durable project state;
+- refuses a different logo binary;
+- never overwrites the base image or the official logo source;
+- resizes proportionally only;
+- alpha-composites the exact verified logo asset onto a separate derivative;
+- requires an explicit placement and size chosen by the effective visual contract rather than imposing one universal creative position;
+- emits base/logo/output hashes and exact composition coordinates for durable evidence.
+
+Example execution shape:
+
+```text
+python3 scripts/logo-compose.py \
+  --base <candidate> \
+  --logo <verified-official-logo> \
+  --expected-logo-sha256 <profile-sha256> \
+  --position bottom-right \
+  --margin-px <resolved-margin> \
+  --logo-width-ratio <resolved-ratio> \
+  --output <branded-derivative>
+```
+
+The example position is illustrative only; it is not a generic placement default.
+
+If the helper is unavailable, another deterministic composition path is acceptable only if it preserves the same integrity guarantees and verifies the exact official asset identity/hash. A generative redraw or approximate image edit is not an equivalent fallback.
+
+When `logo_application=always` and no safe deterministic composition path is available, finalization remains blocked rather than silently accepting an AI-recreated logo.
 
 ## Generation and composition order
 
@@ -175,6 +227,10 @@ For each content item resolve at least:
 ```yaml
 logo_application: always|auto|never
 logo_policy_source: project_article|project_social|content_local_override|legacy_unconfigured
+active_media_provider: google_drive|dropbox|null
+compatible_logo_assets: {}
+mismatched_logo_assets: {}
+provider_rebinding_required: true|false
 logo_asset_available: true|false
 logo_status: ready|awaiting_brand_asset
 ```
@@ -185,9 +241,9 @@ If `logo_application=always` and no usable official logo asset is available:
 - base visual generation may continue when useful;
 - the final visual must not reach `verified_final`;
 - publication that requires that final remains blocked;
-- ask for/locate the official logo instead of generating one.
+- ask for/locate/rebind the official logo instead of generating one.
 
-For `auto`, lack of a logo asset does not itself block finalization; the workflow simply cannot choose to apply a logo until an official asset exists.
+For `auto`, lack of a compatible logo asset does not itself block finalization; the workflow simply cannot choose to apply a logo until an official asset exists in the active provider namespace.
 
 For `never`, no logo asset is required for that content item.
 
@@ -216,12 +272,14 @@ Before `asset-ingest`/owning workflow declares a final visual `verified_final`, 
 
 1. effective article/social logo policy was resolved independently;
 2. any content-local override is persisted and applied;
-3. `always` -> an exact official verified logo is visibly present and legible;
-4. `never` -> project logo is absent;
-5. `auto` -> any included logo is an official verified asset;
-6. logo proportions/colors/integrity are preserved;
-7. actual final bytes, dimensions and hash are verified;
-8. logo asset identity/version used for the final is recoverable when a logo is present.
+3. any logo asset used belongs to the active provider namespace or was explicitly migrated/rebound and reverified;
+4. `always` -> an exact official verified logo is visibly present and legible;
+5. `never` -> project logo is absent;
+6. `auto` -> any included logo is an official verified asset;
+7. logo proportions/colors/integrity are preserved;
+8. actual final bytes, dimensions and hash are verified;
+9. logo asset identity/version used for the final is recoverable when a logo is present;
+10. the durable effective visual `contract_revision` includes the selected logo application and logo asset identity.
 
 ## References
 
@@ -233,3 +291,4 @@ Before `asset-ingest`/owning workflow declares a final visual `verified_final`, 
 - `docs/architecture/capabilities/asset-ingest.md`
 - `docs/architecture/google-drive-workspace.md`
 - `docs/architecture/dropbox-workspace.md`
+- `scripts/logo-compose.py`
