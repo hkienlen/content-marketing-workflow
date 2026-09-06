@@ -175,7 +175,11 @@ freeze effective contract_revision
 
 A raw generator output is not automatically a review proposal. The executor may create or persist internal drafts as implementation detail, but only gate-passing branded derivatives count as A/B/C when `logo_application=always`.
 
-Provider-neutral layout may retain both layers, for example:
+## Provider layout
+
+Implemented adapters are Google Drive and Dropbox. Use the selected project provider and preserve provider-qualified identities; GitHub, WordPress and local filesystem are not fallback media stores.
+
+Provider-neutral layout may retain both base and review layers, for example:
 
 ```text
 <provider-root>/<site-domain>/social/<post-name>/
