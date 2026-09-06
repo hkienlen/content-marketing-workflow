@@ -3,9 +3,10 @@
 
 This helper is intentionally credential-free. It performs deterministic profile
 inheritance/validation for source/treatment and independent article/social logo
-application, then computes the missing-source decision. Provider file resolution,
-rich prose-guideline interpretation, image inspection, logo composition and
-durable mutations remain orchestration concerns of the owning capabilities.
+application, checks logo/provider namespace compatibility, then computes the
+missing-source decision. Provider file resolution, rich prose-guideline
+interpretation, image inspection, logo composition and durable mutations remain
+orchestration concerns of the owning capabilities.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ POLICY_KEYS = (
 LOCAL_EXTRA_KEYS = ("logo_application", "visual_directives")
 LOGO_APPLICATIONS = {"always", "auto", "never"}
 LOGO_ASSET_KEYS = {"primary", "light", "dark"}
+CLOUD_MEDIA_PROVIDERS = {"google_drive", "dropbox"}
 
 ENUMS = {
     "visual_source": {
@@ -48,8 +50,6 @@ ENUMS = {
     },
 }
 
-# Backward compatibility for profiles created before explicit visual settings.
-# Source behavior preserves the historical AI-first path while configured=false.
 LEGACY_COMPATIBILITY_POLICY = {
     "visual_source": "ai_first",
     "missing_user_images_behavior": "allow_ai_generation",
@@ -58,9 +58,6 @@ LEGACY_COMPATIBILITY_POLICY = {
     "ai_treatment_directive": None,
 }
 
-# Branding did not exist in older generic profiles. Preserve the historical
-# no-logo behavior rather than unexpectedly adding a mark, but report the
-# structured identity as unconfigured so onboarding can gather the user's choice.
 LEGACY_LOGO_APPLICATION = "never"
 
 
@@ -151,10 +148,50 @@ def _validate_local_override(layer: Mapping[str, Any]) -> tuple[dict[str, Any], 
 
 def _merge(base: Mapping[str, Any], override: Mapping[str, Any]) -> dict[str, Any]:
     merged = dict(base)
-    # null directive intentionally clears an inherited free-text directive;
-    # enum fields cannot be null after validation.
     merged.update(override)
     return merged
+
+
+def _active_media_provider(project: Mapping[str, Any]) -> str | None:
+    storage = project.get("storage")
+    if storage is None:
+        return None
+    storage_map = _as_mapping(storage, "storage")
+    cloud = storage_map.get("cloud_media_storage")
+    if cloud is None:
+        return None
+    cloud_map = _as_mapping(cloud, "storage.cloud_media_storage")
+    provider = cloud_map.get("provider")
+    if provider is None:
+        return None
+    if provider not in CLOUD_MEDIA_PROVIDERS:
+        allowed = ", ".join(sorted(CLOUD_MEDIA_PROVIDERS))
+        raise VisualPolicyError(
+            f"storage.cloud_media_storage.provider must be one of: {allowed}"
+        )
+    return str(provider)
+
+
+def _validated_logo_assets(assets_raw: Any) -> dict[str, dict[str, Any]]:
+    logo_assets_map = _as_mapping(assets_raw, "visual_identity.logo_assets")
+    unknown_assets = sorted(set(logo_assets_map) - LOGO_ASSET_KEYS)
+    if unknown_assets:
+        raise VisualPolicyError(
+            "visual_identity.logo_assets contains unsupported variants: "
+            + ", ".join(unknown_assets)
+        )
+
+    logo_assets: dict[str, dict[str, Any]] = {}
+    for variant, raw in logo_assets_map.items():
+        asset = dict(_as_mapping(raw, f"visual_identity.logo_assets.{variant}"))
+        provider = asset.get("provider")
+        if provider not in CLOUD_MEDIA_PROVIDERS:
+            allowed = ", ".join(sorted(CLOUD_MEDIA_PROVIDERS))
+            raise VisualPolicyError(
+                f"visual_identity.logo_assets.{variant}.provider must be one of: {allowed}"
+            )
+        logo_assets[variant] = asset
+    return logo_assets
 
 
 def _resolve_brand_identity(
@@ -165,12 +202,13 @@ def _resolve_brand_identity(
     local_visual_directives: list[str],
 ) -> dict[str, Any]:
     identity = project.get("visual_identity")
+    active_media_provider = _active_media_provider(project)
 
     if identity is None:
         logo_application = LEGACY_LOGO_APPLICATION
         configured = False
         guidelines_path = None
-        logo_assets: dict[str, Any] = {}
+        logo_assets: dict[str, dict[str, Any]] = {}
         inheritance = ["legacy_unconfigured_no_logo"]
     else:
         identity_map = _as_mapping(identity, "visual_identity")
@@ -201,15 +239,7 @@ def _resolve_brand_identity(
         ):
             raise VisualPolicyError("visual_identity.guidelines_path must be non-empty string or null")
 
-        assets_raw = identity_map.get("logo_assets", {})
-        logo_assets_map = _as_mapping(assets_raw, "visual_identity.logo_assets")
-        unknown_assets = sorted(set(logo_assets_map) - LOGO_ASSET_KEYS)
-        if unknown_assets:
-            raise VisualPolicyError(
-                "visual_identity.logo_assets contains unsupported variants: "
-                + ", ".join(unknown_assets)
-            )
-        logo_assets = dict(logo_assets_map)
+        logo_assets = _validated_logo_assets(identity_map.get("logo_assets", {}))
 
     if local_logo_application is not None:
         logo_application = local_logo_application
@@ -218,7 +248,27 @@ def _resolve_brand_identity(
     if local_visual_directives:
         inheritance.append("content_local_visual_directives")
 
-    logo_asset_available = bool(logo_assets)
+    if active_media_provider is None:
+        compatible_logo_assets = dict(logo_assets)
+        mismatched_logo_assets: dict[str, dict[str, Any]] = {}
+    else:
+        compatible_logo_assets = {
+            variant: asset
+            for variant, asset in logo_assets.items()
+            if asset.get("provider") == active_media_provider
+        }
+        mismatched_logo_assets = {
+            variant: asset
+            for variant, asset in logo_assets.items()
+            if asset.get("provider") != active_media_provider
+        }
+
+    logo_asset_available = bool(compatible_logo_assets)
+    provider_rebinding_required = (
+        active_media_provider is not None
+        and bool(logo_assets)
+        and not logo_asset_available
+    )
     logo_status = (
         "awaiting_brand_asset"
         if logo_application == "always" and not logo_asset_available
@@ -231,6 +281,10 @@ def _resolve_brand_identity(
         "logo_application": logo_application,
         "logo_policy_source": inheritance[-1] if local_logo_application is not None else inheritance[1] if configured else inheritance[0],
         "logo_assets": logo_assets,
+        "compatible_logo_assets": compatible_logo_assets,
+        "mismatched_logo_assets": mismatched_logo_assets,
+        "active_media_provider": active_media_provider,
+        "provider_rebinding_required": provider_rebinding_required,
         "logo_asset_available": logo_asset_available,
         "logo_required_for_final": logo_application == "always",
         "logo_allowed": logo_application != "never",
@@ -298,7 +352,6 @@ def resolve_visual_policy(
             policy = _merge(policy, local_policy)
             sources.append("content_local_override")
 
-    # Validate the final source/treatment policy even for compatibility fallback.
     policy = _validate_layer(policy, "resolved_policy", require_full=True)
     policy.setdefault("ai_treatment_directive", None)
 
