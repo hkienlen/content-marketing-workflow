@@ -6,7 +6,7 @@
 
 **Content Marketing Workflow** is the canonical source repository for the reusable Content Marketing Workflow Skill and its optional Codex plugin distribution.
 
-Current version: `0.4.1`
+Current version: `0.4.2`
 
 ## Distribution model
 
@@ -53,7 +53,7 @@ Current product rules:
 
 ## Visual identity and branding
 
-Version 0.4.0 added durable project-level visual identity and brand rules while keeping the generic Skill free of user-specific assets. Version 0.4.1 hardens that implementation with deterministic official-logo composition, mandatory hashed effective-visual-contract revisions and provider-aware logo rebinding checks.
+Version 0.4.0 added durable project-level visual identity and brand rules. Version 0.4.1 added deterministic official-logo composition, mandatory hashed effective-visual-contract revisions and provider-aware logo rebinding. Version 0.4.2 closes the late-branding review gap: when social branding is `always`, A/B/C are not selectable until the exact official logo has already been deterministically composed and the branded review outputs have passed the review-ready evidence gate.
 
 Users can configure:
 
@@ -81,7 +81,7 @@ article: never
 social: always
 ```
 
-Official logo assets are retained privately through the selected cloud-media provider, ideally with light/dark variants when available. When branding is required, finalization must use the exact verified official logo asset; generated approximations are not accepted as official branding. The bundled `scripts/logo-compose.py` helper can perform exact SHA-bound deterministic composition when the runtime can execute it.
+Official logo assets are retained privately through the selected cloud-media provider, ideally with light/dark variants when available. Generated approximations are never accepted as official branding. `scripts/logo-compose.py` performs exact SHA-bound composition, while `scripts/visual-review-gate.py` verifies that an `always` review package is bound to a clean base, the expected official logo SHA, the exact branded output hash and the frozen visual contract revision before durable human selection.
 
 Permanent global/article/social visual directives may be stored in a user-owned project authority such as `strategy/visual-guidelines.md`. Explicit user creative directives override conflicting generic CMW creative defaults, while generic defaults fill only unspecified dimensions. One-off content instructions remain local to that article/post/image unless the user asks to make them permanent.
 
