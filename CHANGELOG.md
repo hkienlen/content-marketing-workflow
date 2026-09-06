@@ -4,6 +4,16 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-09-06
+
+- Added a review-ready branding gate so generated/materially transformed social A/B/C under `logo_application=always` cannot become selectable until the exact verified official logo is deterministically composed on clean base visuals.
+- Added `scripts/visual-review-gate.py` to validate the frozen `contract_revision`, clean-base inspection evidence, official-logo SHA-256, composition manifest and branded review-output SHA-256 before durable human selection.
+- Explicitly prohibited generated/project-logo approximations from surviving as selectable review candidates; raw generator outputs are now internal/base drafts until pre-review integrity gates pass.
+- Tightened the combined-review state model so `selected` / `fully_approved` cannot be reached from a visually appealing but technically non-compliant branded binary.
+- Added a targeted recovery path for already-selected visuals containing generated/unverified logos: preserve approved text and creative preference, repair only the affected visual, and request targeted re-confirmation when pixels/hash change.
+- Added regression tests for missing composition evidence, contaminated bases, wrong logo SHA, raw-output misuse and incorrect A/B/C cardinality.
+- Bumped the Skill/Codex plugin version to 0.4.2 and synchronized the canonical Skill with the plugin mirror.
+
 ## [0.4.1] - 2026-09-06
 
 - Added `scripts/logo-compose.py`, a deterministic SHA-bound official-logo compositor that preserves logo proportions, never overwrites source assets and emits exact composition/output evidence.

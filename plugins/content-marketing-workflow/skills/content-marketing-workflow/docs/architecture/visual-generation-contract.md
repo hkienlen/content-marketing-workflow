@@ -5,87 +5,34 @@ Status: normative architecture contract
 
 ## Purpose
 
-This contract defines the generic creative defaults, user-directive precedence and generation/review behavior for article and social visuals managed by Content Marketing Workflow.
-
-It generalizes proven project practice without packaging any user's brand, profession, palette, logo, wording or site-specific creative choices.
+This contract defines generic creative defaults, user-directive precedence and generation/review behavior for article and social visuals managed by Content Marketing Workflow.
 
 ## Authority layers and conflict resolution
 
-Resolve visual instructions in this order:
-
 ```text
 1. non-overridable workflow/integrity/safety invariants
-2. explicit content-local user directives for the current article/post/image
-3. channel-specific user directives (article or social)
+2. explicit content-local user directives
+3. channel-specific user directives
 4. project-global user visual directives
-5. generic CMW creative defaults from this contract
+5. generic CMW creative defaults
 6. executor interpretation
 ```
 
-User directives override conflicting **creative defaults** from the Skill.
-
-User directives do not override integrity/truthfulness invariants such as:
-
-- do not claim a file/provider object exists when it was not verified;
-- do not overwrite a user source original;
-- do not call a candidate selected without human selection when selection is required;
-- do not call media `verified_final` before exact final verification;
-- do not invent/recreate an official logo that is required;
-- do not bypass source-fidelity or publication authorization gates.
-
-When the user has no directive for a creative dimension, the generic defaults continue to apply.
+User directives override conflicting creative defaults, but never integrity/truthfulness invariants such as exact provider identity, source preservation, human-selection truth, verified-final truth, exact official-logo identity or publication authorization.
 
 ## Durable user authority
 
-Structured operational settings belong in `user-data/profile.json`, including:
-
-- source preference/fidelity/treatment under `visual_preferences`;
-- logo asset registry and independent article/social logo policy under `visual_identity`.
-
-Rich prose directives belong in the user-owned project authority:
+Structured operational settings belong in `user-data/profile.json`, including `visual_preferences` and `visual_identity`. Rich project creative directives belong in the user-owned authority normally referenced as:
 
 ```text
 strategy/visual-guidelines.md
 ```
 
-The Skill package may provide a template/contract for this file but must never package one user's concrete values.
-
-Recommended user-owned sections:
-
-```text
-Global visual direction
-Article visuals
-Social visuals
-Brand/logo placement preferences
-People and representation
-Photography/illustration preferences
-Text inside images
-Required elements
-Forbidden elements
-Free permanent directives
-```
-
-Preserve useful original user wording. Do not force every creative nuance into enums.
-
-## Scope classification
-
-Before persisting a user instruction, classify it:
-
-```text
-"from now on", "always", "for my social posts", "for my articles"
--> durable project/channel directive
-
-"for this post only", "for this article", "for image 2 only"
--> content-local directive
-```
-
-A local instruction never silently changes project defaults.
-
-When scope is explicit, do not ask again.
+One-off instructions stay local to the owning content item.
 
 ## Effective visual contract
 
-Before generation/review, the owning article/social workflow resolves a reviewable effective contract containing at least:
+Before durable generation/review, resolve and freeze at least:
 
 ```yaml
 content_kind: article|social
@@ -101,114 +48,77 @@ generic_defaults_applied: []
 contract_revision: sha256:<64 lowercase hex>
 ```
 
-The effective contract is tied to the exact content/review revision so later preference changes do not silently reinterpret an already approved visual.
+Every durably persisted proposal/review round and every `verified_final` must have a `contract_revision`; that revision is deterministic. Use `scripts/visual-contract-freeze.py` or an equivalent canonical implementation. Material contract changes create a new revision; unchanged A/B/C in one round share the same revision.
 
-### Mandatory deterministic contract revision
+## Drafts are not automatically review candidates
 
-Every **durably persisted proposal/review round and every `verified_final` visual** must have a `contract_revision`.
-
-The revision is the SHA-256 of the complete effective contract payload, excluding the `contract_revision` field itself, serialized as canonical UTF-8 JSON with sorted keys and compact separators.
-
-Use the bundled helper:
+Generated/materially transformed workflows distinguish:
 
 ```text
-scripts/visual-contract-freeze.py
+internal/base draft
+= exploratory/generated artifact before all pre-review invariants are satisfied
+
+review candidate
+= persisted/recoverable artifact eligible for durable human selection
+= already bound to exact contract_revision
+= already satisfies every invariant that can be satisfied before selection
 ```
 
-Normal flow:
+A user may discuss a draft, but the workflow must not record `selected`, `fully_approved` or equivalent durable visual approval against a draft that has not passed the relevant review-ready gates.
 
-```text
-resolve complete effective visual contract
--> freeze contract with visual-contract-freeze.py
--> persist frozen contract/revision with the review round
--> generate/compose/review against that exact revision
--> verify the same revision before verified_final
-```
-
-A material effective-contract change (source policy, project/channel/local directive, logo application, logo asset identity, or generic default actually applied) creates a **new** revision. Unchanged A/B/C candidates in the same review round share the same revision.
-
-If the helper is unavailable, an executor may compute the same canonical SHA-256 by an equivalent deterministic implementation. It must not omit the revision or substitute a conversational label, timestamp or guessed version. If a durable revision cannot be produced/verified, the workflow may draft or explore transiently but must not claim a durable review package or `verified_final`.
+For social visuals with `logo_application=always`, exact official-logo composition is such a gate. Read `docs/architecture/brand-assets-contract.md` and `docs/architecture/capabilities/social-create-visual.md`.
 
 ## Generic article creative defaults
 
-Unless the user/project/article brief says otherwise:
+Unless overridden by user/project/article directives:
 
-- prefer a realistic, credible, professional visual direction rather than generic synthetic-looking imagery;
-- photography is a strong default when it supports the concept, but it is not mandatory;
+- prefer realistic, credible, professional visuals over generic synthetic-looking imagery;
+- photography is a strong default, not mandatory;
 - avoid repetitive AI clichés and literal over-explanation;
-- support the editorial idea/ambience instead of trying to summarize the whole article in one image;
-- enforce real diversity across an article and recent related visuals by varying several dimensions such as subject, location, framing, camera distance, presence/absence of people, action, object, composition, viewpoint, lighting or metaphor;
-- do not place a person in every image; objects, places, gestures, details and concrete metaphors are encouraged when stronger;
-- when people appear, prefer natural credible posture/expression over caricatured stress, failure or enthusiasm and avoid obvious stock-photo staging;
-- absent another project rule, plan article visuals as 16:9 landscape, target 1600 x 900 px and finalize as WebP when compatible with the owning article workflow;
-- by default do not embed marketing/headline text into a photographic article image; short realistic in-scene text may be used when the exact brief justifies it;
-- generated/materially transformed visuals normally retain exactly three genuinely reviewable candidates per requested image after internal rejection/regeneration of poor outputs.
-
-These are defaults, not a mandatory visual style. A user's durable/local direction such as illustration, vector art, collage, monochrome photography or another coherent style overrides them.
+- support editorial idea/ambience instead of summarizing the whole article;
+- enforce real diversity across subject, location, framing, people/no-people, action, objects, viewpoint, light and metaphor;
+- do not put a person in every image;
+- prefer natural credible people over caricatured stress/failure/enthusiasm;
+- target 16:9 landscape, 1600 x 900 px and WebP final when compatible;
+- do not embed marketing/headline text in photographic article images by default;
+- generated/materially transformed work normally presents exactly three genuinely reviewable candidates per requested image.
 
 ## Generic social creative defaults
 
-Unless user/project/platform directives say otherwise:
+Unless overridden:
 
 ```text
-visual = hook / attention / immediate tension
+visual = hook / immediate tension
 post text = development
 linked article = deeper treatment when relevant
 ```
 
-The social visual should not mechanically reproduce the SEO title or attempt to summarize every point in the post.
+Defaults:
 
-Defaults for an autonomous LinkedIn/Facebook image post:
-
-- design for mobile readability;
-- target 4:5, 1080 x 1350 px when one master format is appropriate for the enabled channels;
-- use a short visible hook only when the concept benefits from it;
-- keep one principal visible idea rather than a paragraph of text;
-- JPEG is a good default for photographic scenes; PNG is a good default for infographics, flat graphics and text-heavy designs;
-- prefer credible people/places/objects and avoid generic corporate stock aesthetics;
-- alternate visual families across a campaign when useful: photography, professional environment without people, illustration, simple infographic, typographic visual, concrete metaphor, objects/documents/workspace or hybrid composition;
-- campaign consistency does not mean near-duplicate images; either intentionally maintain a coherent short sub-series or vary several dimensions so the difference is perceptible;
-- no generic palette, accent color or logo placement is imposed by CMW;
-- generated/materially transformed social work normally retains exactly three genuinely distinct A/B/C candidates for combined human review.
-
-Platform-specific requirements, when current and authoritative, override these format defaults without changing unrelated user directives.
+- mobile-first readability;
+- 4:5 / 1080 x 1350 when one master format is appropriate;
+- short visible hook only when useful;
+- one principal visible idea, not a paragraph;
+- JPEG for photographic scenes, PNG for infographic/flat/text-heavy designs when appropriate;
+- credible people/places/objects rather than generic corporate stock aesthetics;
+- alternate visual families across a campaign;
+- real rather than superficial variation;
+- no generic palette or logo placement imposed by CMW;
+- generated/materially transformed social work presents exactly three genuinely distinct **review-ready** A/B/C candidates.
 
 ## Diversity and repetition control
 
-Before generating a new visual set, inspect recoverable recent final visuals/briefs in the relevant project scope when available and useful.
-
-Avoid false variety where only one superficial element changes while decor, lighting, pose, composition and visual family remain effectively identical.
-
-Either:
-
-- repetition is deliberately part of a coherent short series; or
-- the new visual is materially different in multiple dimensions.
-
-Do not impose demographic quotas image by image. When people are useful, vary profiles naturally across the broader content set when that improves realism and diversity.
+Inspect recoverable recent finals/briefs when useful. Either repetition is intentional as a short coherent series or the new visual differs materially on several dimensions. Do not impose demographic quotas image by image.
 
 ## Text in images
 
-Text is optional, not automatic.
-
-When text is used:
-
-- keep it short and readable on the target device;
-- preserve exact spelling and user-approved wording;
-- avoid sensationalist/clickbait phrasing unless explicitly part of the user's strategy;
-- do not invent third-party brands/logos;
-- ensure important factual information also exists in accessible page/post text when required.
+Text is optional. When used, keep it short/readable, preserve exact wording, avoid sensationalist phrasing, do not invent third-party branding, and ensure important factual information also exists in accessible page/post text when required.
 
 ## Brand/logo integration
 
-Logo behavior is not a generic creative default. It is resolved from `visual_identity.logo_policy` independently for `article` and `social`, then any content-local override.
+Logo behavior is resolved from `visual_identity.logo_policy` independently for article/social plus any local override.
 
-Read and apply:
-
-```text
-docs/architecture/brand-assets-contract.md
-```
-
-The generative model may reserve composition space, but an official logo should normally be applied deterministically from the verified brand asset rather than recreated by generation.
+The generative model may reserve space, but official branding must not be recreated by generation. For `logo_application=always`, generation prompts should explicitly exclude project logo/brand signature from the base; contaminated bases are rejected/repaired before official deterministic composition.
 
 ## Proposal workflow
 
@@ -217,56 +127,43 @@ For generated/materially transformed visuals:
 ```text
 resolve effective visual contract
 -> freeze mandatory contract_revision
--> prepare exact brief(s)
--> generate internally as needed
--> inspect/reject off-brief, generic, duplicated or malformed outputs
--> retain exactly three strong reviewable candidates per visual group
--> persist/recover candidates through configured cloud-media provider
+-> prepare exact briefs
+-> generate internal/base drafts as needed
+-> inspect/reject off-brief, duplicate, malformed or integrity-incompatible drafts
+-> satisfy channel-specific pre-review gates
+-> retain exactly three strong review-ready candidates
+-> persist/recover candidates through configured cloud provider
 -> present grouped human review
 ```
 
-The executor may generate more internal drafts to obtain three good review candidates; extra rejected drafts are not review candidates.
+For social `logo_application=always`, the channel-specific pre-review gate is:
 
-For exact `use_as_is + ai_treatment:none`, present the exact source/final candidate instead of fabricating A/B/C.
+```text
+clean base with no generated project branding
+-> deterministic exact official-logo composition
+-> visual-review-gate validation
+-> review candidate
+```
+
+Use `scripts/visual-review-gate.py` or an equivalent deterministic validator before claiming a durable/selectable review package is ready.
+
+For exact `use_as_is + ai_treatment:none`, present the exact source/final candidate instead of fabricating A/B/C, subject to applicable branding policy.
 
 ## Targeted review and freeze
 
-Human review may approve/reject/revise text and visuals independently.
+Human review may approve/reject/revise text and visuals independently. Preserve approved components during targeted revisions. A new generation round preserves unaffected approved source/text/logo policy unless reopened. Effective-contract changes require a new frozen revision.
 
-- preserve approved components during targeted revisions;
-- criticizing one candidate does not alter the others;
-- changing only a background under strict/high source fidelity must preserve the real subject as required;
-- a new generation round preserves unaffected approved source/text/logo policy unless explicitly reopened;
-- a permanent directive change affects future/new revisions, not already final media automatically;
-- if an effective-contract input changes, freeze a new `contract_revision` before persisting the next durable review round.
+When a previously selected visual later fails a pre-review invariant (for example a generated logo was baked into the pixels), preserve approved text and conceptual creative preference but revoke the technical durable visual-selection claim. Repair/regenerate only what is necessary and ask for targeted re-confirmation when pixels change. Do not falsely claim exact pixel recovery when no clean source exists.
 
 ## Free user directives
 
-Users may provide arbitrary visual instructions in natural language. Examples of supported categories include:
-
-- preferred/forbidden artistic styles;
-- people/no-people preferences;
-- preferred environments, objects or metaphors;
-- palette/color restrictions;
-- realism level;
-- text density;
-- brand tone;
-- prohibited clichés;
-- accessibility/readability preferences;
-- placement preferences;
-- seasonal/campaign exceptions.
-
-When the user explicitly makes a directive permanent, persist it in the project visual-guidelines authority with its scope and apply it to all future affected generation/revision until changed.
-
-When a directive is one-off, persist it only with the owning content item.
+Arbitrary permanent or local visual instructions are supported, including styles, people/no-people, environments, objects/metaphors, palette restrictions, realism, text density, placement, prohibited clichés, readability and campaign exceptions. Persist permanent directives in project visual guidelines; keep one-off directives local.
 
 ## Finalization and historical binding
 
-A selected final records enough effective-contract evidence to reproduce/explain the decision, including the logo application outcome and logo asset identity when present.
+A selected final records enough effective-contract evidence to explain source, directives, logo outcome and logo identity when present. Every durable final re-verifies its exact `contract_revision`.
 
-Every durable final records and re-verifies its exact `contract_revision`; `when available` is not sufficient for `verified_final`.
-
-Changing project visual guidelines or replacing a logo does not silently mutate historical `verified_final` assets or scheduled/publication authorizations bound to exact media hashes.
+Changing project guidelines or replacing a logo does not silently mutate historical `verified_final` assets or scheduled/publication authorizations bound to exact media hashes.
 
 ## References
 
@@ -276,6 +173,9 @@ Changing project visual guidelines or replacing a logo does not silently mutate 
 - `docs/architecture/capabilities/visual-configure.md`
 - `docs/architecture/capabilities/visual-source-resolve.md`
 - `docs/architecture/capabilities/asset-ingest.md`
+- `docs/architecture/capabilities/social-create-visual.md`
+- `docs/architecture/social-post-review-loop.md`
 - `docs/architecture/article-execution-checklist.md`
 - `docs/architecture/social-execution-checklist.md`
 - `scripts/visual-contract-freeze.py`
+- `scripts/visual-review-gate.py`
