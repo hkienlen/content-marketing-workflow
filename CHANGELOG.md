@@ -4,6 +4,16 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.4.7] - 2026-09-07
+
+- Fixed direct-ChatGPT `/social create` compatibility when the image-generation surface automatically renders raw generated images in chat.
+- Distinguished transient tool-rendered base output from a workflow review presentation: transient visibility has no A/B/C, selection or approval semantics.
+- Restored automatic continuation through base generation -> exact-asset retention -> deterministic official-logo composition -> branded A/B/C review, preserving the single human visual approval gate introduced in 0.4.4.
+- Clarified `direct_asset_output_available` as exact generated-binary/reference recoverability, independent of UI rendering behavior.
+- Added the precise `generated_base_retention_unavailable` blocker for runtimes that truly cannot expose the generated base for required downstream deterministic composition.
+- Added regression coverage proving that visible tool output does not cause fail-closed behavior or an extra human approval step.
+- Bumped the Skill/Codex plugin version to 0.4.7 and synchronized the canonical Skill with the plugin mirror.
+
 ## [0.4.6] - 2026-09-07
 
 - Added the active CMW project GitHub repository (`owner/repo`) to `/status` runtime/project identity output.

@@ -32,7 +32,7 @@ When effective `logo_application=always`:
 - the clean base must have passed the no-generated-project-branding inspection;
 - `scripts/visual-review-gate.py` or equivalent evidence validation must pass before the combined review is called durable/selectable.
 
-An unbranded base or a visual containing generated/unverified project branding remains internal and is not shown in the normal review flow. It may be exposed only when the user explicitly asks to inspect/debug intermediate generation artifacts, and it must never receive durable selection or combined approval.
+An unbranded base or a visual containing generated/unverified project branding is never part of the normal **review package**. A runtime may nevertheless render a generator result transiently as an unavoidable tool-side effect. That visibility is not a review presentation: do not label the base A/B/C, do not ask the user to validate/choose it, and do not attach durable selection or combined approval to it. Continue automatically until the branded review-ready package exists. Explicit debug inspection remains allowed, with the same no-approval semantics.
 
 ## First review package
 
@@ -43,6 +43,10 @@ The first normal review contains in the same response:
 3. compliant visual package;
 4. concise visual role/difference notes when useful;
 5. explicit guidance telling the user what can be validated/revised.
+
+### Transient tool output is not a review gate
+
+A conversational surface may display raw generated bases before CMW can brand/package them. Those displays are implementation/tool output only. They do not count toward the “exactly three review-ready A/B/C” requirement and must not create an extra human interaction. The first requested visual decision remains the branded A/B/C package.
 
 ### Generated/materially transformed package
 

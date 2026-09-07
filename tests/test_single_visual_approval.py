@@ -5,16 +5,16 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills" / "content-marketing-workflow"
 
 class SingleSocialVisualApprovalTests(unittest.TestCase):
-    def test_clean_bases_are_internal_and_branded_candidates_are_first_review(self):
+    def test_clean_bases_are_not_review_candidates_and_branded_candidates_are_first_review(self):
         social = (SKILL / "docs" / "architecture" / "capabilities" / "social-create-visual.md").read_text()
         review = (SKILL / "docs" / "architecture" / "social-post-review-loop.md").read_text()
         checklist = (SKILL / "docs" / "architecture" / "social-execution-checklist.md").read_text()
         entrypoint = (SKILL / "SKILL.md").read_text()
-        self.assertIn("strictly internal implementation artifact", social)
-        self.assertIn("not asked to approve an unbranded base", social)
+        self.assertIn("transient tool rendering is not a review presentation", social)
+        self.assertIn("must not ask the user to choose/validate it", social)
         self.assertIn("one visual approval gate", review)
         self.assertIn("no intermediate approval of unbranded clean bases", checklist)
-        self.assertIn("do not show or ask the user to approve those bases", entrypoint)
+        self.assertIn("never present them as review candidates or ask the user to approve them", entrypoint)
 
     def test_branded_selection_is_visual_approval_and_non_material_finalization_is_automatic(self):
         social = (SKILL / "docs" / "architecture" / "capabilities" / "social-create-visual.md").read_text()

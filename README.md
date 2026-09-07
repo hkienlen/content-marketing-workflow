@@ -6,7 +6,7 @@
 
 **Content Marketing Workflow** is the canonical source repository for the reusable Content Marketing Workflow Skill and its optional Codex plugin distribution.
 
-Current version: `0.4.6`
+Current version: `0.4.7`
 
 ## Distribution model
 

@@ -33,12 +33,11 @@ class StatusProjectRepositoryTests(unittest.TestCase):
         self.assertIn("repository_consistency: consistent|unknown|inconsistent", runtime)
         self.assertIn("Absence of any usable active project repository makes overall compatibility `BLOCKED`", runtime)
 
-    def test_046_version_is_synchronized(self):
+    def test_version_is_synchronized(self):
         root_version = (ROOT / "VERSION").read_text().strip()
         skill_version = (SKILL / "VERSION").read_text().strip()
         plugin_skill_version = (PLUGIN_SKILL / "VERSION").read_text().strip()
         manifest = json.loads((ROOT / "plugins" / "content-marketing-workflow" / ".codex-plugin" / "plugin.json").read_text())
-        self.assertEqual("0.4.6", root_version)
         self.assertEqual(root_version, skill_version)
         self.assertEqual(root_version, plugin_skill_version)
         self.assertEqual(root_version, manifest["version"])
