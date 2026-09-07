@@ -6,7 +6,7 @@
 
 **Content Marketing Workflow** is the canonical source repository for the reusable Content Marketing Workflow Skill and its optional Codex plugin distribution.
 
-Current version: `0.4.4`
+Current version: `0.4.5`
 
 ## Distribution model
 
@@ -50,6 +50,8 @@ Current product rules:
 - Current LinkedIn/Facebook automated publication depends on a verified WordPress-hosted SEO Workflow Bridge runtime.
 - GitHub Actions is required for current unattended scheduled publication.
 - Telegram remains optional and never changes publication truth.
+
+Version 0.4.5 makes `/status` self-identifying: it reports the Skill version from the `VERSION` resource embedded in the executing Skill package and reports the actual distribution mode when knowable. Remote GitHub/release metadata is explicitly not accepted as proof of the version loaded by the active conversation.
 
 ## Visual identity and branding
 

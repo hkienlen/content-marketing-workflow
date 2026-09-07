@@ -4,6 +4,16 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-09-07
+
+- Made `/status` report the version of the actually loaded Skill from the packaged `VERSION` resource beside `SKILL.md`.
+- Added explicit runtime distribution reporting: `Direct ChatGPT Skill`, `Codex plugin`, or `unknown` when the active surface cannot prove the mode.
+- Prohibited `/status` from substituting the repository root version, latest GitHub tag/release, marketplace metadata or conversation memory for the loaded runtime version.
+- Added a fail-honest `unknown` version state when the packaged version resource cannot be read.
+- Extended the `/status` response contract and command catalogue with runtime identity/version fields while preserving read-only behavior.
+- Added regression coverage for packaged-version authority, remote-version non-substitution, distribution reporting and version synchronization.
+- Bumped the Skill/Codex plugin version to 0.4.5 and synchronized the canonical Skill with the plugin mirror.
+
 ## [0.4.4] - 2026-09-07
 
 - Restored the pilot-style single visual approval UX for social posts: clean/unbranded generation bases remain internal and the first normal visual review shows only review-ready A/B/C.

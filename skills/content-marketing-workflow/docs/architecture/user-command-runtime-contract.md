@@ -254,6 +254,28 @@ For article/social creation and visual commands, detailed help must be able to s
 - rich visual-guidelines authority and user-directive precedence;
 - the fact that source/logo media never constitutes publication authorization.
 
+### `/status` runtime identity
+
+Before project/integration state, `/status` must expose the identity of the **currently executing packaged Skill**:
+
+```yaml
+runtime:
+  skill_name: content-marketing-workflow
+  skill_version: <exact trimmed packaged VERSION|unknown>
+  version_source: packaged_skill_VERSION
+  distribution: direct_chatgpt_skill|codex_plugin|unknown
+  compatibility: READY|DEGRADED|BLOCKED
+  warnings: []
+```
+
+`skill_version` is read from the `VERSION` resource packaged beside the executing `SKILL.md`. It is not resolved from the product repository root, a GitHub tag/release, marketplace metadata or conversation memory. This distinction is mandatory because the remote source may be newer than the Skill loaded by the active conversation.
+
+If the packaged version resource cannot be read, return `skill_version: unknown`, retain `version_source: packaged_skill_VERSION`, and add an explicit warning. Never silently substitute a remotely discovered version.
+
+`distribution` is derived only from real runtime context: `direct_chatgpt_skill` for a directly installed/uploaded ChatGPT Skill, `codex_plugin` for the mirrored Skill executing through the Codex plugin, otherwise `unknown`.
+
+`/status` remains read-only: reading packaged runtime metadata does not authorize installation, refresh, repository writes or any other mutation.
+
 ### `/status` and `/visual status`
 
 At minimum the visual portion must be representable as:
