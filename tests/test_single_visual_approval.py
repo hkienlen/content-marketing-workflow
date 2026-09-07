@@ -11,7 +11,7 @@ class SingleSocialVisualApprovalTests(unittest.TestCase):
         checklist = (SKILL / "docs" / "architecture" / "social-execution-checklist.md").read_text()
         entrypoint = (SKILL / "SKILL.md").read_text()
         self.assertIn("strictly internal implementation artifact", social)
-        self.assertIn("not asked to approve an unbranded base", social)
+        self.assertIn("must not ask the user to choose/validate it", social)
         self.assertIn("one visual approval gate", review)
         self.assertIn("no intermediate approval of unbranded clean bases", checklist)
         self.assertIn("do not show or ask the user to approve those bases", entrypoint)
