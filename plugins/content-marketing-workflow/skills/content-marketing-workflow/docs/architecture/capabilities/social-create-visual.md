@@ -18,7 +18,7 @@ For generated/materially transformed social visuals, distinguish two artifact cl
 ```text
 base draft
 = internal/generated visual before official branding
-= may be inspected/discussed transiently
+= strictly internal implementation artifact; not shown to the user in the normal workflow
 = never an A/B/C selectable review candidate when logo_application=always
 
 review candidate
@@ -29,7 +29,7 @@ review candidate
 
 When effective `logo_application=always`, **every A/B/C review candidate must already contain the exact verified official logo applied by deterministic composition**. There is no `when technically possible` exception for a durable/selectable review package.
 
-If official-logo composition cannot be completed, base generation may continue for exploration, but the workflow must not persist/present the outputs as selectable A/B/C, must not record a durable visual selection, and must not set combined review to fully approved.
+If official-logo composition cannot be completed, base generation may continue internally for exploration, but the workflow must not present those base drafts to the user as a normal review step, must not persist/present them as selectable A/B/C, must not record a durable visual selection, and must not set combined review to fully approved.
 
 ## Capability contract
 
@@ -198,7 +198,7 @@ freeze effective contract_revision
 -> asset-ingest / verified_final
 ```
 
-A raw generator output is not automatically a review proposal. The executor may create or persist internal drafts as implementation detail, but only gate-passing branded derivatives count as A/B/C when `logo_application=always`.
+A raw generator output is not automatically a review proposal. The executor may create or persist internal drafts as implementation detail, but those clean bases stay internal in the normal user journey. Only gate-passing branded derivatives count as A/B/C when `logo_application=always`; the user is not asked to approve an unbranded base before seeing the branded A/B/C package.
 
 ## Provider layout
 
@@ -241,6 +241,8 @@ Generated/materially transformed mode shows full post text + exactly three revie
 
 For `logo_application=always`, the candidate shown and selected by the user is the actual official-logo composition. The visual state must not claim `selected`, `visual_approved_text_pending`, `fully_approved`, or an equivalent durable visual approval when the displayed candidate failed the review-ready brand gate.
 
+The explicit selection of one review-ready branded A/B/C candidate is the human visual approval for that visual revision. Normal non-material finalization after that selection must proceed automatically and must not ask for a second visual approval. A targeted re-confirmation is required only when finalization would materially alter what the user selected, such as a meaningful crop, logo reposition/variant change, visible-text change, creative retouch or other perceptible composition change.
+
 Text approval remains independently preservable during a branding repair.
 
 ## Recovery of an already selected non-compliant candidate
@@ -258,9 +260,9 @@ This recovery path is for already-selected/historically valuable pixels. It does
 
 ## Finalization
 
-After a compliant human selection, invoke `asset-ingest`.
+After a compliant human selection, invoke `asset-ingest` automatically. Do not introduce another approval gate for normalization, encoding, naming, hashing, provider storage or metadata work that preserves the selected visible composition.
 
-Before `verified_final` verify normalization, source fidelity/provenance, effective social logo rule, exact official logo identity/version, exact final bytes/hash and the same effective-contract revision.
+Before `verified_final` verify normalization, source fidelity/provenance, effective social logo rule, exact official logo identity/version, exact final bytes/hash and the same effective-contract revision. If finalization cannot preserve the reviewed visual materially, stop before `verified_final`, produce the narrowest required changed candidate and request targeted re-confirmation of that changed visual only.
 
 ## Resume/idempotency
 

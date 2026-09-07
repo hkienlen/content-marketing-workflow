@@ -4,6 +4,15 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-09-07
+
+- Restored the pilot-style single visual approval UX for social posts: clean/unbranded generation bases remain internal and the first normal visual review shows only review-ready A/B/C.
+- Made selection of one compliant branded A/B/C candidate the human visual approval for that revision.
+- Removed the redundant post-finalization approval step for non-material normalization, encoding, naming, hashing, cloud storage and metadata operations.
+- Added a material-change boundary: meaningful crop/reframe, logo placement/variant changes, visible-text edits, creative retouch or other perceptible composition changes require targeted re-confirmation of only the changed visual.
+- Added regression coverage enforcing one normal social visual approval gate while preserving exact-logo and deterministic finalization safeguards.
+- Bumped the Skill/Codex plugin version to 0.4.4 and synchronized the canonical Skill with the plugin mirror.
+
 ## [0.4.3] - 2026-09-06
 
 - Added a strict generator-input boundary: the image model receives a brand-isolated base-generation brief instead of the full effective visual contract or official-logo identity/provider/hash metadata.

@@ -115,10 +115,12 @@ For every article/social visual generation or material edit:
 5. apply generic CMW creative defaults only to remaining unspecified dimensions;
 6. freeze the effective visual contract;
 7. when a generated base will later receive project branding, derive a **brand-isolated base-generation brief** rather than passing the full effective contract or logo identity to the image model;
-8. generate and inspect clean base drafts; for disposable pure-AI bases, reject/regenerate accidental pseudo-branding by default instead of starting a logo-removal edit cycle;
+8. generate and inspect clean base drafts internally; do not show or ask the user to approve those bases in the normal workflow; for disposable pure-AI bases, reject/regenerate accidental pseudo-branding by default instead of starting a logo-removal edit cycle;
 9. when required/allowed, compose the exact official logo **before human review** and validate the branded review candidates;
 10. present only review-ready candidates for durable human selection;
 11. verify effective source/brand contract before `verified_final`.
+
+For social posts, selecting a review-ready branded A/B/C candidate is the human visual approval for that revision. Non-material finalization after selection proceeds automatically and must not create a second visual-approval step. Re-open only the changed visual for targeted confirmation when finalization materially changes what the user reviewed.
 
 Generated images are not durable merely because they appeared in chat. They become publication-eligible only after retention in the configured supported cloud-media provider and successful final asset normalization/hash/brand verification.
 

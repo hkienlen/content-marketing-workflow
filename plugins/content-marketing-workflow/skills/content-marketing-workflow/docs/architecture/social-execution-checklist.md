@@ -90,7 +90,7 @@ When visual required:
 - candidate diversity is real unless deliberate short-series coherence is documented;
 - for generated work, derive a **brand-isolated base-generation brief** before invoking the image model; do not pass the complete effective contract, official-logo identity, provider IDs/hashes or logo-placement instruction to the generator;
 - translate final logo-placement preferences only into neutral reserved composition space for base generation;
-- generated outputs are **base drafts, not A/B/C review candidates** until every pre-review invariant is satisfied;
+- generated outputs are **base drafts, not A/B/C review candidates** until every pre-review invariant is satisfied; in the normal user journey these bases remain internal and are not shown for approval;
 - base-generation brief explicitly excludes project logos, pseudo-logos, brand signatures and watermarks;
 - for a disposable pure-AI base, accidental/generated project branding causes reject/regenerate by default rather than a normal logo-removal edit cycle;
 - targeted repair is reserved for source-dependent/user-owned/recovery cases where preserving existing pixels materially matters;
@@ -118,6 +118,8 @@ First normal review presents in one response:
 - A/B/C when alternatives were generated/materially transformed;
 - or exact user source/final candidate when `use_as_is` applies;
 - the actual official-logo composition when effective `always` policy requires branded final;
+- no intermediate approval of unbranded clean bases before this combined review;
+- choosing one compliant branded A/B/C is the human visual approval for that revision;
 - explicit guidance telling user what may be approved/revised, including changing source/treatment/local visual rule where relevant.
 
 Track at least:
@@ -146,6 +148,8 @@ Every review round binds exact text revision + exact source/proposal identities 
 - one exact proposal/source is explicitly human selected/validated;
 - full-quality bytes resolved;
 - final normalized to current social dimensions/format policy without overwriting source original;
+- non-material normalization/encoding/storage after selection proceeds without a second human approval request;
+- if finalization requires a material visible change, stop before `verified_final` and request targeted re-confirmation of the changed visual only;
 - effective `logo_policy.social` plus any post-local override rechecked;
 - `logo_application=always` -> official verified logo visibly present, legible and integrity-preserving;
 - `logo_application=never` -> project logo absent;
