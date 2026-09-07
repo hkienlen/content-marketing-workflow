@@ -1,0 +1,222 @@
+name: Apply status project repository patch
+
+on:
+  push:
+    branches:
+      - fix/status-project-repository
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/status-project-repository
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply 0.4.6 status repository contract
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import textwrap
+
+          ROOT = Path('.')
+          SKILL = ROOT / 'skills' / 'content-marketing-workflow'
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'missing expected text in {p}: {old[:180]!r}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          # SKILL entrypoint.
+          p = SKILL / 'SKILL.md'
+          old = "For `/status`, first read this installed Skill's packaged `VERSION` resource (the `VERSION` file beside `SKILL.md`) and report that exact trimmed value as the runtime Skill version. Also report the active distribution mode when it is actually knowable from the execution context: `Direct ChatGPT Skill`, `Codex plugin`, or `unknown`. Never infer the loaded runtime version from the product repository root `VERSION`, a GitHub tag/release, marketplace metadata, conversation memory or a newer remote source; if the packaged `VERSION` resource cannot be read, report the Skill version as `unknown` with a warning rather than substituting an external version. Then read the current project/profile state and `runtime-compatibility-matrix.md`. Report overall `READY|DEGRADED|BLOCKED` compatibility plus feature-specific prerequisite blockers when they can be resolved."
+          new = "For `/status`, first read this installed Skill's packaged `VERSION` resource (the `VERSION` file beside `SKILL.md`) and report that exact trimmed value as the runtime Skill version. Also report the active distribution mode when it is actually knowable from the execution context: `Direct ChatGPT Skill`, `Codex plugin`, or `unknown`. Never infer the loaded runtime version from the product repository root `VERSION`, a GitHub tag/release, marketplace metadata, conversation memory or a newer remote source; if the packaged `VERSION` resource cannot be read, report the Skill version as `unknown` with a warning rather than substituting an external version. Then read the current durable project/profile state, resolve `active_project_id`, and report that active project's `repository.full_name` as `Dépôt projet GitHub`/the active project repository. This is the GitHub repository CMW is operating on, not this product repository. Never use `hkienlen/content-marketing-workflow`, a marketplace source repository, or conversation memory as a fallback project repository merely because the Skill came from there. If the active project repository cannot be proven from durable project state or an exact already-resolved active repository, report it as `unknown`; if no usable project repository exists, the hard GitHub prerequisite makes compatibility `BLOCKED`. If durable project repository identity and the exact active repository observed from connected GitHub tooling disagree, report the mismatch as `STATE_INCONSISTENT`/a blocking warning and do not silently choose either identity. Then read `runtime-compatibility-matrix.md`. Report overall `READY|DEGRADED|BLOCKED` compatibility plus feature-specific prerequisite blockers when they can be resolved."
+          replace_once(p, old, new)
+
+          # Catalogue summary.
+          p = SKILL / 'docs/architecture/user-command-catalog.yaml'
+          replace_once(
+              p,
+              '    summary: Show the loaded Skill runtime identity/version plus a read-only overview of durable project, integration, notification and workflow state.',
+              '    summary: Show the loaded Skill runtime identity/version, active project GitHub repository, and a read-only overview of durable project, integration, notification and workflow state.'
+          )
+
+          # System behavior.
+          p = SKILL / 'docs/architecture/user-command-system-behaviors.md'
+          old = """Content Marketing Workflow
+Version Skill: 0.x.y
+Distribution: Direct ChatGPT Skill | Codex plugin | unknown
+Compatibility: READY | DEGRADED | BLOCKED
+```"""
+          new = """Content Marketing Workflow
+Version Skill: 0.x.y
+Distribution: Direct ChatGPT Skill | Codex plugin | unknown
+Dépôt projet GitHub: owner/repository | unknown
+Compatibility: READY | DEGRADED | BLOCKED
+```"""
+          replace_once(p, old, new)
+
+          marker = "Determine `Distribution` only from the actual execution context. Use `Direct ChatGPT Skill` for a directly uploaded/installed ChatGPT Skill, `Codex plugin` for the mirrored Skill executing inside that plugin, and `unknown` when the surface does not expose enough evidence. Do not infer distribution merely from the existence of plugin files in GitHub.\n\nCompatibility remains derived from `runtime-compatibility-matrix.md`:"
+          replacement = "Determine `Distribution` only from the actual execution context. Use `Direct ChatGPT Skill` for a directly uploaded/installed ChatGPT Skill, `Codex plugin` for the mirrored Skill executing inside that plugin, and `unknown` when the surface does not expose enough evidence. Do not infer distribution merely from the existence of plugin files in GitHub.\n\n`Dépôt projet GitHub` identifies the **active CMW project repository**, not the repository that distributes the Skill. Its primary durable authority is `projects[active_project_id].repository.full_name` from the active user/project profile. When that durable value is unavailable, an exact repository already resolved as the active project by the current runtime may be reported with an explicit evidence/source note; conversation memory and the product/marketplace source repository are not valid fallbacks. In particular, never display `hkienlen/content-marketing-workflow` merely because CMW was installed from that repository. If the active project repository cannot be proven, display `unknown`. If no usable project repository exists, compatibility is `BLOCKED` under the hard GitHub prerequisite. If durable repository identity conflicts with the exact repository observed from current connected GitHub tooling, report the discrepancy and `STATE_INCONSISTENT`/blocking status rather than silently selecting one.\n\nCompatibility remains derived from `runtime-compatibility-matrix.md`:"
+          replace_once(p, marker, replacement)
+
+          # Runtime response contract.
+          p = SKILL / 'docs/architecture/user-command-runtime-contract.md'
+          old = """runtime:
+  skill_name: content-marketing-workflow
+  skill_version: <exact trimmed packaged VERSION|unknown>
+  version_source: packaged_skill_VERSION
+  distribution: direct_chatgpt_skill|codex_plugin|unknown
+  compatibility: READY|DEGRADED|BLOCKED
+  warnings: []
+```"""
+          new = """runtime:
+  skill_name: content-marketing-workflow
+  skill_version: <exact trimmed packaged VERSION|unknown>
+  version_source: packaged_skill_VERSION
+  distribution: direct_chatgpt_skill|codex_plugin|unknown
+  compatibility: READY|DEGRADED|BLOCKED
+  warnings: []
+project:
+  github_repository: <owner/repository|unknown>
+  github_repository_source: active_project_profile|resolved_active_repository|unknown
+  repository_consistency: consistent|unknown|inconsistent
+```"""
+          replace_once(p, old, new)
+
+          marker = "`distribution` is derived only from real runtime context: `direct_chatgpt_skill` for a directly installed/uploaded ChatGPT Skill, `codex_plugin` for the mirrored Skill executing through the Codex plugin, otherwise `unknown`.\n\n`/status` remains read-only: reading packaged runtime metadata does not authorize installation, refresh, repository writes or any other mutation."
+          replacement = "`distribution` is derived only from real runtime context: `direct_chatgpt_skill` for a directly installed/uploaded ChatGPT Skill, `codex_plugin` for the mirrored Skill executing through the Codex plugin, otherwise `unknown`.\n\n`project.github_repository` identifies the active CMW project repository. Prefer `projects[active_project_id].repository.full_name` from durable project/profile state and set `github_repository_source: active_project_profile`. If that durable value is unavailable but the current runtime has already resolved one exact repository as the active project according to the onboarding/persistence contracts, it may be reported with `github_repository_source: resolved_active_repository`. Never use the CMW product repository, a marketplace/source repository, or conversation memory as a fallback. If the value cannot be proven, return `unknown`. When durable project identity and the exact current GitHub repository evidence disagree, set `repository_consistency: inconsistent`, surface `STATE_INCONSISTENT`, and do not silently choose one repository. Absence of any usable active project repository makes overall compatibility `BLOCKED`.\n\n`/status` remains read-only: reading packaged runtime/project metadata does not authorize installation, refresh, repository writes or any other mutation."
+          replace_once(p, marker, replacement)
+
+          # Direct ChatGPT runtime contract.
+          p = SKILL / 'docs/architecture/chatgpt-skill-runtime.md'
+          marker = "This runtime-identity read is side-effect free and does not refresh/reinstall the Skill.\n\n## `/start` in direct ChatGPT"
+          replacement = "This runtime-identity read is side-effect free and does not refresh/reinstall the Skill.\n\n`/status` must also identify the active project GitHub repository. Resolve the active project from durable profile state (`active_project_id`) and report `projects[active_project_id].repository.full_name`. That value describes the repository CMW operates on and is distinct from the CMW product/marketplace source repository. If durable project identity is unavailable, report an exact already-resolved active repository only when current runtime evidence proves it; otherwise report `unknown`. Never use `hkienlen/content-marketing-workflow` merely because the Skill package came from that repository. A conflict between durable and live repository identity is a read-only inconsistency/blocker, not permission to rewrite the profile.\n\n## `/start` in direct ChatGPT"
+          replace_once(p, marker, replacement)
+
+          # User-profile contract: explicit status authority.
+          p = SKILL / 'docs/architecture/user-profile-data-contract.md'
+          marker = "User/project data includes:\n\n- profile/project IDs;\n- GitHub repository identity/default branch;"
+          replacement = "User/project data includes:\n\n- profile/project IDs;\n- GitHub repository identity/default branch;"
+          # Keep existing list, then add normative paragraph after it.
+          text = p.read_text(encoding='utf-8')
+          if marker not in text:
+              raise SystemExit('profile marker missing')
+          insert_after = "- GitHub repository identity/default branch;"
+          text = text.replace(insert_after, insert_after + "\n\nFor `/status`, the primary durable authority for the active project repository name is `projects[active_project_id].repository.full_name`. This user/project value must never be replaced by the CMW product repository or marketplace source repository simply because that is where the Skill was installed from.", 1)
+          p.write_text(text, encoding='utf-8')
+
+          # Version bump.
+          (ROOT / 'VERSION').write_text('0.4.6\n', encoding='utf-8')
+          (SKILL / 'VERSION').write_text('0.4.6\n', encoding='utf-8')
+
+          # README.
+          p = ROOT / 'README.md'
+          replace_once(p, 'Current version: `0.4.5`', 'Current version: `0.4.6`')
+          marker = "Version 0.4.5 makes `/status` self-identifying: it reports the Skill version from the `VERSION` resource embedded in the executing Skill package and reports the actual distribution mode when knowable. Remote GitHub/release metadata is explicitly not accepted as proof of the version loaded by the active conversation."
+          replacement = marker + " Version 0.4.6 also reports the active CMW project GitHub repository from durable `projects[active_project_id].repository.full_name` state (or exact already-resolved runtime evidence), explicitly separating the project repository from the CMW product/marketplace source repository."
+          replace_once(p, marker, replacement)
+
+          # Changelog.
+          p = ROOT / 'CHANGELOG.md'
+          text = p.read_text(encoding='utf-8')
+          marker = '## [Unreleased]\n\n'
+          entry = """## [0.4.6] - 2026-09-07\n\n- Added the active CMW project GitHub repository (`owner/repo`) to `/status` runtime/project identity output.\n- Made `projects[active_project_id].repository.full_name` the primary durable authority for the repository CMW operates on.\n- Explicitly separated the active project repository from the CMW product/marketplace source repository; the latter is never a fallback merely because the Skill was installed from it.\n- Added `unknown` behavior when the active project repository cannot be proven and fail-closed `STATE_INCONSISTENT` reporting when durable and current exact repository evidence disagree.\n- Reaffirmed that no usable project GitHub repository means overall CMW compatibility is `BLOCKED`.\n- Added regression coverage for active-project repository authority, product-repository non-substitution, unknown/inconsistency behavior and version synchronization.\n- Bumped the Skill/Codex plugin version to 0.4.6 and synchronized the canonical Skill with the plugin mirror.\n\n"""
+          if marker not in text:
+              raise SystemExit('CHANGELOG marker missing')
+          p.write_text(text.replace(marker, marker + entry, 1), encoding='utf-8')
+
+          # Plugin manifest version.
+          p = ROOT / 'plugins/content-marketing-workflow/.codex-plugin/plugin.json'
+          data = json.loads(p.read_text(encoding='utf-8'))
+          data['version'] = '0.4.6'
+          p.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          # Regression test.
+          test = textwrap.dedent(r'''
+              import json
+              import unittest
+              from pathlib import Path
+
+              ROOT = Path(__file__).resolve().parents[1]
+              SKILL = ROOT / "skills" / "content-marketing-workflow"
+              PLUGIN_SKILL = ROOT / "plugins" / "content-marketing-workflow" / "skills" / "content-marketing-workflow"
+
+
+              class StatusProjectRepositoryTests(unittest.TestCase):
+                  def test_status_exposes_active_project_repository(self):
+                      entrypoint = (SKILL / "SKILL.md").read_text()
+                      behaviors = (SKILL / "docs" / "architecture" / "user-command-system-behaviors.md").read_text()
+                      runtime = (SKILL / "docs" / "architecture" / "user-command-runtime-contract.md").read_text()
+                      profile = (SKILL / "docs" / "architecture" / "user-profile-data-contract.md").read_text()
+
+                      self.assertIn("`repository.full_name` as `Dépôt projet GitHub`", entrypoint)
+                      self.assertIn("Dépôt projet GitHub: owner/repository | unknown", behaviors)
+                      self.assertIn("github_repository: <owner/repository|unknown>", runtime)
+                      self.assertIn("projects[active_project_id].repository.full_name", profile)
+
+                  def test_product_repo_is_not_project_repo_fallback(self):
+                      entrypoint = (SKILL / "SKILL.md").read_text()
+                      behaviors = (SKILL / "docs" / "architecture" / "user-command-system-behaviors.md").read_text()
+                      direct = (SKILL / "docs" / "architecture" / "chatgpt-skill-runtime.md").read_text()
+
+                      self.assertIn("Never use `hkienlen/content-marketing-workflow`", entrypoint)
+                      self.assertIn("never display `hkienlen/content-marketing-workflow` merely because", behaviors)
+                      self.assertIn("Never use `hkienlen/content-marketing-workflow` merely because", direct)
+
+                  def test_unknown_and_inconsistent_states_are_fail_closed(self):
+                      entrypoint = (SKILL / "SKILL.md").read_text()
+                      runtime = (SKILL / "docs" / "architecture" / "user-command-runtime-contract.md").read_text()
+
+                      self.assertIn("report it as `unknown`", entrypoint)
+                      self.assertIn("`STATE_INCONSISTENT`", entrypoint)
+                      self.assertIn("repository_consistency: consistent|unknown|inconsistent", runtime)
+                      self.assertIn("Absence of any usable active project repository makes overall compatibility `BLOCKED`", runtime)
+
+                  def test_046_version_is_synchronized(self):
+                      root_version = (ROOT / "VERSION").read_text().strip()
+                      skill_version = (SKILL / "VERSION").read_text().strip()
+                      plugin_skill_version = (PLUGIN_SKILL / "VERSION").read_text().strip()
+                      manifest = json.loads((ROOT / "plugins" / "content-marketing-workflow" / ".codex-plugin" / "plugin.json").read_text())
+
+                      self.assertEqual("0.4.6", root_version)
+                      self.assertEqual(root_version, skill_version)
+                      self.assertEqual(root_version, plugin_skill_version)
+                      self.assertEqual(root_version, manifest["version"])
+
+
+              if __name__ == "__main__":
+                  unittest.main()
+          ''').lstrip()
+          (ROOT / 'tests/test_status_project_repository.py').write_text(test, encoding='utf-8')
+          PY
+      - name: Synchronize canonical Skill into plugin mirror
+        run: python3 tools/sync-skill-mirror.py
+      - name: Validate product patch
+        run: |
+          python3 tests/test_status_project_repository.py
+          python3 tests/test_status_runtime_identity.py
+          python3 tests/test_repository.py
+          python3 tests/test_visual_brand_contract.py
+          python3 tests/test_visual_review_gate.py
+          python3 tests/test_base_generation_brief.py
+          python3 tests/test_single_visual_approval.py
+          python3 tests/test_dropbox_contract.py
+          python3 tools/build-skill.py
+          python3 tools/build-release.py --source-sha "$(git rev-parse HEAD)"
+      - name: Commit product changes only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION README.md CHANGELOG.md tests/test_status_project_repository.py skills/content-marketing-workflow plugins/content-marketing-workflow
+          git commit -m "fix: report active project repository in status"
+          git push origin HEAD:fix/status-project-repository
