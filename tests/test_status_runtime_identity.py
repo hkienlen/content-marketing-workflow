@@ -38,13 +38,13 @@ class StatusRuntimeIdentityTests(unittest.TestCase):
         self.assertIn("distribution: direct_chatgpt_skill|codex_plugin|unknown", runtime)
         self.assertIn("loaded Skill runtime identity/version", catalog)
 
-    def test_045_version_is_synchronized(self):
+    def test_versions_are_synchronized(self):
         root_version = (ROOT / "VERSION").read_text().strip()
         skill_version = (SKILL / "VERSION").read_text().strip()
         plugin_skill_version = (PLUGIN_SKILL / "VERSION").read_text().strip()
         manifest = json.loads((ROOT / "plugins" / "content-marketing-workflow" / ".codex-plugin" / "plugin.json").read_text())
 
-        self.assertEqual("0.4.5", root_version)
+        self.assertRegex(root_version, r"^[0-9]+\.[0-9]+\.[0-9]+$")
         self.assertEqual(root_version, skill_version)
         self.assertEqual(root_version, plugin_skill_version)
         self.assertEqual(root_version, manifest["version"])
