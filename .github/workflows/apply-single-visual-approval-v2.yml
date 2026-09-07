@@ -1,0 +1,48 @@
+name: Apply single social visual approval product patch
+
+on:
+  push:
+    branches:
+      - fix/single-social-visual-approval
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/single-social-visual-approval
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run the validated product patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path('.github/workflows/apply-single-visual-approval.yml').read_text().splitlines()
+          start = source.index("          python3 - <<'PY'") + 1
+          end = source.index('          PY', start)
+          code = '\n'.join(line[10:] if line.startswith('          ') else line for line in source[start:end]) + '\n'
+          exec(compile(code, '<single-approval-patch>', 'exec'), {'__name__': '__main__'})
+          PY
+      - name: Synchronize Skill mirror and validate
+        run: |
+          python3 tools/sync-skill-mirror.py
+          python3 tests/test_single_visual_approval.py
+          python3 tests/test_repository.py
+          python3 tests/test_visual_brand_contract.py
+          python3 tests/test_visual_review_gate.py
+          python3 tests/test_base_generation_brief.py
+          python3 tests/test_dropbox_contract.py
+      - name: Commit product files only
+        run: |
+          git checkout -- .github/workflows/ci.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- ':!.github/workflows/**'
+          git commit -m "fix: use one social visual approval gate"
+          git push origin HEAD:fix/single-social-visual-approval
