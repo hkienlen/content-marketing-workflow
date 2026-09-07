@@ -37,11 +37,8 @@ jobs:
               text = text.replace(old, new, 1)
               p.write_text(text)
 
-          # social-create-visual: clean bases are internal; branded A/B/C are the first visual review.
           p = SKILL / 'docs/architecture/capabilities/social-create-visual.md'
-          replace_once(p,
-              '= may be inspected/discussed transiently',
-              '= strictly internal implementation artifact; not shown to the user in the normal workflow')
+          replace_once(p, '= may be inspected/discussed transiently', '= strictly internal implementation artifact; not shown to the user in the normal workflow')
           replace_once(p,
               'If official-logo composition cannot be completed, base generation may continue for exploration, but the workflow must not persist/present the outputs as selectable A/B/C, must not record a durable visual selection, and must not set combined review to fully approved.',
               'If official-logo composition cannot be completed, base generation may continue internally for exploration, but the workflow must not present those base drafts to the user as a normal review step, must not persist/present them as selectable A/B/C, must not record a durable visual selection, and must not set combined review to fully approved.')
@@ -55,13 +52,12 @@ jobs:
               'After a compliant human selection, invoke `asset-ingest`.\n\nBefore `verified_final` verify normalization, source fidelity/provenance, effective social logo rule, exact official logo identity/version, exact final bytes/hash and the same effective-contract revision.',
               'After a compliant human selection, invoke `asset-ingest` automatically. Do not introduce another approval gate for normalization, encoding, naming, hashing, provider storage or metadata work that preserves the selected visible composition.\n\nBefore `verified_final` verify normalization, source fidelity/provenance, effective social logo rule, exact official logo identity/version, exact final bytes/hash and the same effective-contract revision. If finalization cannot preserve the reviewed visual materially, stop before `verified_final`, produce the narrowest required changed candidate and request targeted re-confirmation of that changed visual only.')
 
-          # combined review: exactly one normal visual approval gate.
           p = SKILL / 'docs/architecture/social-post-review-loop.md'
           replace_once(p,
               'An unbranded base or a visual containing generated/unverified project branding may be discussed as a concept draft, but it must not receive durable selection or combined approval.',
               'An unbranded base or a visual containing generated/unverified project branding remains internal and is not shown in the normal review flow. It may be exposed only when the user explicitly asks to inspect/debug intermediate generation artifacts, and it must never receive durable selection or combined approval.')
           marker = '### Exact `use_as_is` package\n'
-          insertion = '''### Single human visual approval gate\n\nFor generated/materially transformed social posts, the normal user journey has **one visual approval gate**. The user reviews the actual publishable-basis A/B/C visuals, including the exact official logo when required, and selection of one compliant candidate is the visual approval for that revision.\n\nAfter selection, non-material finalization is automatic. Resizing/normalization that preserves composition, format encoding, quality optimization without perceptible design change, canonical naming, hashing, provider storage, ALT/metadata persistence and other technical packaging must not trigger a second visual approval request.\n\nIf finalization requires a material visible change relative to the selected candidate, such as meaningful crop/reframe, logo move/resize/variant change, visible-text alteration, creative retouch or another perceptible composition change, only that changed visual is reopened for targeted re-confirmation. A full A/B/C restart is not required unless the concept materially changes or the user requests it.\n\n'''
+          insertion = '''### Single human visual approval gate\n\nFor generated/materially transformed social posts, the normal user journey has **one visual approval gate**. The user reviews the actual publishable-basis A/B/C visuals, including the exact official logo when required, and selection of one compliant candidate is the visual approval for that revision.\n\nNon-material finalization after selection is automatic. Resizing/normalization that preserves composition, format encoding, quality optimization without perceptible design change, canonical naming, hashing, provider storage, ALT/metadata persistence and other technical packaging must not trigger a second visual approval request.\n\nIf finalization requires a material visible change relative to the selected candidate, such as meaningful crop/reframe, logo move/resize/variant change, visible-text alteration, creative retouch or another perceptible composition change, only that changed visual is reopened for targeted re-confirmation. A full A/B/C restart is not required unless the concept materially changes or the user requests it.\n\n'''
           text = p.read_text()
           if marker not in text:
               raise SystemExit('review-loop insertion marker missing')
@@ -70,7 +66,6 @@ jobs:
               'After selection, `asset-ingest` normalizes/verifies final according to media architecture. Combined approval is not scheduling or publication authorization.',
               'After selection, `asset-ingest` normalizes/verifies final according to media architecture. When that finalization is non-material, it proceeds without another human visual approval and the system reports the resulting `verified_final` state. Combined approval is not scheduling or publication authorization.')
 
-          # asset-ingest: no redundant post-finalization review.
           p = SKILL / 'docs/architecture/capabilities/asset-ingest.md'
           replace_once(p,
               '  - explicit final candidate/source selection before finalization\n  - explicit replacement intent before replacing a different verified final asset',
@@ -84,11 +79,8 @@ jobs:
           if marker not in text:
               raise SystemExit('asset-ingest insertion marker missing')
           p.write_text(text.replace(marker, insertion + marker, 1))
-          replace_once(p,
-              '-> user reviews result',
-              '-> system reports the verified_final result without requesting another approval')
+          replace_once(p, '-> user reviews result', '-> system reports the verified_final result without requesting another approval')
 
-          # social execution checklist: same UX contract.
           p = SKILL / 'docs/architecture/social-execution-checklist.md'
           replace_once(p,
               '- generated outputs are **base drafts, not A/B/C review candidates** until every pre-review invariant is satisfied;',
@@ -100,7 +92,6 @@ jobs:
               '- full-quality bytes resolved;\n- final normalized to current social dimensions/format policy without overwriting source original;',
               '- full-quality bytes resolved;\n- final normalized to current social dimensions/format policy without overwriting source original;\n- non-material normalization/encoding/storage after selection proceeds without a second human approval request;\n- if finalization requires a material visible change, stop before `verified_final` and request targeted re-confirmation of the changed visual only;')
 
-          # Skill entrypoint: make the one-gate UX explicit.
           p = SKILL / 'SKILL.md'
           replace_once(p,
               '8. generate and inspect clean base drafts; for disposable pure-AI bases, reject/regenerate accidental pseudo-branding by default instead of starting a logo-removal edit cycle;',
@@ -109,14 +100,13 @@ jobs:
               '11. verify effective source/brand contract before `verified_final`.',
               '11. verify effective source/brand contract before `verified_final`.\n\nFor social posts, selecting a review-ready branded A/B/C candidate is the human visual approval for that revision. Non-material finalization after selection proceeds automatically and must not create a second visual-approval step. Re-open only the changed visual for targeted confirmation when finalization materially changes what the user reviewed.')
 
-          # Version and product docs.
           (ROOT / 'VERSION').write_text('0.4.4\n')
           (SKILL / 'VERSION').write_text('0.4.4\n')
 
           p = ROOT / 'README.md'
           text = p.read_text()
           text = text.replace('Current version: `0.4.3`', 'Current version: `0.4.4`', 1)
-          old = 'Version 0.4.3 separates brand-isolated base generation from deterministic official-logo composition so image models do not receive project-logo identity/placement instructions and disposable generated bases with pseudo-branding are rejected/regenerated instead of entering a repair loop.'
+          old = 'Version 0.4.3 separates image-model input from brand composition: the generator receives a brand-isolated base brief, never the full logo contract or asset identity, and contaminated disposable AI bases are rejected/regenerated by default rather than entering a remove-logo/re-add-logo loop.'
           new = old + ' Version 0.4.4 restores the pilot-style single-review UX: internal clean bases are never a normal approval step, users select from already compliant/branded A/B/C, and non-material finalization proceeds automatically without a redundant second visual approval.'
           if old not in text:
               raise SystemExit('README 0.4.3 branding sentence missing')
@@ -135,7 +125,6 @@ jobs:
           data['version'] = '0.4.4'
           p.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
 
-          # Regression test.
           test = textwrap.dedent(r'''
               import unittest
               from pathlib import Path
@@ -143,14 +132,12 @@ jobs:
               ROOT = Path(__file__).resolve().parents[1]
               SKILL = ROOT / "skills" / "content-marketing-workflow"
 
-
               class SingleSocialVisualApprovalTests(unittest.TestCase):
                   def test_clean_bases_are_internal_and_branded_candidates_are_first_review(self):
                       social = (SKILL / "docs" / "architecture" / "capabilities" / "social-create-visual.md").read_text()
                       review = (SKILL / "docs" / "architecture" / "social-post-review-loop.md").read_text()
                       checklist = (SKILL / "docs" / "architecture" / "social-execution-checklist.md").read_text()
                       entrypoint = (SKILL / "SKILL.md").read_text()
-
                       self.assertIn("strictly internal implementation artifact", social)
                       self.assertIn("not asked to approve an unbranded base", social)
                       self.assertIn("one visual approval gate", review)
@@ -162,7 +149,6 @@ jobs:
                       review = (SKILL / "docs" / "architecture" / "social-post-review-loop.md").read_text()
                       ingest = (SKILL / "docs" / "architecture" / "capabilities" / "asset-ingest.md").read_text()
                       checklist = (SKILL / "docs" / "architecture" / "social-execution-checklist.md").read_text()
-
                       self.assertIn("selection of one review-ready branded A/B/C candidate is the human visual approval", social)
                       self.assertIn("Non-material finalization", review)
                       self.assertIn("must not ask the user to approve the same visual again", ingest)
@@ -174,19 +160,16 @@ jobs:
                       review = (SKILL / "docs" / "architecture" / "social-post-review-loop.md").read_text()
                       ingest = (SKILL / "docs" / "architecture" / "capabilities" / "asset-ingest.md").read_text()
                       social = (SKILL / "docs" / "architecture" / "capabilities" / "social-create-visual.md").read_text()
-
                       for text in (review, ingest, social):
                           self.assertIn("targeted re-confirmation", text)
                       self.assertIn("meaningful crop/reframe", review)
                       self.assertIn("logo position/size/variant change", ingest)
-
 
               if __name__ == "__main__":
                   unittest.main()
           ''').lstrip()
           (ROOT / 'tests/test_single_visual_approval.py').write_text(test)
 
-          # CI runs regression test.
           p = ROOT / '.github/workflows/ci.yml'
           text = p.read_text()
           needle = '      - name: Validate brand-isolated base generation briefs\n        run: python3 tests/test_base_generation_brief.py\n'
