@@ -1,0 +1,147 @@
+name: Apply 0.4.7 transient image rendering fix
+
+on:
+  push:
+    branches:
+      - fix/transient-image-rendering-compat
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/transient-image-rendering-compat
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply 0.4.7 contracts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          ROOT = Path('.')
+          SKILL = ROOT / 'skills' / 'content-marketing-workflow'
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'missing expected text in {p}: {old[:180]!r}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          # social-create-visual: distinguish transient tool rendering from review presentation.
+          p = SKILL / 'docs/architecture/capabilities/social-create-visual.md'
+          replace_once(
+              p,
+              '= strictly internal implementation artifact; not shown to the user in the normal workflow\n= never an A/B/C selectable review candidate when logo_application=always',
+              '= internal implementation artifact before official branding\n= may be rendered transiently by an image-generation surface when that surface automatically displays tool output\n= transient tool rendering is not a review presentation, A/B/C identity, selection request or approval gate\n= never an A/B/C selectable review candidate when logo_application=always'
+          )
+          replace_once(
+              p,
+              'If official-logo composition cannot be completed, base generation may continue internally for exploration, but the workflow must not present those base drafts to the user as a normal review step, must not persist/present them as selectable A/B/C, must not record a durable visual selection, and must not set combined review to fully approved.',
+              'If official-logo composition cannot be completed, base generation may continue for exploration. A surface-imposed transient rendering of a base is allowed, but the workflow must not label or present that base as a normal review proposal, must not ask the user to choose/validate it, must not persist it as selectable A/B/C, must not record durable visual selection, and must not set combined review to fully approved. Transient visibility alone is not a blocker; inability to retain the exact generated asset for required downstream deterministic composition is a separate runtime-capability blocker.'
+          )
+          replace_once(
+              p,
+              'A raw generator output is not automatically a review proposal. The executor may create or persist internal drafts as implementation detail, but those clean bases stay internal in the normal user journey. Only gate-passing branded derivatives count as A/B/C when `logo_application=always`; the user is not asked to approve an unbranded base before seeing the branded A/B/C package.',
+              'A raw generator output is not automatically a review proposal. The executor may create or persist clean-base drafts as implementation detail. When the active generation surface automatically renders tool output in chat, that transient rendering may be visible, but it remains non-interactive implementation output: do not label it Visual A/B/C, do not ask for a choice or approval, and do not stop solely because it was rendered. Continue automatically through remaining base generation, exact-asset retention/inspection, deterministic official-logo composition, review-gate validation and persistence. Only gate-passing branded derivatives count as A/B/C when `logo_application=always`; the first human visual decision is on those branded A/B/C candidates.'
+          )
+          insert = '## Provider layout\n'
+          section = '''## Surface-imposed transient rendering\n\nSome direct conversational image-generation surfaces render each generated image immediately as part of the tool call. CMW distinguishes that **tool rendering** from a **workflow review presentation**.\n\nRules:\n\n- automatic rendering of a clean base does not make it `review-ready`, `Visual A/B/C`, selected or approved;\n- do not ask the user to validate, reject or choose a transiently rendered base;\n- do not fail closed merely because the user can see the tool output;\n- continue the same `/social create` execution automatically until three compliant branded review candidates are ready;\n- retain/ingest the exact generated binary or exact runtime asset reference when the surface exposes one, then perform deterministic branding on that exact base;\n- if the surface genuinely cannot expose/recover the exact generated asset for required deterministic downstream composition, report the precise `generated_base_retention_unavailable` capability blocker and use the documented manual/compatible-surface handoff; do not misreport the blocker as “base was visible”.\n\nTransient tool rendering therefore has **zero approval semantics**.\n\n'''
+          replace_once(p, insert, section + insert)
+
+          # Review loop: same semantic boundary.
+          p = SKILL / 'docs/architecture/social-post-review-loop.md'
+          replace_once(
+              p,
+              'An unbranded base or a visual containing generated/unverified project branding remains internal and is not shown in the normal review flow. It may be exposed only when the user explicitly asks to inspect/debug intermediate generation artifacts, and it must never receive durable selection or combined approval.',
+              'An unbranded base or a visual containing generated/unverified project branding is never part of the normal **review package**. A runtime may nevertheless render a generator result transiently as an unavoidable tool-side effect. That visibility is not a review presentation: do not label the base A/B/C, do not ask the user to validate/choose it, and do not attach durable selection or combined approval to it. Continue automatically until the branded review-ready package exists. Explicit debug inspection remains allowed, with the same no-approval semantics.'
+          )
+          marker = '### Generated/materially transformed package\n'
+          add = '''### Transient tool output is not a review gate\n\nA conversational surface may display raw generated bases before CMW can brand/package them. Those displays are implementation/tool output only. They do not count toward the “exactly three review-ready A/B/C” requirement and must not create an extra human interaction. The first requested visual decision remains the branded A/B/C package.\n\n'''
+          replace_once(p, marker, add + marker)
+
+          # Direct ChatGPT runtime: explicitly support automatic tool rendering and exact-asset retention capability.
+          p = SKILL / 'docs/architecture/chatgpt-skill-runtime.md'
+          marker = 'If image generation works but cloud storage does not, the generated output may be shown for review but cannot become publication-eligible durable media.\n\n## Runtime identity and `/status`'
+          replacement = '''If image generation works but cloud storage does not, the generated output may be shown for review but cannot become publication-eligible durable media.\n\n### Automatic rendering of image-generation tool output\n\nSome direct ChatGPT image-generation surfaces display each generated image immediately. This UI behavior is **not** a human-review event and must not by itself degrade or block `/social create`. When downstream deterministic branding is required:\n\n1. treat the displayed raw image as transient tool output, not `Visual A/B/C`;\n2. do not ask the user to approve or choose it;\n3. continue automatically with the remaining bases;\n4. when the runtime exposes an exact generated binary or exact asset/file reference, retain that exact base through the configured media path and apply deterministic branding to it;\n5. present a human review only after the branded A/B/C package passes the review gate.\n\n`direct_asset_output_available` means the exact generated output can be recovered/retained for downstream processing. It is independent of whether the UI also displays that output. If exact generated bytes/reference genuinely cannot be recovered and the visual contract requires deterministic post-generation composition, report `generated_base_retention_unavailable` and use the supported manual/compatible-surface handoff. Never treat mere on-screen visibility as that blocker.\n\n## Runtime identity and `/status`'''
+          replace_once(p, marker, replacement)
+
+          # Global runtime matrix: clarify direct_asset_output_available semantics.
+          p = SKILL / 'docs/architecture/runtime-compatibility-matrix.md'
+          marker = '''Detect separately when possible:\n\n```text\ngeneration_available\nediting_available\ndirect_asset_output_available\n```\n\nWhen generation/editing required by the effective visual policy is unavailable but cloud storage is operational, use the manual image handoff:'''
+          replacement = '''Detect separately when possible:\n\n```text\ngeneration_available\nediting_available\ndirect_asset_output_available\n```\n\n`direct_asset_output_available` means CMW can recover/retain the exact generated binary or an exact runtime asset/file reference for downstream normalization, hashing and deterministic composition. Whether the conversational UI automatically **renders** the generated image is a separate presentation behavior and must not be interpreted as `direct_asset_output_available=false`.\n\nWhen generation is available and an image tool automatically renders output, treat that rendering as transient implementation output unless/until CMW explicitly presents a review package. Do not ask for validation of the raw base and do not fail closed solely because it was visible. When exact output recovery is available, continue automatically to retention, deterministic branding and review-ready packaging. If exact output recovery is genuinely unavailable and downstream deterministic composition is required, report `generated_base_retention_unavailable` and use the manual/compatible-surface handoff.\n\nWhen generation/editing required by the effective visual policy is unavailable but cloud storage is operational, use the manual image handoff:'''
+          replace_once(p, marker, replacement)
+
+          # Entrypoint: remove the over-broad no-show rule.
+          p = SKILL / 'SKILL.md'
+          replace_once(
+              p,
+              '8. generate and inspect clean base drafts internally; do not show or ask the user to approve those bases in the normal workflow; for disposable pure-AI bases, reject/regenerate accidental pseudo-branding by default instead of starting a logo-removal edit cycle;',
+              '8. generate and inspect clean base drafts as implementation artifacts; never present them as review candidates or ask the user to approve them. If the active image-generation surface automatically renders a generated base in chat, treat that rendering as transient tool output only and continue automatically without a user decision; for disposable pure-AI bases, reject/regenerate accidental pseudo-branding by default instead of starting a logo-removal edit cycle;'
+          )
+
+          # Update prior regression test to enforce no approval rather than impossible invisibility.
+          p = ROOT / 'tests/test_single_visual_approval.py'
+          text = p.read_text(encoding='utf-8')
+          text = text.replace('def test_clean_bases_are_internal_and_branded_candidates_are_first_review(self):', 'def test_clean_bases_are_not_review_candidates_and_branded_candidates_are_first_review(self):')
+          text = text.replace('self.assertIn("strictly internal implementation artifact", social)', 'self.assertIn("transient tool rendering is not a review presentation", social)')
+          text = text.replace('self.assertIn("do not show or ask the user to approve those bases", entrypoint)', 'self.assertIn("never present them as review candidates or ask the user to approve them", entrypoint)')
+          p.write_text(text, encoding='utf-8')
+
+          # New regression test.
+          test = '''import unittest\nfrom pathlib import Path\n\nROOT = Path(__file__).resolve().parents[1]\nSKILL = ROOT / "skills" / "content-marketing-workflow"\n\n\nclass TransientImageRenderingTests(unittest.TestCase):\n    def test_tool_rendering_is_not_review_or_approval(self):\n        social = (SKILL / "docs" / "architecture" / "capabilities" / "social-create-visual.md").read_text()\n        review = (SKILL / "docs" / "architecture" / "social-post-review-loop.md").read_text()\n        entrypoint = (SKILL / "SKILL.md").read_text()\n        self.assertIn("transient tool rendering is not a review presentation", social)\n        self.assertIn("do not label it Visual A/B/C", social)\n        self.assertIn("do not ask the user to validate/choose it", review)\n        self.assertIn("continue automatically without a user decision", entrypoint)\n\n    def test_visibility_alone_is_not_a_blocker(self):\n        social = (SKILL / "docs" / "architecture" / "capabilities" / "social-create-visual.md").read_text()\n        runtime = (SKILL / "docs" / "architecture" / "chatgpt-skill-runtime.md").read_text()\n        matrix = (SKILL / "docs" / "architecture" / "runtime-compatibility-matrix.md").read_text()\n        self.assertIn("Transient visibility alone is not a blocker", social)\n        self.assertIn("must not by itself degrade or block `/social create`", runtime)\n        self.assertIn("must not be interpreted as `direct_asset_output_available=false`", matrix)\n\n    def test_missing_exact_asset_retention_has_precise_blocker(self):\n        for path in [\n            SKILL / "docs" / "architecture" / "capabilities" / "social-create-visual.md",\n            SKILL / "docs" / "architecture" / "chatgpt-skill-runtime.md",\n            SKILL / "docs" / "architecture" / "runtime-compatibility-matrix.md",\n        ]:\n            self.assertIn("generated_base_retention_unavailable", path.read_text())\n\n    def test_first_human_visual_decision_is_branded_abc(self):\n        social = (SKILL / "docs" / "architecture" / "capabilities" / "social-create-visual.md").read_text()\n        review = (SKILL / "docs" / "architecture" / "social-post-review-loop.md").read_text()\n        self.assertIn("the first human visual decision is on those branded A/B/C candidates", social)\n        self.assertIn("The first requested visual decision remains the branded A/B/C package", review)\n\n\nif __name__ == "__main__":\n    unittest.main()\n'''
+          (ROOT / 'tests/test_transient_image_rendering.py').write_text(test, encoding='utf-8')
+
+          # Version bump.
+          (ROOT / 'VERSION').write_text('0.4.7\n', encoding='utf-8')
+          (SKILL / 'VERSION').write_text('0.4.7\n', encoding='utf-8')
+
+          p = ROOT / 'README.md'
+          replace_once(p, 'Current version: `0.4.6`', 'Current version: `0.4.7`')
+
+          p = ROOT / 'CHANGELOG.md'
+          text = p.read_text(encoding='utf-8')
+          marker = '## [Unreleased]\n\n'
+          entry = '''## [0.4.7] - 2026-09-07\n\n- Fixed direct-ChatGPT `/social create` compatibility when the image-generation surface automatically renders raw generated images in chat.\n- Distinguished transient tool-rendered base output from a workflow review presentation: transient visibility has no A/B/C, selection or approval semantics.\n- Restored automatic continuation through base generation -> exact-asset retention -> deterministic official-logo composition -> branded A/B/C review, preserving the single human visual approval gate introduced in 0.4.4.\n- Clarified `direct_asset_output_available` as exact generated-binary/reference recoverability, independent of UI rendering behavior.\n- Added the precise `generated_base_retention_unavailable` blocker for runtimes that truly cannot expose the generated base for required downstream deterministic composition.\n- Added regression coverage proving that visible tool output does not cause fail-closed behavior or an extra human approval step.\n- Bumped the Skill/Codex plugin version to 0.4.7 and synchronized the canonical Skill with the plugin mirror.\n\n'''
+          if marker not in text:
+              raise SystemExit('CHANGELOG marker missing')
+          p.write_text(text.replace(marker, marker + entry, 1), encoding='utf-8')
+
+          p = ROOT / 'plugins/content-marketing-workflow/.codex-plugin/plugin.json'
+          data = json.loads(p.read_text(encoding='utf-8'))
+          data['version'] = '0.4.7'
+          p.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+
+      - name: Synchronize canonical Skill into plugin mirror
+        run: python3 tools/sync-skill-mirror.py
+
+      - name: Validate 0.4.7 patch
+        run: |
+          python3 tests/test_transient_image_rendering.py
+          python3 tests/test_single_visual_approval.py
+          python3 tests/test_status_runtime_identity.py
+          python3 tests/test_status_project_repository.py
+          python3 tests/test_repository.py
+          python3 tests/test_visual_brand_contract.py
+          python3 tests/test_visual_review_gate.py
+          python3 tests/test_base_generation_brief.py
+          python3 tests/test_dropbox_contract.py
+          python3 tools/build-skill.py
+          python3 tools/build-release.py --source-sha "$(git rev-parse HEAD)"
+
+      - name: Commit product changes only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git reset .github/workflows/apply-047-transient-image-rendering.yml
+          git commit -m "fix: allow transient image tool rendering before branded review"
+          git push origin HEAD:fix/transient-image-rendering-compat
