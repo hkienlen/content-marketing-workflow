@@ -32,7 +32,7 @@ When effective `logo_application=always`:
 - the clean base must have passed the no-generated-project-branding inspection;
 - `scripts/visual-review-gate.py` or equivalent evidence validation must pass before the combined review is called durable/selectable.
 
-An unbranded base or a visual containing generated/unverified project branding may be discussed as a concept draft, but it must not receive durable selection or combined approval.
+An unbranded base or a visual containing generated/unverified project branding remains internal and is not shown in the normal review flow. It may be exposed only when the user explicitly asks to inspect/debug intermediate generation artifacts, and it must never receive durable selection or combined approval.
 
 ## First review package
 
@@ -55,6 +55,14 @@ Visual C
 ```
 
 For `logo_application=always`, these are the officially branded derivatives, not their clean bases.
+
+### Single human visual approval gate
+
+For generated/materially transformed social posts, the normal user journey has **one visual approval gate**. The user reviews the actual publishable-basis A/B/C visuals, including the exact official logo when required, and selection of one compliant candidate is the visual approval for that revision.
+
+Non-material finalization after selection is automatic. Resizing/normalization that preserves composition, format encoding, quality optimization without perceptible design change, canonical naming, hashing, provider storage, ALT/metadata persistence and other technical packaging must not trigger a second visual approval request.
+
+If finalization requires a material visible change relative to the selected candidate, such as meaningful crop/reframe, logo move/resize/variant change, visible-text alteration, creative retouch or another perceptible composition change, only that changed visual is reopened for targeted re-confirmation. A full A/B/C restart is not required unless the concept materially changes or the user requests it.
 
 ### Exact `use_as_is` package
 
@@ -114,7 +122,7 @@ one exact review-ready visual/source final basis = human selected/validated
 
 `fully_approved` must not be set merely because the user chose a visually appealing binary that still contains generated/unverified required branding.
 
-After selection, `asset-ingest` normalizes/verifies final according to media architecture. Combined approval is not scheduling or publication authorization.
+After selection, `asset-ingest` normalizes/verifies final according to media architecture. When that finalization is non-material, it proceeds without another human visual approval and the system reports the resulting `verified_final` state. Combined approval is not scheduling or publication authorization.
 
 ## Recovery of a late branding defect
 

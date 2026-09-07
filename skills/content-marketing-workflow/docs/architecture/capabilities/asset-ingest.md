@@ -104,6 +104,8 @@ external_side_effects:
 
 human_approval:
   - explicit final candidate/source selection before finalization
+  - no second human approval after a compliant review-ready social candidate selection when finalization is non-material
+  - targeted re-confirmation only when finalization materially changes the selected visible result
   - explicit replacement intent before replacing a different verified final asset
   - no separate GitHub merge approval; owning workflow performs later GitHub integration automatically when business/content gates are satisfied
 
@@ -175,7 +177,7 @@ Finalization:
 ```text
 proposal_or_source_ready
 -> selected
--> required exact brand composition/verification
+-> required exact brand composition/verification if not already satisfied before selection
 -> normalized
 -> contract_revision_reverified
 -> verified_final
@@ -357,6 +359,14 @@ Logo safety is another veto: normalization/crop must not clip, distort or make a
 
 If selected source/candidate cannot survive required output policy, review an exception or select/generate another compliant candidate. Never silently rewrite the original.
 
+## Human approval and material-change boundary
+
+For a social visual selected from a review-ready A/B/C package, the selection already constitutes human visual approval of the visible publishable basis. `asset-ingest` must not ask the user to approve the same visual again merely because bytes change through non-material technical finalization.
+
+Non-material finalization includes operations such as orientation normalization, dimension normalization that preserves the reviewed composition, JPEG/PNG encoding, quality optimization without perceptible design change, canonical naming, hashing, provider storage and metadata persistence. These operations proceed automatically to `verified_final` when all deterministic checks pass.
+
+A second, targeted visual confirmation is required only when finalization changes the reviewed visible result materially. Examples include a meaningful crop/reframe, logo position/size/variant change, visible-text change, creative retouch, source substitution or another perceptible composition change. Stop before `verified_final`, surface the changed candidate, preserve unaffected approvals, and request confirmation only for that changed visual.
+
 ## Idempotency and replacement protection
 
 Before mutating verified final:
@@ -431,7 +441,7 @@ user photo supplied/located or AI generation allowed
 -> system normalizes/verifies separate private final in selected cloud provider
 -> source/logo originals remain intact
 -> system re-verifies contract_revision and persists provider-qualified source + brand + final identity/hash/metadata
--> user reviews result
+-> system reports the verified_final result without requesting another approval
 ```
 
 The user is never asked to download, convert, rename, `git add`, commit, push, approve PR/merge or manually move media into WordPress/social destinations.
