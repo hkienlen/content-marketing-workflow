@@ -90,6 +90,18 @@ Do not mark the visual workflow complete merely because the prompt was produced.
 
 If image generation works but cloud storage does not, the generated output may be shown for review but cannot become publication-eligible durable media.
 
+## Runtime identity and `/status`
+
+The installed Skill package is self-identifying. Its runtime version authority is the packaged `VERSION` file beside `SKILL.md`.
+
+When `/status` executes, read that packaged resource and report its exact trimmed value. Do **not** fetch or infer the current runtime version from the product repository, latest GitHub release/tag, marketplace listing or conversation memory. Those external sources can describe what is available to install, but they do not prove what the active conversation has loaded.
+
+If the packaged `VERSION` cannot be read in the active surface, report the runtime Skill version as `unknown` and explain that the loaded version cannot be proven. Never replace `unknown` with a remote repository version.
+
+The distribution label is also runtime evidence: report `Direct ChatGPT Skill` when executing the directly installed/uploaded Skill, `Codex plugin` when executing the mirrored Skill through the plugin, otherwise `unknown`.
+
+This runtime-identity read is side-effect free and does not refresh/reinstall the Skill.
+
 ## `/start` in direct ChatGPT
 
 When `/start` is invoked, or the user naturally asks to initialize/resume a project:

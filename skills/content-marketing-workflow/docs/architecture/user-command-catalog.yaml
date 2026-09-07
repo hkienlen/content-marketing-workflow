@@ -39,7 +39,7 @@ commands:
     command: /status
     family: system
     behavior: project-status
-    summary: Show a read-only overview of durable project, integration, notification and workflow state.
+    summary: Show the loaded Skill runtime identity/version plus a read-only overview of durable project, integration, notification and workflow state.
     availability: core
     feature_gate: null
     mode: read_only

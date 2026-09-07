@@ -124,13 +124,22 @@ The test command is an external notification side effect only: it sends one diag
 
 ## `/status`
 
-`/status` is a read-only projection of durable current project/workflow state plus current runtime prerequisite availability where it can be inspected without mutation.
+`/status` is a read-only projection of the **currently loaded Skill runtime identity**, durable current project/workflow state and current runtime prerequisite availability where it can be inspected without mutation.
 
-It must begin with a compatibility summary derived from `runtime-compatibility-matrix.md`:
+It must begin with runtime identity read from the installed package itself, followed by compatibility, for example:
 
 ```text
+Content Marketing Workflow
+Version Skill: 0.x.y
+Distribution: Direct ChatGPT Skill | Codex plugin | unknown
 Compatibility: READY | DEGRADED | BLOCKED
 ```
+
+The `Version Skill` value MUST be the exact trimmed contents of the packaged `VERSION` file beside the executing `SKILL.md`. That packaged resource is authoritative for **what this runtime has loaded**. Do not answer the runtime-version question by reading the product repository root `VERSION`, latest GitHub tag/release, marketplace metadata or conversation memory. A remote repository may legitimately be newer than the Skill currently loaded in the conversation. If the packaged `VERSION` resource is unavailable, report `Version Skill: unknown` plus a warning; do not substitute a remote version.
+
+Determine `Distribution` only from the actual execution context. Use `Direct ChatGPT Skill` for a directly uploaded/installed ChatGPT Skill, `Codex plugin` for the mirrored Skill executing inside that plugin, and `unknown` when the surface does not expose enough evidence. Do not infer distribution merely from the existence of plugin files in GitHub.
+
+Compatibility remains derived from `runtime-compatibility-matrix.md`:
 
 Then report, when resolvable:
 
