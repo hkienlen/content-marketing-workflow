@@ -102,6 +102,8 @@ The distribution label is also runtime evidence: report `Direct ChatGPT Skill` w
 
 This runtime-identity read is side-effect free and does not refresh/reinstall the Skill.
 
+`/status` must also identify the active project GitHub repository. Resolve the active project from durable profile state (`active_project_id`) and report `projects[active_project_id].repository.full_name`. That value describes the repository CMW operates on and is distinct from the CMW product/marketplace source repository. If durable project identity is unavailable, report an exact already-resolved active repository only when current runtime evidence proves it; otherwise report `unknown`. Never use `hkienlen/content-marketing-workflow` merely because the Skill package came from that repository. A conflict between durable and live repository identity is a read-only inconsistency/blocker, not permission to rewrite the profile.
+
 ## `/start` in direct ChatGPT
 
 When `/start` is invoked, or the user naturally asks to initialize/resume a project:
