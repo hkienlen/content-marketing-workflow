@@ -111,6 +111,8 @@ User/project data includes:
 
 - profile/project IDs;
 - GitHub repository identity/default branch;
+
+For `/status`, the primary durable authority for the active project repository name is `projects[active_project_id].repository.full_name`. This user/project value must never be replaced by the CMW product repository or marketplace source repository simply because that is where the Skill was installed from.
 - site domain/name/URLs;
 - selected cloud-media provider and workspace/folder/file references;
 - runtime compatibility checkpoints/blockers and last verification timestamps;

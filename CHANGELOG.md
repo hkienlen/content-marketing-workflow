@@ -4,6 +4,16 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.4.6] - 2026-09-07
+
+- Added the active CMW project GitHub repository (`owner/repo`) to `/status` runtime/project identity output.
+- Made `projects[active_project_id].repository.full_name` the primary durable authority for the repository CMW operates on.
+- Explicitly separated the active project repository from the CMW product/marketplace source repository; the latter is never a fallback merely because the Skill was installed from it.
+- Added `unknown` behavior when the active project repository cannot be proven and fail-closed `STATE_INCONSISTENT` reporting when durable and current exact repository evidence disagree.
+- Reaffirmed that no usable project GitHub repository means overall CMW compatibility is `BLOCKED`.
+- Added regression coverage for active-project repository authority, product-repository non-substitution, unknown/inconsistency behavior and version synchronization.
+- Bumped the Skill/Codex plugin version to 0.4.6 and synchronized the canonical Skill with the plugin mirror.
+
 ## [0.4.5] - 2026-09-07
 
 - Made `/status` report the version of the actually loaded Skill from the packaged `VERSION` resource beside `SKILL.md`.

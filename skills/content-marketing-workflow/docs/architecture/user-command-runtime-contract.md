@@ -266,6 +266,10 @@ runtime:
   distribution: direct_chatgpt_skill|codex_plugin|unknown
   compatibility: READY|DEGRADED|BLOCKED
   warnings: []
+project:
+  github_repository: <owner/repository|unknown>
+  github_repository_source: active_project_profile|resolved_active_repository|unknown
+  repository_consistency: consistent|unknown|inconsistent
 ```
 
 `skill_version` is read from the `VERSION` resource packaged beside the executing `SKILL.md`. It is not resolved from the product repository root, a GitHub tag/release, marketplace metadata or conversation memory. This distinction is mandatory because the remote source may be newer than the Skill loaded by the active conversation.
@@ -274,7 +278,9 @@ If the packaged version resource cannot be read, return `skill_version: unknown`
 
 `distribution` is derived only from real runtime context: `direct_chatgpt_skill` for a directly installed/uploaded ChatGPT Skill, `codex_plugin` for the mirrored Skill executing through the Codex plugin, otherwise `unknown`.
 
-`/status` remains read-only: reading packaged runtime metadata does not authorize installation, refresh, repository writes or any other mutation.
+`project.github_repository` identifies the active CMW project repository. Prefer `projects[active_project_id].repository.full_name` from durable project/profile state and set `github_repository_source: active_project_profile`. If that durable value is unavailable but one exact repository is already resolved as the active project under the onboarding/persistence contracts, it may be reported with `github_repository_source: resolved_active_repository`. Never use the CMW product repository, marketplace/source repository or conversation memory as a fallback. If the value cannot be proven, return `unknown`. When durable project identity and exact current GitHub evidence disagree, set `repository_consistency: inconsistent`, surface `STATE_INCONSISTENT`, and do not silently choose one repository. Absence of any usable active project repository makes overall compatibility `BLOCKED`.
+
+`/status` remains read-only: reading packaged runtime/project metadata does not authorize installation, refresh, repository writes or any other mutation.
 
 ### `/status` and `/visual status`
 
