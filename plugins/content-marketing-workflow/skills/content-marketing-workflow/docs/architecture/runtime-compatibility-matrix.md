@@ -121,6 +121,10 @@ editing_available
 direct_asset_output_available
 ```
 
+`direct_asset_output_available` means CMW can recover/retain the exact generated binary or an exact runtime asset/file reference for downstream normalization, hashing and deterministic composition. Whether the conversational UI automatically **renders** the generated image is a separate presentation behavior and must not be interpreted as `direct_asset_output_available=false`.
+
+When generation is available and an image tool automatically renders output, treat that rendering as transient implementation output unless/until CMW explicitly presents a review package. Do not ask for validation of the raw base and do not fail closed solely because it was visible. When exact output recovery is available, continue automatically to retention, deterministic branding and review-ready packaging. If exact output recovery is genuinely unavailable and downstream deterministic composition is required, report `generated_base_retention_unavailable` and use the manual/compatible-surface handoff.
+
 When generation/editing required by the effective visual policy is unavailable but cloud storage is operational, use the manual image handoff:
 
 1. produce a complete external-generation prompt;

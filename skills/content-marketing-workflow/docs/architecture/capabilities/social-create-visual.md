@@ -18,7 +18,9 @@ For generated/materially transformed social visuals, distinguish two artifact cl
 ```text
 base draft
 = internal/generated visual before official branding
-= strictly internal implementation artifact; not shown to the user in the normal workflow
+= internal implementation artifact before official branding
+= may be rendered transiently by an image-generation surface when that surface automatically displays tool output
+= transient tool rendering is not a review presentation, A/B/C identity, selection request or approval gate
 = never an A/B/C selectable review candidate when logo_application=always
 
 review candidate
@@ -29,7 +31,7 @@ review candidate
 
 When effective `logo_application=always`, **every A/B/C review candidate must already contain the exact verified official logo applied by deterministic composition**. There is no `when technically possible` exception for a durable/selectable review package.
 
-If official-logo composition cannot be completed, base generation may continue internally for exploration, but the workflow must not present those base drafts to the user as a normal review step, must not persist/present them as selectable A/B/C, must not record a durable visual selection, and must not set combined review to fully approved.
+If official-logo composition cannot be completed, base generation may continue for exploration. A surface-imposed transient rendering of a base is allowed, but the workflow must not label or present that base as a normal review proposal, must not ask the user to choose/validate it, must not persist it as selectable A/B/C, must not record durable visual selection, and must not set combined review to fully approved. Transient visibility alone is not a blocker; inability to retain the exact generated asset for required downstream deterministic composition is a separate runtime-capability blocker.
 
 ## Capability contract
 
@@ -198,7 +200,22 @@ freeze effective contract_revision
 -> asset-ingest / verified_final
 ```
 
-A raw generator output is not automatically a review proposal. The executor may create or persist internal drafts as implementation detail, but those clean bases stay internal in the normal user journey. Only gate-passing branded derivatives count as A/B/C when `logo_application=always`; the user is not asked to approve an unbranded base before seeing the branded A/B/C package.
+A raw generator output is not automatically a review proposal. The executor may create or persist clean-base drafts as implementation detail. When the active generation surface automatically renders tool output in chat, that transient rendering may be visible, but it remains non-interactive implementation output: do not label it Visual A/B/C, do not ask for a choice or approval, and do not stop solely because it was rendered. Continue automatically through remaining base generation, exact-asset retention/inspection, deterministic official-logo composition, review-gate validation and persistence. Only gate-passing branded derivatives count as A/B/C when `logo_application=always`; the first human visual decision is on those branded A/B/C candidates.
+
+## Surface-imposed transient rendering
+
+Some direct conversational image-generation surfaces render each generated image immediately as part of the tool call. CMW distinguishes that **tool rendering** from a **workflow review presentation**.
+
+Rules:
+
+- automatic rendering of a clean base does not make it `review-ready`, `Visual A/B/C`, selected or approved;
+- do not ask the user to validate, reject or choose a transiently rendered base;
+- do not fail closed merely because the user can see the tool output;
+- continue the same `/social create` execution automatically until three compliant branded review candidates are ready;
+- retain/ingest the exact generated binary or exact runtime asset reference when the surface exposes one, then perform deterministic branding on that exact base;
+- if the surface genuinely cannot expose/recover the exact generated asset for required deterministic downstream composition, report the precise `generated_base_retention_unavailable` capability blocker and use the documented manual/compatible-surface handoff; do not misreport the blocker as “base was visible”.
+
+Transient tool rendering therefore has **zero approval semantics**.
 
 ## Provider layout
 
