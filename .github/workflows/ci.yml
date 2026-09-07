@@ -26,6 +26,8 @@ jobs:
         run: python3 tests/test_base_generation_brief.py
       - name: Validate single social visual approval gate
         run: python3 tests/test_single_visual_approval.py
+      - name: Validate status runtime identity/version
+        run: python3 tests/test_status_runtime_identity.py
       - name: Validate Dropbox provider contracts
         run: python3 tests/test_dropbox_contract.py
       - name: Build exact plugin artifact
