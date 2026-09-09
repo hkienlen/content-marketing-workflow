@@ -28,6 +28,8 @@ jobs:
         run: python3 tests/test_single_visual_approval.py
       - name: Validate transient image rendering compatibility
         run: python3 tests/test_transient_image_rendering.py
+      - name: Validate social check readiness layers
+        run: python3 tests/test_social_check_readiness_layers.py
       - name: Validate status runtime identity/version
         run: python3 tests/test_status_runtime_identity.py
       - name: Validate active project repository status
