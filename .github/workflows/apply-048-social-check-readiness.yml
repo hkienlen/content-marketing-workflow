@@ -1,0 +1,129 @@
+name: Apply 0.4.8 social readiness fix
+
+on:
+  push:
+    branches:
+      - fix/social-check-readiness-048
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/social-check-readiness-048
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply 0.4.8 contracts
+        shell: bash
+        run: |
+          cat > /tmp/apply_048.py <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('.')
+          skill = root / 'skills/content-marketing-workflow'
+
+          def replace(path, old, new):
+              p = Path(path)
+              s = p.read_text()
+              if old not in s:
+                  raise SystemExit(f'missing anchor in {path}: {old[:80]!r}')
+              p.write_text(s.replace(old, new, 1))
+
+          # versions
+          (root / 'VERSION').write_text('0.4.8\n')
+          (skill / 'VERSION').write_text('0.4.8\n')
+          manifest_path = root / 'plugins/content-marketing-workflow/.codex-plugin/plugin.json'
+          manifest = json.loads(manifest_path.read_text())
+          manifest['version'] = '0.4.8'
+          manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + '\n')
+          replace('README.md', 'Current version: `0.4.7`', 'Current version: `0.4.8`')
+
+          # CHANGELOG
+          replace('CHANGELOG.md', '## [Unreleased]\n\n', '''## [Unreleased]\n\n## [0.4.8] - 2026-09-09\n\n- Split `/social check` into content readiness, schedule readiness and unattended execution readiness instead of collapsing every runtime concern into one publication PASS/FAIL.\n- Made missing exact scheduled-publication authorization an execution-readiness state rather than a content/schedule failure; standing-policy authorization is normally materialized during scheduling and remains dormant until `planned_at` is due.\n- Clarified that `wordpress.publish_enabled` gates WordPress article publication only and must never block Facebook/LinkedIn publication.\n- Made social publication depend on the actual SEO Workflow Bridge social runtime/capabilities, independently from WordPress article publication permission.\n- Classified unverified GitHub Actions scheduler state as unattended-execution infrastructure state, not as a defect in approved content or persisted schedule metadata.\n- Added regression coverage for readiness-layer separation, WordPress article/social capability independence and authorization timing semantics.\n- Bumped the Skill/Codex plugin version to 0.4.8 and synchronized the canonical Skill with the plugin mirror.\n\n''')
+
+          # social-check contract
+          p = skill / 'docs/architecture/capabilities/social-check-before-publish.md'
+          s = p.read_text()
+          s = s.replace('Date: 2026-09-02', 'Date: 2026-09-09', 1)
+          s = s.replace('`social-check-before-publish` is the read-only gate that determines whether one social post is technically and structurally ready for a targeted platform publication or native scheduling step.\n\nIt never publishes, schedules, confirms scheduling or mutates repository state.', '''`social-check-before-publish` is the read-only diagnostic gate for one social post. It reports three independent readiness layers instead of collapsing them into one generic publication result:\n\n```text\ncontent_readiness\nschedule_readiness\nunattended_execution_readiness\n```\n\nIt never publishes, schedules, creates authorization, confirms scheduling or mutates repository state.''', 1)
+          s = s.replace('purpose: Validate one or more social posts against durable provenance, social data, accessibility, provider-backed asset and platform contracts before any publication-related action.', 'purpose: Validate durable content and schedule state, then separately report unattended execution infrastructure/authorization readiness without publishing or mutating state.', 1)
+          s = s.replace('  - targeted platform state\n', '  - targeted platform state\n  - exact publication-authorization presence/state when available\n  - scheduler/runtime verification state when available\n  - active social Bridge capability/connection health when available\n', 1)
+          anchor = '## Provenance readiness\n'
+          insertion = '''## Readiness layers\n\n`/social check` must report these layers independently. A failure or unknown state in a later layer must not rewrite an earlier passing layer as failed.\n\n### 1. Content readiness\n\nCovers immutable identity/provenance, approved master text, ALT, verified final visual/provider identity, hashes/dimensions/MIME, platform membership/status coherence and duplicate-publication hazards.\n\nTypical result:\n\n```text\ncontent_readiness: PASS|FAIL\n```\n\n### 2. Schedule readiness\n\nCovers exact timezone-aware `planned_at`, target/connection identity and scheduling metadata coherence. It answers whether the approved post has a valid durable plan, not whether the unattended runtime can execute it right now.\n\nTypical result:\n\n```text\nschedule_readiness: PASS|FAIL|NOT_SCHEDULED\n```\n\n### 3. Unattended execution readiness\n\nCovers the infrastructure/security state needed for automatic execution: exact scheduled-publication authorization, verified delivery copy, compatible social adapter, actual SEO Workflow Bridge **social** runtime, credential health and GitHub Actions scheduler.\n\nTypical result:\n\n```text\nunattended_execution_readiness: READY|PENDING|BLOCKED|UNKNOWN\n```\n\nImportant classification rules:\n\n- absence of an exact authorization does **not** make `content_readiness` or `schedule_readiness` fail; report it only in unattended execution readiness;\n- an unverified/missing GitHub Actions scheduler is an unattended-execution infrastructure issue, not a content defect and not a reason to invalidate a coherent persisted `planned_at`;\n- `wordpress.publish_enabled` controls **WordPress article publication only** and MUST NOT be used as a Facebook/LinkedIn blocker;\n- for social publication, inspect the actual `wordpress_bridge_runtime` and required social Bridge capability/adapter state independently from WordPress article publication permission;\n- `wordpress.publish_enabled=false` may be a deliberate least-privilege/user preference while Facebook/LinkedIn scheduled publication remains fully operational;\n- `/social check` is read-only: it reports that an authorization is missing but does not materialize one. `/social schedule` owns authorization materialization when policy/prerequisites permit.\n\n## Exact authorization timing\n\nFor scheduled social publication, exact authorization is normally materialized **before the due date**, during `/social schedule` once final content, schedule, delivery and policy gates are satisfied. The scheduler later ignores that dormant authorization until `planned_at` becomes due.\n\nTherefore:\n\n```text\nauthorization created before planned_at\n!= publish now\n```\n\nThe day/time gate remains enforced by the scheduler/Bridge prepublication checks. Authorization must not be deferred to the day of publication merely to keep the post dormant.\n\n'''
+          if anchor not in s:
+              raise SystemExit('missing social-check insertion anchor')
+          s = s.replace(anchor, insertion + anchor, 1)
+          s = s.replace('A passing result means the durable state is ready for the next publication-related step. It does not mean a public post has been created and it does not grant publication authorization.', 'A passing content/schedule result means the durable post is ready for the next relevant workflow step. Only `unattended_execution_readiness: READY` means the current automatic execution path is complete; even then no public post has been created until the due scheduler/relay actually succeeds.', 1)
+          p.write_text(s)
+
+          # social schedule: explicit early authorization and WP independence
+          p = skill / 'docs/architecture/capabilities/social-schedule.md'
+          s = p.read_text().replace('Date: 2026-09-05', 'Date: 2026-09-09', 1)
+          s = s.replace('Before marking unattended publication operational or creating exact authorization, additionally require:', 'Before marking unattended publication operational or creating exact authorization, additionally require:', 1)
+          s = s.replace('- `wordpress_bridge_runtime` operational because current LinkedIn/Facebook relays use SEO Workflow Bridge hosted in WordPress;', '- `wordpress_bridge_runtime` and the required social Bridge capability operational because current LinkedIn/Facebook relays use SEO Workflow Bridge hosted in WordPress; this is independent from `wordpress.publish_enabled`, which gates WordPress article publication only;', 1)
+          s = s.replace('Scheduling metadata and technical publication authorization remain distinct states.', 'Scheduling metadata and technical publication authorization remain distinct states. Exact authorization may be materialized at scheduling time and remain dormant until the due threshold; it is not a day-of-publication consent prompt.', 1)
+          s = s.replace('`planned_at` is earliest allowed time. Scheduler latency may make actual publication later, never earlier.', '`planned_at` is earliest allowed time. Exact authorization may already exist long before that timestamp; the scheduler must ignore it until due. Scheduler latency may make actual publication later, never earlier.', 1)
+          s = s.replace('### WordPress/Bridge unavailable\n\nContent planning/review may continue, but current automated LinkedIn/Facebook publication is unavailable. Do not substitute direct provider publication silently.', '''### WordPress/Bridge social runtime unavailable\n\nContent planning/review may continue, but current automated LinkedIn/Facebook publication is unavailable when the actual SEO Workflow Bridge social runtime/capability is unavailable. Do not substitute direct provider publication silently.\n\n`wordpress.publish_enabled=false` alone is **not** evidence that the Bridge social runtime is unavailable and must not block Facebook/LinkedIn scheduling or publication.''', 1)
+          p.write_text(s)
+
+          # social-publish independence
+          p = skill / 'docs/architecture/capabilities/social-publish.md'
+          s = p.read_text().replace('Date: 2026-09-05', 'Date: 2026-09-09', 1)
+          s = s.replace('- `wordpress_bridge_runtime` operational;', '- `wordpress_bridge_runtime` with the required social publication capability operational; `wordpress.publish_enabled` is not a social prerequisite;', 1)
+          s = s.replace('### WordPress / SEO Workflow Bridge unavailable\n\nCurrent automated LinkedIn/Facebook publication is unavailable even when social credentials otherwise exist. Do not silently switch to direct provider APIs outside the governed architecture.', '''### WordPress / SEO Workflow Bridge social runtime unavailable\n\nCurrent automated LinkedIn/Facebook publication is unavailable when the actual Bridge social runtime/capability is unavailable even when social credentials otherwise exist. Do not silently switch to direct provider APIs outside the governed architecture.\n\nWordPress article publication permission is a separate least-privilege gate: `wordpress.publish_enabled=false` MUST NOT be interpreted as disabling LinkedIn/Facebook Bridge endpoints.''', 1)
+          p.write_text(s)
+
+          # runtime matrix
+          p = skill / 'docs/architecture/runtime-compatibility-matrix.md'
+          s = p.read_text().replace('Date: 2026-09-05', 'Date: 2026-09-09', 1)
+          s = s.replace('This prerequisite means a configured/verified WordPress target hosting a compatible SEO Workflow Bridge runtime, not merely that a website uses WordPress.', 'This prerequisite means a configured/verified WordPress target hosting a compatible SEO Workflow Bridge runtime, not merely that a website uses WordPress. Capability health must be evaluated per family: WordPress article publication permission and social relay capability are independent.', 1)
+          s = s.replace('When unavailable:\n\n- strategy/article/social creation may continue when their own prerequisites are satisfied;\n- WordPress preparation/publication is unavailable;\n- current automated LinkedIn/Facebook publication is unavailable.', '''When unavailable:\n\n- strategy/article/social creation may continue when their own prerequisites are satisfied;\n- WordPress preparation/publication is unavailable where the relevant WordPress capability is missing;\n- current automated LinkedIn/Facebook publication is unavailable where the relevant social Bridge capability is missing.\n\nCritical independence rule:\n\n```text\nwordpress.publish_enabled = false\n!= wordpress_bridge_runtime unavailable\n!= LinkedIn/Facebook publication disabled\n```\n\n`wordpress.publish_enabled` gates only WordPress article publication. A project may intentionally keep articles draft-only while its verified Bridge social endpoints remain operational.''', 1)
+          s = s.replace('When unavailable:\n\n- content creation/review remains available;\n- schedule state may not be represented as operational unattended automation;\n- do not claim scheduled publication is active.', 'When unavailable:\n\n- content creation/review remains available;\n- coherent `planned_at` schedule metadata may remain valid;\n- unattended execution readiness is BLOCKED/UNKNOWN as appropriate;\n- do not mislabel approved content or schedule readiness as failed solely because scheduler execution is unverified;\n- do not claim unattended scheduled publication is operational.', 1)
+          p.write_text(s)
+
+          # user help projection
+          p = skill / 'docs/architecture/user-help-social.md'
+          s = p.read_text().replace('Date: 2026-09-04', 'Date: 2026-09-09', 1)
+          s = s.replace('## `/social check`\n\nRead-only fail-closed readiness check. Verifies exact state required for publication without publishing.', '''## `/social check`\n\nRead-only diagnostic check. It reports three independent layers instead of one generic publication PASS/FAIL:\n\n```text\nContent readiness: PASS|FAIL\nSchedule readiness: PASS|FAIL|NOT_SCHEDULED\nUnattended execution readiness: READY|PENDING|BLOCKED|UNKNOWN\n```\n\nMissing exact authorization or an unverified scheduler is reported only in the third layer and does not retroactively fail approved content or a coherent persisted schedule.\n\nFor Facebook/LinkedIn, `wordpress.publish_enabled=false` is never a social blocker. That flag controls WordPress **article** publication only; `/social check` must inspect the actual SEO Workflow Bridge social runtime/capability instead.\n\nThe command never creates authorization. When a standing scheduled-publication policy applies, `/social schedule` normally materializes the exact authorization before the due date; the scheduler simply waits until `planned_at` before executing it.''', 1)
+          p.write_text(s)
+
+          # command catalogue wording
+          p = skill / 'docs/architecture/user-command-catalogue.yaml'
+          s = p.read_text()
+          s = s.replace('summary: Run fail-closed readiness checks without publishing.', 'summary: Report content, schedule and unattended-execution readiness independently without publishing or mutating state.', 1)
+          p.write_text(s)
+
+          # regression test
+          test = root / 'tests/test_social_check_readiness_layers.py'
+          test.write_text('''import unittest\nfrom pathlib import Path\n\nROOT = Path(__file__).resolve().parents[1]\nSKILL = ROOT / "skills" / "content-marketing-workflow"\n\nclass SocialCheckReadinessLayersTests(unittest.TestCase):\n    def read(self, rel):\n        return (SKILL / rel).read_text()\n\n    def test_check_has_three_independent_layers(self):\n        doc = self.read("docs/architecture/capabilities/social-check-before-publish.md")\n        for token in ("content_readiness", "schedule_readiness", "unattended_execution_readiness"):\n            self.assertIn(token, doc)\n        self.assertIn("later layer must not rewrite an earlier passing layer as failed", doc)\n\n    def test_wordpress_article_publish_flag_never_blocks_social(self):\n        check = self.read("docs/architecture/capabilities/social-check-before-publish.md")\n        schedule = self.read("docs/architecture/capabilities/social-schedule.md")\n        publish = self.read("docs/architecture/capabilities/social-publish.md")\n        matrix = self.read("docs/architecture/runtime-compatibility-matrix.md")\n        self.assertIn("wordpress.publish_enabled` controls **WordPress article publication only**", check)\n        self.assertIn("`wordpress.publish_enabled=false` alone is **not** evidence", schedule)\n        self.assertIn("`wordpress.publish_enabled` is not a social prerequisite", publish)\n        self.assertIn("wordpress.publish_enabled = false", matrix)\n        self.assertIn("LinkedIn/Facebook publication disabled", matrix)\n\n    def test_authorization_is_precreated_and_dormant_until_due(self):\n        check = self.read("docs/architecture/capabilities/social-check-before-publish.md")\n        schedule = self.read("docs/architecture/capabilities/social-schedule.md")\n        self.assertIn("normally materialized **before the due date**", check)\n        self.assertIn("authorization created before planned_at", check)\n        self.assertIn("Exact authorization may already exist long before that timestamp", schedule)\n\n    def test_scheduler_issue_is_execution_layer_only(self):\n        check = self.read("docs/architecture/capabilities/social-check-before-publish.md")\n        matrix = self.read("docs/architecture/runtime-compatibility-matrix.md")\n        self.assertIn("unverified/missing GitHub Actions scheduler is an unattended-execution infrastructure issue", check)\n        self.assertIn("do not mislabel approved content or schedule readiness as failed", matrix)\n\nif __name__ == "__main__":\n    unittest.main()\n''')
+
+          # CI
+          replace('.github/workflows/ci.yml', '      - name: Validate status runtime identity/version\n        run: python3 tests/test_status_runtime_identity.py\n', '      - name: Validate social check readiness layers\n        run: python3 tests/test_social_check_readiness_layers.py\n      - name: Validate status runtime identity/version\n        run: python3 tests/test_status_runtime_identity.py\n')
+          PY
+          python3 /tmp/apply_048.py
+          python3 tools/sync-skill-mirror.py
+      - name: Validate patch
+        run: |
+          python3 tests/test_social_check_readiness_layers.py
+          python3 tests/test_repository.py
+          python3 tests/test_single_visual_approval.py
+          python3 tests/test_transient_image_rendering.py
+          python3 tests/test_status_runtime_identity.py
+          python3 tests/test_status_project_repository.py
+          python3 tools/build-release.py --source-sha "$GITHUB_SHA"
+          python3 tools/build-skill.py
+      - name: Commit product changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION README.md CHANGELOG.md .github/workflows/ci.yml tests/test_social_check_readiness_layers.py skills/content-marketing-workflow plugins/content-marketing-workflow
+          git commit -m "fix: separate social readiness from execution gates"
+          git push origin HEAD:fix/social-check-readiness-048
