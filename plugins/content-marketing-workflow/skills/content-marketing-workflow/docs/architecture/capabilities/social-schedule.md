@@ -1,6 +1,6 @@
 # Internal capability: social-schedule
 
-Date: 2026-09-05
+Date: 2026-09-09
 Status: current implementation contract
 
 ## Purpose
@@ -13,7 +13,7 @@ Global prerequisite/degradation behavior is owned by:
 docs/architecture/runtime-compatibility-matrix.md
 ```
 
-Scheduling metadata and technical publication authorization remain distinct states.
+Scheduling metadata and technical publication authorization remain distinct states. Exact authorization may be materialized at scheduling time and remain dormant until the due threshold; it is not a day-of-publication consent prompt.
 
 ## Capability contract
 
@@ -43,7 +43,7 @@ Before marking unattended publication operational or creating exact authorizatio
 - `github_repository` operational;
 - `cloud_media_storage` operational;
 - required exact final image remains `verified_final`;
-- `wordpress_bridge_runtime` operational because current LinkedIn/Facebook relays use SEO Workflow Bridge hosted in WordPress;
+- `wordpress_bridge_runtime` and the required social Bridge capability operational because current LinkedIn/Facebook relays use SEO Workflow Bridge hosted in WordPress; this is independent from `wordpress.publish_enabled`, which gates WordPress article publication only;
 - `github_actions_scheduler` operational;
 - compatible platform adapter enabled/connected;
 - exact verified remote identity;
@@ -125,13 +125,15 @@ approved post + verified_final
 -> actual published_at / provider evidence persisted
 ```
 
-`planned_at` is earliest allowed time. Scheduler latency may make actual publication later, never earlier.
+`planned_at` is earliest allowed time. Exact authorization may already exist long before that timestamp; the scheduler must ignore it until due. Scheduler latency may make actual publication later, never earlier.
 
 ## Missing-runtime behavior
 
-### WordPress/Bridge unavailable
+### WordPress/Bridge social runtime unavailable
 
-Content planning/review may continue, but current automated LinkedIn/Facebook publication is unavailable. Do not substitute direct provider publication silently.
+Content planning/review may continue, but current automated LinkedIn/Facebook publication is unavailable when the actual SEO Workflow Bridge social runtime/capability is unavailable. Do not substitute direct provider publication silently.
+
+`wordpress.publish_enabled=false` alone is **not** evidence that the Bridge social runtime is unavailable and must not block Facebook/LinkedIn scheduling or publication.
 
 ### GitHub Actions unavailable
 

@@ -4,6 +4,16 @@ All notable changes to Content Marketing Workflow are documented here. The proje
 
 ## [Unreleased]
 
+## [0.4.8] - 2026-09-09
+
+- Split `/social check` into content readiness, schedule readiness and unattended execution readiness instead of collapsing every runtime concern into one publication PASS/FAIL.
+- Made missing exact scheduled-publication authorization an execution-readiness state rather than a content/schedule failure; standing-policy authorization is normally materialized during scheduling and remains dormant until `planned_at` is due.
+- Clarified that `wordpress.publish_enabled` gates WordPress article publication only and must never block Facebook/LinkedIn publication.
+- Made social publication depend on the actual SEO Workflow Bridge social runtime/capabilities, independently from WordPress article publication permission.
+- Classified unverified GitHub Actions scheduler state as unattended-execution infrastructure state, not as a defect in approved content or persisted schedule metadata.
+- Added regression coverage for readiness-layer separation, WordPress article/social capability independence and authorization timing semantics.
+- Bumped the Skill/Codex plugin version to 0.4.8 and synchronized the canonical Skill with the plugin mirror.
+
 ## [0.4.7] - 2026-09-07
 
 - Fixed direct-ChatGPT `/social create` compatibility when the image-generation surface automatically renders raw generated images in chat.

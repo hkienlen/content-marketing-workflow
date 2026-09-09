@@ -1,6 +1,6 @@
 # Internal capability: social-publish
 
-Date: 2026-09-05
+Date: 2026-09-09
 Status: LinkedIn and Facebook Page live-validated; runtime prerequisite model current
 
 ## Purpose
@@ -52,7 +52,7 @@ For current automated/unattended LinkedIn or Facebook publication all must be tr
 - final text approved;
 - exact required final image is `verified_final`;
 - exact ALT present;
-- `wordpress_bridge_runtime` operational;
+- `wordpress_bridge_runtime` with the required social publication capability operational; `wordpress.publish_enabled` is not a social prerequisite;
 - `github_actions_scheduler` operational for scheduled/unattended publication;
 - target platform adapter/connection exists and remote identity is verified;
 - connection health is not known expired/invalid;
@@ -77,9 +77,11 @@ CMW must not introduce text-only social publication as a degraded fallback.
 
 Authoring/review of social text may continue where allowed, but publication is unavailable. Do not fall back to GitHub binaries, WordPress media library or local filesystem storage.
 
-### WordPress / SEO Workflow Bridge unavailable
+### WordPress / SEO Workflow Bridge social runtime unavailable
 
-Current automated LinkedIn/Facebook publication is unavailable even when social credentials otherwise exist. Do not silently switch to direct provider APIs outside the governed architecture.
+Current automated LinkedIn/Facebook publication is unavailable when the actual Bridge social runtime/capability is unavailable even when social credentials otherwise exist. Do not silently switch to direct provider APIs outside the governed architecture.
+
+WordPress article publication permission is a separate least-privilege gate: `wordpress.publish_enabled=false` MUST NOT be interpreted as disabling LinkedIn/Facebook Bridge endpoints.
 
 ### GitHub Actions unavailable
 

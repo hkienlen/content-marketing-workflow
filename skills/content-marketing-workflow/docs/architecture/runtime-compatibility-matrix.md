@@ -1,6 +1,6 @@
 # Runtime compatibility and prerequisite matrix
 
-Date: 2026-09-05
+Date: 2026-09-09
 Status: current architecture authority
 
 ## Purpose
@@ -139,7 +139,7 @@ If image generation is available but cloud media storage is unavailable, generat
 
 Severity: **optional for authoring; required for current WordPress/social publication scope**.
 
-This prerequisite means a configured/verified WordPress target hosting a compatible SEO Workflow Bridge runtime, not merely that a website uses WordPress.
+This prerequisite means a configured/verified WordPress target hosting a compatible SEO Workflow Bridge runtime, not merely that a website uses WordPress. Capability health must be evaluated per family: WordPress article publication permission and social relay capability are independent.
 
 Required for:
 
@@ -152,8 +152,18 @@ Required for:
 When unavailable:
 
 - strategy/article/social creation may continue when their own prerequisites are satisfied;
-- WordPress preparation/publication is unavailable;
-- current automated LinkedIn/Facebook publication is unavailable.
+- WordPress preparation/publication is unavailable where the relevant WordPress capability is missing;
+- current automated LinkedIn/Facebook publication is unavailable where the relevant social Bridge capability is missing.
+
+Critical independence rule:
+
+```text
+wordpress.publish_enabled = false
+!= wordpress_bridge_runtime unavailable
+!= LinkedIn/Facebook publication disabled
+```
+
+`wordpress.publish_enabled` gates only WordPress article publication. A project may intentionally keep articles draft-only while its verified Bridge social endpoints remain operational.
 
 ### `github_actions_scheduler`
 
@@ -164,8 +174,10 @@ Required for the current unattended scheduled WordPress/social relay flows that 
 When unavailable:
 
 - content creation/review remains available;
-- schedule state may not be represented as operational unattended automation;
-- do not claim scheduled publication is active.
+- coherent `planned_at` schedule metadata may remain valid;
+- unattended execution readiness is BLOCKED/UNKNOWN as appropriate;
+- do not mislabel approved content or schedule readiness as failed solely because scheduler execution is unverified;
+- do not claim unattended scheduled publication is operational.
 
 ### `linkedin_adapter`
 
