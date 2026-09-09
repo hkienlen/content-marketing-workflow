@@ -1,6 +1,6 @@
 # Detailed user help - social commands
 
-Date: 2026-09-04
+Date: 2026-09-09
 Status: user-help contract for future skill
 
 ## Purpose
@@ -221,7 +221,19 @@ scheduler success
 
 ## `/social check`
 
-Read-only fail-closed readiness check. Verifies exact state required for publication without publishing.
+Read-only diagnostic check. It reports three independent layers instead of one generic publication PASS/FAIL:
+
+```text
+Content readiness: PASS|FAIL
+Schedule readiness: PASS|FAIL|NOT_SCHEDULED
+Unattended execution readiness: READY|PENDING|BLOCKED|UNKNOWN
+```
+
+Missing exact authorization or an unverified scheduler is reported only in the third layer and does not retroactively fail approved content or a coherent persisted schedule.
+
+For Facebook/LinkedIn, `wordpress.publish_enabled=false` is never a social blocker. That flag controls WordPress **article** publication only; `/social check` must inspect the actual SEO Workflow Bridge social runtime/capability instead.
+
+The command never creates authorization. When a standing scheduled-publication policy applies, `/social schedule` normally materializes the exact authorization before the due date; the scheduler simply waits until `planned_at` before executing it.
 
 ## `/social health`
 

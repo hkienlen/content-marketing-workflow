@@ -1,19 +1,25 @@
 # Internal capability: social-check-before-publish
 
-Date: 2026-09-02
+Date: 2026-09-09
 Status: current capability contract
 
 ## Purpose
 
-`social-check-before-publish` is the read-only gate that determines whether one social post is technically and structurally ready for a targeted platform publication or native scheduling step.
+`social-check-before-publish` is the read-only diagnostic gate for one social post. It reports three independent readiness layers instead of collapsing them into one generic publication result:
 
-It never publishes, schedules, confirms scheduling or mutates repository state.
+```text
+content_readiness
+schedule_readiness
+unattended_execution_readiness
+```
+
+It never publishes, schedules, creates authorization, confirms scheduling or mutates repository state.
 
 ## Capability contract
 
 ```yaml
 name: social-check-before-publish
-purpose: Validate one or more social posts against durable provenance, social data, accessibility, provider-backed asset and platform contracts before any publication-related action.
+purpose: Validate durable content and schedule state, then separately report unattended execution infrastructure/authorization readiness without publishing or mutating state.
 availability: optional
 feature_gate: social.enabled
 mode: read_only
@@ -42,6 +48,9 @@ reads:
   - explicit repository_file compatibility path when used
   - immutable post ID registry
   - targeted platform state
+  - exact publication-authorization presence/state when available
+  - scheduler/runtime verification state when available
+  - active social Bridge capability/connection health when available
 
 writes: []
 persists: []
@@ -75,6 +84,62 @@ completion_conditions:
   - clear pass/fail result returned
   - no repository or external mutation occurred
 ```
+
+## Readiness layers
+
+`/social check` must report these layers independently. A failure or unknown state in a later layer must not rewrite an earlier passing layer as failed.
+
+### 1. Content readiness
+
+Covers immutable identity/provenance, approved master text, ALT, verified final visual/provider identity, hashes/dimensions/MIME, platform membership/status coherence and duplicate-publication hazards.
+
+Typical result:
+
+```text
+content_readiness: PASS|FAIL
+```
+
+### 2. Schedule readiness
+
+Covers exact timezone-aware `planned_at`, target/connection identity and scheduling metadata coherence. It answers whether the approved post has a valid durable plan, not whether the unattended runtime can execute it right now.
+
+Typical result:
+
+```text
+schedule_readiness: PASS|FAIL|NOT_SCHEDULED
+```
+
+### 3. Unattended execution readiness
+
+Covers the infrastructure/security state needed for automatic execution: exact scheduled-publication authorization, verified delivery copy, compatible social adapter, actual SEO Workflow Bridge **social** runtime, credential health and GitHub Actions scheduler.
+
+Typical result:
+
+```text
+unattended_execution_readiness: READY|PENDING|BLOCKED|UNKNOWN
+```
+
+Important classification rules:
+
+- absence of an exact authorization does **not** make `content_readiness` or `schedule_readiness` fail; report it only in unattended execution readiness;
+- an unverified/missing GitHub Actions scheduler is an unattended-execution infrastructure issue, not a content defect and not a reason to invalidate a coherent persisted `planned_at`;
+- `wordpress.publish_enabled` controls **WordPress article publication only** and MUST NOT be used as a Facebook/LinkedIn blocker;
+- for social publication, inspect the actual `wordpress_bridge_runtime` and required social Bridge capability/adapter state independently from WordPress article publication permission;
+- `wordpress.publish_enabled=false` may be a deliberate least-privilege/user preference while Facebook/LinkedIn scheduled publication remains fully operational;
+- `/social check` is read-only: it reports that an authorization is missing but does not materialize one. `/social schedule` owns authorization materialization when policy/prerequisites permit.
+
+## Exact authorization timing
+
+For scheduled social publication, exact authorization is normally materialized **before the due date**, during `/social schedule` once final content, schedule, delivery and policy gates are satisfied. The scheduler later ignores that dormant authorization until `planned_at` becomes due.
+
+Therefore:
+
+```text
+authorization created before planned_at
+!= publish now
+```
+
+The day/time gate remains enforced by the scheduler/Bridge prepublication checks. Authorization must not be deferred to the day of publication merely to keep the post dormant.
 
 ## Provenance readiness
 
@@ -122,7 +187,7 @@ Current CLI entrypoints remain:
 ./social-publisher.bash check-before-publish --all
 ```
 
-A passing result means the durable state is ready for the next publication-related step. It does not mean a public post has been created and it does not grant publication authorization.
+A passing content/schedule result means the durable post is ready for the next relevant workflow step. Only `unattended_execution_readiness: READY` means the current automatic execution path is complete; even then no public post has been created until the due scheduler/relay actually succeeds.
 
 Any implementation projection must converge on the full capability validations above; the capability contract is authoritative when a newer durable provenance requirement has not yet been projected into a specific CLI check.
 
